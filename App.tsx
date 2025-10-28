@@ -8,6 +8,16 @@ import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import type { AppData, NodeData, EquityData, SettingsData } from './types.ts';
 
+// Import hardcoded solution data directly
+import settingsJSON from './spots/final_table/speed20_1/settings.json';
+import equityJSON from './spots/final_table/speed20_1/equity.json';
+import node0 from './spots/final_table/speed20_1/nodes/0.json';
+import node1 from './spots/final_table/speed20_1/nodes/1.json';
+import node2 from './spots/final_table/speed20_1/nodes/2.json';
+import node3 from './spots/final_table/speed20_1/nodes/3.json';
+import node4 from './spots/final_table/speed20_1/nodes/4.json';
+import node5 from './spots/final_table/speed20_1/nodes/5.json';
+
 
 // Main Application Component
 const App: React.FC = () => {
@@ -74,29 +84,21 @@ const App: React.FC = () => {
         }
     }, []);
 
-    const loadHardcodedSolution = useCallback(async () => {
+    const loadHardcodedSolution = useCallback(() => {
         setIsLoading(true);
         setError(null);
         try {
-            const basePath = './spots/final_table/speed20_1';
-            const settingsRes = await fetch(`${basePath}/settings.json`);
-            if (!settingsRes.ok) throw new Error(`Failed to load settings.json`);
-            const settings: SettingsData = await settingsRes.json();
-
-            const equityRes = await fetch(`${basePath}/equity.json`);
-            if (!equityRes.ok) throw new Error(`Failed to load equity.json`);
-            const equity: EquityData = await equityRes.json();
+            const settings: SettingsData = settingsJSON as SettingsData;
+            const equity: EquityData = equityJSON as EquityData;
             
             const nodes = new Map<number, NodeData>();
-            const nodeIds = [0, 1, 2, 3, 4, 5]; // Hardcoded for this specific solution
+            nodes.set(0, node0 as NodeData);
+            nodes.set(1, node1 as NodeData);
+            nodes.set(2, node2 as NodeData);
+            nodes.set(3, node3 as NodeData);
+            nodes.set(4, node4 as NodeData);
+            nodes.set(5, node5 as NodeData);
             
-            for (const id of nodeIds) {
-                const nodeRes = await fetch(`${basePath}/nodes/${id}.json`);
-                if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
-                const nodeData: NodeData = await nodeRes.json();
-                nodes.set(id, nodeData);
-            }
-
             const newSolution: AppData = {
                 id: uuidv4(),
                 fileName: 'FT 3-handed 20bb avg',
