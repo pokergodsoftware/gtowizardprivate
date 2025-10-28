@@ -97,7 +97,7 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                 }
             }
         }
-    }, [solutions]);
+    }, [solutions, activePhaseFilter]);
     
     const handleLocalFileChange = (files: FileList) => {
         onFileChange(files, selectedPhaseForUpload);

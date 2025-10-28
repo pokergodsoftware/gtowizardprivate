@@ -104,7 +104,8 @@ const App: React.FC = () => {
         setIsAppLoading(true);
         setError(null);
         try {
-            const indexUrl = 'spots/index.txt';
+            const cacheBuster = `v=${new Date().getTime()}`;
+            const indexUrl = `spots/index.txt?${cacheBuster}`;
             const response = await fetch(indexUrl);
 
             if (!response.ok) {
@@ -137,7 +138,7 @@ const App: React.FC = () => {
                 const fileName = pathParts.slice(1).join('/').trim();
                 const tournamentPhase = mapDirToPhase(dirName);
 
-                const fileUrl = `spots/${normalizedPath}`;
+                const fileUrl = `spots/${normalizedPath}?${cacheBuster}`;
                 const fileResponse = await fetch(fileUrl);
                 if (!fileResponse.ok) {
                     throw new Error(`Failed to fetch solution file: ${fileUrl} (Status: ${fileResponse.status})`);
