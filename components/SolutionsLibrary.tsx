@@ -80,9 +80,24 @@ interface SortConfig {
 
 export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution, onFileChange, isLoading, error }) => {
     const [selectedPhaseForUpload, setSelectedPhaseForUpload] = useState<string>(tournamentPhases[3]);
-    const [activePhaseFilter, setActivePhaseFilter] = useState<string>('100~60% left');
+    const [activePhaseFilter, setActivePhaseFilter] = useState<string>(tournamentPhases[0]);
     const [activePlayerFilter, setActivePlayerFilter] = useState<number | 'All'>('All');
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
+    // On initial load, intelligently select the first filter that has solutions.
+    useEffect(() => {
+        if (solutions.length > 0) {
+            const currentFilterHasSolutions = solutions.some(s => s.tournamentPhase === activePhaseFilter);
+            if (!currentFilterHasSolutions) {
+                const firstPhaseWithSolutions = tournamentPhases.find(phase => 
+                    solutions.some(s => s.tournamentPhase === phase)
+                );
+                if (firstPhaseWithSolutions) {
+                    setActivePhaseFilter(firstPhaseWithSolutions);
+                }
+            }
+        }
+    }, [solutions]);
     
     const handleLocalFileChange = (files: FileList) => {
         onFileChange(files, selectedPhaseForUpload);
