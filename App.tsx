@@ -8,16 +8,6 @@ import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import type { AppData, NodeData, EquityData, SettingsData } from './types.ts';
 
-// Import hardcoded solution data directly
-import settingsJSON from './spots/final_table/speed20_1/settings.json';
-import equityJSON from './spots/final_table/speed20_1/equity.json';
-import node0 from './spots/final_table/speed20_1/nodes/0.json';
-import node1 from './spots/final_table/speed20_1/nodes/1.json';
-import node2 from './spots/final_table/speed20_1/nodes/2.json';
-import node3 from './spots/final_table/speed20_1/nodes/3.json';
-import node4 from './spots/final_table/speed20_1/nodes/4.json';
-import node5 from './spots/final_table/speed20_1/nodes/5.json';
-
 
 // Main Application Component
 const App: React.FC = () => {
@@ -84,43 +74,82 @@ const App: React.FC = () => {
         }
     }, []);
 
-    const loadHardcodedSolution = useCallback(() => {
+    const loadSolutionsFromManifest = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const settings: SettingsData = settingsJSON as SettingsData;
-            const equity: EquityData = equityJSON as EquityData;
-            
-            const nodes = new Map<number, NodeData>();
-            nodes.set(0, node0 as NodeData);
-            nodes.set(1, node1 as NodeData);
-            nodes.set(2, node2 as NodeData);
-            nodes.set(3, node3 as NodeData);
-            nodes.set(4, node4 as NodeData);
-            nodes.set(5, node5 as NodeData);
-            
-            const newSolution: AppData = {
-                id: uuidv4(),
-                fileName: 'FT 3-handed 20bb avg',
-                tournamentPhase: 'Final table',
-                settings,
-                equity,
-                nodes,
-            };
-            
-            setSolutions([newSolution]);
+            const manifestRes = await fetch('./solutions.json');
+            if (!manifestRes.ok) {
+                 if (manifestRes.status === 404) {
+                    console.log("solutions.json not found, starting with empty library.");
+                    setSolutions([]);
+                    setIsLoading(false); // Stop loading if no manifest
+                    return; 
+                 }
+                 throw new Error(`Failed to load solutions manifest: ${manifestRes.statusText}`);
+            }
+            const manifest = await manifestRes.json();
+
+            if (!Array.isArray(manifest)) {
+                throw new Error('solutions.json is not a valid array.');
+            }
+
+            const solutionPromises = manifest.map(async (solutionInfo) => {
+                const { path: basePath, fileName, tournamentPhase, nodeIds } = solutionInfo;
+
+                if (!basePath || !fileName || !tournamentPhase || !Array.isArray(nodeIds)) {
+                    console.warn("Skipping invalid solution entry in manifest:", solutionInfo);
+                    return null;
+                }
+
+                try {
+                    const settingsRes = await fetch(`${basePath}/settings.json`);
+                    if (!settingsRes.ok) throw new Error(`Failed to load settings.json for ${fileName}`);
+                    const settings: SettingsData = await settingsRes.json();
+
+                    const equityRes = await fetch(`${basePath}/equity.json`);
+                    if (!equityRes.ok) throw new Error(`Failed to load equity.json for ${fileName}`);
+                    const equity: EquityData = await equityRes.json();
+                    
+                    const nodes = new Map<number, NodeData>();
+                    
+                    await Promise.all(nodeIds.map(async (id: number) => {
+                        const nodeRes = await fetch(`${basePath}/nodes/${id}.json`);
+                        if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json for ${fileName}`);
+                        const nodeData: NodeData = await nodeRes.json();
+                        nodes.set(id, nodeData);
+                    }));
+
+                    return {
+                        id: uuidv4(),
+                        fileName,
+                        tournamentPhase,
+                        settings,
+                        equity,
+                        nodes,
+                    };
+                } catch (e) {
+                    console.error(`Error loading solution "${fileName}":`, e);
+                    setError(`Failed to load one or more solutions. Check console for details.`);
+                    return null; // Return null for failed solutions
+                }
+            });
+
+            const loadedSolutions = (await Promise.all(solutionPromises)).filter((s): s is AppData => s !== null);
+
+            setSolutions(loadedSolutions);
 
         } catch (err) {
-            console.error("Error loading solution:", err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred");
+            console.error("Error loading solutions from manifest:", err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred while loading solutions.");
         } finally {
             setIsLoading(false);
         }
     }, []);
     
     useEffect(() => {
-        loadHardcodedSolution();
-    }, [loadHardcodedSolution]);
+        loadSolutionsFromManifest();
+    }, [loadSolutionsFromManifest]);
 
 
     // --- Memoized Derived State for Viewer ---
