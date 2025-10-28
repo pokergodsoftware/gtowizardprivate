@@ -1,0 +1,5 @@
+{
+  "name": "GTO Poker Range Viewer",
+  "description": "A web application to visualize and analyze poker game theory optimal (GTO) strategies by importing and parsing HRC zip files. It displays hand ranges, action frequencies, and equity information in a user interface similar to GTO Wizards.",
+  "requestFramePermissions": []
+}
