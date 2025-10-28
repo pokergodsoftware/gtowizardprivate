@@ -124,17 +124,20 @@ const App: React.FC = () => {
             }
 
             const promises = filePaths.map(async (path) => {
-                const pathParts = path.split('/');
+                // Normalize path separators to handle Windows backslashes (\) from .bat script
+                const normalizedPath = path.replace(/\\/g, '/');
+                const pathParts = normalizedPath.split('/');
+
                 if (pathParts.length < 2) {
                     console.error(`Invalid path in index.txt: ${path}. Skipping.`);
                     return null;
                 }
                 
-                const dirName = pathParts[0];
-                const fileName = pathParts[pathParts.length - 1];
+                const dirName = pathParts[0].trim();
+                const fileName = pathParts.slice(1).join('/').trim();
                 const tournamentPhase = mapDirToPhase(dirName);
 
-                const fileUrl = `spots/${path}`;
+                const fileUrl = `spots/${normalizedPath}`;
                 const fileResponse = await fetch(fileUrl);
                 if (!fileResponse.ok) {
                     throw new Error(`Failed to fetch solution file: ${fileUrl} (Status: ${fileResponse.status})`);
