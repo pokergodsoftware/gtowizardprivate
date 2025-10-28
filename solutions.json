@@ -1,6 +1,6 @@
 [
     {
-        "path": "./spots/final_table/speed20_1",
+        "path": "/spots/final_table/speed20_1",
         "fileName": "FT 3-handed 20bb avg",
         "tournamentPhase": "Final table",
         "nodeIds": [0, 1, 2, 3, 4, 5]
