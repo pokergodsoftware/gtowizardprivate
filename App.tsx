@@ -1,334 +1,247 @@
-
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { FileUpload } from './components/FileUploadScreen.tsx';
+import { SolutionsLibrary } from './components/SolutionsLibrary.tsx';
 import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
-import { SolutionsLibrary } from './components/SolutionsLibrary.tsx';
-import type { AppData, NodeData, Action } from './types.ts';
-import { v4 as uuidv4 } from 'uuid';
+import type { AppData, NodeData, EquityData, SettingsData } from './types.ts';
 
 
-// Extend the Window interface to include JSZip
-declare global {
-  interface Window {
-    JSZip: any;
-  }
-}
-
-// Helper function to parse a single solution zip file.
-const parseSolution = async (fileBlob: Blob, fileName: string, tournamentPhase: string): Promise<AppData> => {
-    if (!window.JSZip) {
-        throw new Error("JSZip library not loaded. Please check your internet connection and refresh.");
-    }
-
-    const zip = await window.JSZip.loadAsync(fileBlob);
-    const settingsFile = zip.file('settings.json');
-    const equityFile = zip.file('equity.json');
-    
-    if (!settingsFile || !equityFile) {
-      throw new Error(`Missing settings.json or equity.json in the file: ${fileName}.`);
-    }
-
-    const settings = JSON.parse(await settingsFile.async('string'));
-    const equity = JSON.parse(await equityFile.async('string'));
-
-    // Chip values in the solution files are inflated.
-    // Divide stacks, blinds, and action amounts by 100.
-    if (settings.handdata) {
-        if (Array.isArray(settings.handdata.stacks)) {
-            settings.handdata.stacks = settings.handdata.stacks.map((s: number) => s / 100);
-        }
-        if (Array.isArray(settings.handdata.blinds)) {
-            settings.handdata.blinds = settings.handdata.blinds.map((b: number) => b / 100);
-        }
-    }
-
-    const nodes: Map<number, NodeData> = new Map();
-    const nodeFiles = (Object.values(zip.files) as any[]).filter((f) => f.name.startsWith('nodes/') && f.name.endsWith('.json'));
-
-    for (const nodeFile of nodeFiles) {
-      const nodeId = parseInt(nodeFile.name.split('/')[1].replace('.json', ''));
-      const nodeContent = JSON.parse(await nodeFile.async('string'));
-      
-      if (nodeContent.actions && Array.isArray(nodeContent.actions)) {
-        nodeContent.actions.forEach((action: Action) => {
-            if (typeof action.amount === 'number') {
-                action.amount /= 100;
-            }
-        });
-      }
-
-      nodes.set(nodeId, nodeContent);
-    }
-    
-    return {
-      id: uuidv4(),
-      fileName,
-      tournamentPhase,
-      settings,
-      equity,
-      nodes,
-    };
-};
-
-// Maps a directory name from spots/ to a human-readable tournament phase.
-const mapDirToPhase = (dir: string): string => {
-    switch (dir) {
-        case '100-60': return '100~60% left';
-        case '60-40': return '60~40% left';
-        case '40-20': return '40~20% left';
-        case 'near_bubble': return 'Near bubble';
-        case '3tables': return '3 tables';
-        case '2tables': return '2 tables';
-        case 'final_table': return 'Final table';
-        default: 
-            // Fallback for custom folder names: replace underscore/hyphen with space and capitalize.
-            const formatted = dir.replace(/[_-]/g, ' ');
-            return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-    }
-};
-
-
+// Main Application Component
 const App: React.FC = () => {
-  const [solutions, setSolutions] = useState<AppData[]>([]);
-  const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isAppLoading, setIsAppLoading] = useState<boolean>(true); // For initial auto-load
-  const [isUploading, setIsUploading] = useState<boolean>(false); // For manual uploads
-  const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
-  const [currentNodeId, setCurrentNodeId] = useState<number>(0);
+    // --- State Management ---
+    const [solutions, setSolutions] = useState<AppData[]>([]);
+    const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  // Auto-load default solutions from a structured index file on startup.
-  useEffect(() => {
-    const loadDefaultSolutions = async () => {
-        setIsAppLoading(true);
+    // Viewer-specific state
+    const [currentNodeId, setCurrentNodeId] = useState<number>(0);
+    const [selectedHand, setSelectedHand] = useState<string | null>(null);
+    const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
+
+    // --- Data Parsing and Loading ---
+
+    const parseHrcFolder = async (files: FileList | File[], fileName: string, tournamentPhase: string): Promise<AppData> => {
+        const fileArray = Array.from(files);
+
+        const settingsFile = fileArray.find(f => f.name.endsWith('settings.json') || f.webkitRelativePath.endsWith('settings.json'));
+        const equityFile = fileArray.find(f => f.name.endsWith('equity.json') || f.webkitRelativePath.endsWith('equity.json'));
+        const nodeFiles = fileArray.filter(f => (f.name.includes('nodes/') || f.webkitRelativePath.includes('nodes/')) && f.name.endsWith('.json'));
+
+        if (!settingsFile || !equityFile || nodeFiles.length === 0) {
+            throw new Error('Pasta de solução inválida. Faltando settings.json, equity.json ou a pasta de nós.');
+        }
+
+        const settings: SettingsData = JSON.parse(await settingsFile.text());
+        const equity: EquityData = JSON.parse(await equityFile.text());
+
+        const nodes = new Map<number, NodeData>();
+        for (const file of nodeFiles) {
+            const nodeId = parseInt(file.name.replace('.json', '').split('/').pop() || '0', 10);
+            const nodeData: NodeData = JSON.parse(await file.text());
+            nodes.set(nodeId, nodeData);
+        }
+
+        return {
+            id: uuidv4(),
+            fileName,
+            tournamentPhase,
+            settings,
+            equity,
+            nodes
+        };
+    };
+
+    const handleFileChange = useCallback(async (files: FileList, tournamentPhase: string) => {
+        setIsLoading(true);
         setError(null);
         try {
-            const cacheBuster = `v=${new Date().getTime()}`;
-            // The index file is now expected to be a JSON file mapping directories to file lists.
-            const indexUrl = `spots/index.txt?${cacheBuster}`;
-            const response = await fetch(indexUrl);
+            if (files.length === 0) return;
+            // Heuristic to get folder name: find the common base path.
+            const firstPath = files[0].webkitRelativePath;
+            const folderName = firstPath.substring(0, firstPath.indexOf('/'));
 
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.warn(`Default solutions index not found at '${indexUrl}'. Skipping auto-load.`);
-                    return;
-                }
-                throw new Error(`Failed to fetch index: ${response.statusText}`);
-            }
+            const newSolution = await parseHrcFolder(files, folderName, tournamentPhase);
+            setSolutions(prev => [...prev, newSolution]);
+        } catch (err) {
+            console.error("Error processing uploaded files:", err);
+            setError(err instanceof Error ? err.message : "Ocorreu um erro desconhecido ao processar o arquivo.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const loadHardcodedSolution = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const basePath = 'spots/final_table/speed20_1';
+            const settingsRes = await fetch(`${basePath}/settings.json`);
+            if (!settingsRes.ok) throw new Error(`Failed to load settings.json`);
+            const settings: SettingsData = await settingsRes.json();
+
+            const equityRes = await fetch(`${basePath}/equity.json`);
+            if (!equityRes.ok) throw new Error(`Failed to load equity.json`);
+            const equity: EquityData = await equityRes.json();
             
-            const solutionsIndex = await response.json();
-
-            const promises = Object.entries(solutionsIndex).flatMap(([dirName, fileNames]) => {
-                if (!Array.isArray(fileNames)) {
-                    console.warn(`Invalid format for directory '${dirName}' in index.txt. Expected an array of filenames.`);
-                    return [];
-                }
-                
-                const tournamentPhase = mapDirToPhase(dirName);
-                
-                return (fileNames as string[]).map(fileName => {
-                    return (async () => {
-                        try {
-                            const normalizedPath = `${dirName}/${fileName}`.replace(/\\/g, '/');
-                            const fileUrl = `spots/${normalizedPath}?${cacheBuster}`;
-                            const fileResponse = await fetch(fileUrl);
-
-                            if (!fileResponse.ok) {
-                                console.error(`Failed to fetch solution file: ${fileUrl} (Status: ${fileResponse.status})`);
-                                return null;
-                            }
-                            
-                            const fileBlob = await fileResponse.blob();
-                            return parseSolution(fileBlob, fileName, tournamentPhase);
-
-                        } catch (err) {
-                             console.error(`Error processing solution ${dirName}/${fileName}:`, err);
-                             return null; // Return null on failure for a single file, so Promise.all doesn't fail.
-                        }
-                    })();
-                });
-            });
-
-            if (promises.length === 0) {
-                console.warn(`'${indexUrl}' seems to be empty or in an invalid format. No solutions to load.`);
-                return;
-            }
+            const nodes = new Map<number, NodeData>();
+            const nodeIds = [0, 1, 2, 3, 4, 5]; // Hardcoded for this specific solution
             
-            const newSolutions = (await Promise.all(promises)).filter((s): s is AppData => s !== null);
-            setSolutions(prev => [...prev, ...newSolutions]);
+            for (const id of nodeIds) {
+                const nodeRes = await fetch(`${basePath}/nodes/${id}.json`);
+                if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
+                const nodeData: NodeData = await nodeRes.json();
+                nodes.set(id, nodeData);
+            }
+
+            const newSolution: AppData = {
+                id: uuidv4(),
+                fileName: 'FT 3-handed 20bb avg',
+                tournamentPhase: 'Final table',
+                settings,
+                equity,
+                nodes,
+            };
+            
+            setSolutions([newSolution]);
 
         } catch (err) {
-            console.error("Error loading default solutions:", err);
-            let errorMessage = err instanceof Error ? `Could not auto-load solutions: ${err.message}` : 'An unknown error occurred during auto-load.';
-            // Provide a more specific error if the index file isn't valid JSON.
-            if (err instanceof SyntaxError) {
-                errorMessage = 'Could not auto-load solutions: Failed to parse `spots/index.txt`. Please ensure it is a valid JSON file mapping phases to solution file arrays.';
-            }
-            setError(errorMessage);
+            console.error("Error loading solution:", err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred");
         } finally {
-            setIsAppLoading(false);
+            setIsLoading(false);
         }
-    };
-    loadDefaultSolutions();
-  }, []);
-
-  const selectedSolution = useMemo(() => {
-    return solutions.find(s => s.id === selectedSolutionId) || null;
-  }, [solutions, selectedSolutionId]);
-
-  const handleDisplayModeToggle = useCallback(() => {
-    setDisplayMode(prev => prev === 'bb' ? 'chips' : 'bb');
-  }, []);
-
-  const handleFileChange = useCallback(async (files: FileList, tournamentPhase: string) => {
-    if (!files || files.length === 0) return;
-    setIsUploading(true);
-    setError(null);
-
-    try {
-        const solutionPromises = Array.from(files).map(file => parseSolution(file, file.name, tournamentPhase));
-        const newSolutions = await Promise.all(solutionPromises);
-        setSolutions(prev => [...prev, ...newSolutions]);
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : 'Failed to process zip files.');
-    } finally {
-      setIsUploading(false);
-    }
-  }, []);
+    }, []);
+    
+    useEffect(() => {
+        loadHardcodedSolution();
+    }, [loadHardcodedSolution]);
 
 
-  const handleSelectSolution = useCallback((solutionId: string) => {
-    setSelectedSolutionId(solutionId);
-    setCurrentNodeId(0); // Reset to root node when selecting a solution
-    setSelectedHand('AA');
-  }, []);
-  
-  const handleDeselectSolution = useCallback(() => {
-      setSelectedSolutionId(null);
-  }, []);
+    // --- Memoized Derived State for Viewer ---
 
-  const { parentMap, pathNodeIds } = useMemo(() => {
-    if (!selectedSolution) return { parentMap: new Map(), pathNodeIds: [] };
+    const selectedSolution = useMemo(() => {
+        return solutions.find(s => s.id === selectedSolutionId);
+    }, [solutions, selectedSolutionId]);
 
-    const parentMap = new Map<number, number>();
-    for (const [nodeId, nodeData] of selectedSolution.nodes.entries()) {
-        for (const action of nodeData.actions) {
-            if (typeof action.node === 'number') {
-                parentMap.set(action.node, nodeId);
+    const bigBlind = useMemo(() => {
+        if (!selectedSolution) return 0;
+        const blinds = selectedSolution.settings.handdata.blinds;
+        return blinds.length > 1 ? Math.max(blinds[0], blinds[1]) : (blinds[0] || 0);
+    }, [selectedSolution]);
+
+    const parentMap = useMemo(() => {
+        const map = new Map<number, number>();
+        if (!selectedSolution) return map;
+        for (const [nodeId, nodeData] of selectedSolution.nodes.entries()) {
+            for (const action of nodeData.actions) {
+                if (typeof action.node === 'number') {
+                    map.set(action.node, nodeId);
+                }
             }
         }
+        return map;
+    }, [selectedSolution]);
+
+    const pathNodeIds = useMemo(() => {
+        if (!parentMap.size) return [0];
+        const path: number[] = [];
+        let currentId: number | undefined = currentNodeId;
+        while (typeof currentId === 'number') {
+            path.unshift(currentId);
+            currentId = parentMap.get(currentId);
+        }
+        return path;
+    }, [currentNodeId, parentMap]);
+    
+    const currentNode = useMemo(() => {
+        return selectedSolution?.nodes.get(currentNodeId);
+    }, [selectedSolution, currentNodeId]);
+
+
+    // --- Event Handlers ---
+
+    const handleSelectSolution = (id: string) => {
+        setSelectedSolutionId(id);
+        setCurrentNodeId(0); // Reset to root node
+        setSelectedHand(null);
+    };
+
+    const handleChangeSolution = () => {
+        setSelectedSolutionId(null);
+    };
+
+    const handleNodeChange = (nodeId: number) => {
+        setCurrentNodeId(nodeId);
+        setSelectedHand(null); // Deselect hand when action changes
+    };
+
+    // --- Render Logic ---
+
+    if (!selectedSolution) {
+        return (
+            <SolutionsLibrary 
+                solutions={solutions}
+                onSelectSolution={handleSelectSolution}
+                onFileChange={handleFileChange}
+                isLoading={isLoading}
+                error={error}
+            />
+        );
+    }
+
+    if (!currentNode) {
+         return <div className="flex items-center justify-center h-screen">Error: Current node not found.</div>;
     }
     
-    const path: number[] = [];
-    let currentId: number | undefined = currentNodeId;
-    while (currentId !== undefined) {
-        path.unshift(currentId);
-        currentId = parentMap.get(currentId);
-    }
+    const { settings } = selectedSolution;
+    const { stacks } = settings.handdata;
+    const playerStack = stacks[currentNode.player];
+    const numPlayers = stacks.length;
 
-    return { parentMap, pathNodeIds: path };
-  }, [selectedSolution, currentNodeId]);
-  
-  const [selectedHand, setSelectedHand] = useState<string>('AA');
-
-  const currentNode = selectedSolution?.nodes.get(currentNodeId);
-  const blinds = selectedSolution?.settings.handdata.blinds || [];
-  const bigBlind = blinds.length > 1 ? Math.max(blinds[0], blinds[1]) : (blinds[0] || 0);
-  const playerStack = selectedSolution && currentNode ? selectedSolution.settings.handdata.stacks[currentNode.player] : 0;
-  const numPlayers = selectedSolution?.settings.handdata.stacks.length || 0;
-
-  if (isAppLoading) {
-      return (
-          <div className="flex items-center justify-center min-h-screen bg-[#1e2227] text-white">
-              <div className="flex flex-col items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <p className="mt-4 text-lg">Loading solutions...</p>
-              </div>
-          </div>
-      );
-  }
-
-  // Dedicated error screen for auto-load failures.
-  // This provides clear feedback if the initial data can't be loaded.
-  if (!isAppLoading && error && solutions.length === 0) {
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#1e2227] text-white">
-            <div className="flex flex-col items-center text-center p-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h2 className="mt-4 text-2xl font-bold">Failed to Load Solutions</h2>
-                <p className="mt-2 text-red-300 bg-red-900/50 p-3 rounded-md max-w-xl shadow-lg">{error}</p>
-                <p className="mt-4 text-gray-400">
-                    Please ensure the solution files are correctly placed in the `spots` directory and the `spots/index.txt` file is a valid JSON manifest.
-                </p>
-            </div>
+        <div className="flex flex-col h-screen overflow-hidden bg-[#1e2227]">
+            <Header 
+                currentNodeId={currentNodeId}
+                currentNode={currentNode}
+                bigBlind={bigBlind}
+                settings={settings}
+                allNodes={selectedSolution.nodes}
+                onNodeChange={handleNodeChange}
+                parentMap={parentMap}
+                pathNodeIds={pathNodeIds}
+                displayMode={displayMode}
+                tournamentPhase={selectedSolution.tournamentPhase}
+                onChangeSolution={handleChangeSolution}
+            />
+            <main className="flex flex-1 p-2 gap-2 overflow-hidden">
+                <div className="flex-1 flex items-center justify-center p-4 bg-[#282c33] rounded-md overflow-hidden">
+                     <RangeGrid 
+                        currentNode={currentNode}
+                        bigBlind={bigBlind}
+                        playerStack={playerStack}
+                        selectedHand={selectedHand}
+                        setSelectedHand={setSelectedHand}
+                        displayMode={displayMode}
+                        playerIndex={currentNode.player}
+                        numPlayers={numPlayers}
+                        settings={settings}
+                    />
+                </div>
+                <Sidebar 
+                    appData={selectedSolution}
+                    currentNode={currentNode}
+                    bigBlind={bigBlind}
+                    selectedHand={selectedHand}
+                    pathNodeIds={pathNodeIds}
+                    displayMode={displayMode}
+                    onDisplayModeToggle={() => setDisplayMode(m => m === 'bb' ? 'chips' : 'bb')}
+                />
+            </main>
         </div>
     );
-  }
-
-  if (!selectedSolution || !currentNode) {
-    return (
-        <SolutionsLibrary 
-            solutions={solutions}
-            onSelectSolution={handleSelectSolution}
-            onFileChange={handleFileChange}
-            isLoading={isUploading}
-            error={error}
-        />
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-[#1e2227] font-sans">
-      <div className="flex flex-col h-screen">
-        <Header 
-          currentNodeId={currentNodeId}
-          currentNode={currentNode} 
-          bigBlind={bigBlind}
-          settings={selectedSolution.settings}
-          allNodes={selectedSolution.nodes}
-          onNodeChange={setCurrentNodeId}
-          parentMap={parentMap}
-          pathNodeIds={pathNodeIds}
-          displayMode={displayMode}
-          tournamentPhase={selectedSolution.tournamentPhase}
-          onChangeSolution={handleDeselectSolution}
-        />
-        <main className="flex flex-1 overflow-hidden p-2 gap-2">
-          <div className="flex flex-col flex-1 bg-[#282c33] rounded-md overflow-hidden">
-            <div className="flex flex-1 items-center justify-center min-w-0 min-h-0">
-                <RangeGrid 
-                  currentNode={currentNode} 
-                  bigBlind={bigBlind} 
-                  playerStack={playerStack}
-                  selectedHand={selectedHand}
-                  setSelectedHand={setSelectedHand}
-                  displayMode={displayMode}
-                  playerIndex={currentNode.player}
-                  numPlayers={numPlayers}
-                  settings={selectedSolution.settings}
-                />
-            </div>
-          </div>
-          <Sidebar 
-            appData={selectedSolution} 
-            currentNode={currentNode} 
-            bigBlind={bigBlind}
-            selectedHand={selectedHand}
-            pathNodeIds={pathNodeIds}
-            displayMode={displayMode}
-            onDisplayModeToggle={handleDisplayModeToggle}
-          />
-        </main>
-      </div>
-    </div>
-  );
 };
 
 export default App;

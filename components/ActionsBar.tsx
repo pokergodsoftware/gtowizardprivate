@@ -18,7 +18,9 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({ currentNode, bigBlind, s
   const actionStatsRaw = currentNode.actions.map((action, index) => {
     let comboCount = 0;
     // Iterate over hands to correctly weight them by their combo counts
-    Object.entries(currentNode.hands).forEach(([handName, handData]) => {
+    // FIX: Cast `handDataValue` to the `HandData` type to resolve type errors.
+    Object.entries(currentNode.hands).forEach(([handName, handDataValue]) => {
+      const handData = handDataValue as HandData;
       const freq = handData.played[index];
       if (freq > 0) {
         const maxCombos = getHandTypeMaxCombos(handName);

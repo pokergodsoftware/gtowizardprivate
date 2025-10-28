@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { AppData } from '../types.ts';
 import { FileUpload } from './FileUploadScreen.tsx';
@@ -79,12 +78,13 @@ interface SortConfig {
 }
 
 export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution, onFileChange, isLoading, error }) => {
-    const [selectedPhaseForUpload, setSelectedPhaseForUpload] = useState<string>(tournamentPhases[3]);
+    const [selectedPhaseForUpload, setSelectedPhaseForUpload] = useState<string>(tournamentPhases[6]); // Default to 'Final table'
     const [activePhaseFilter, setActivePhaseFilter] = useState<string>(tournamentPhases[0]);
     const [activePlayerFilter, setActivePlayerFilter] = useState<number | 'All'>('All');
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
-    // On initial load, intelligently select the first filter that has solutions.
+    // When the solution list changes, intelligently select the first filter that has solutions,
+    // but only if the currently selected filter is empty. This prevents jarring UX on file upload.
     useEffect(() => {
         if (solutions.length > 0) {
             const currentFilterHasSolutions = solutions.some(s => s.tournamentPhase === activePhaseFilter);
@@ -97,7 +97,7 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                 }
             }
         }
-    }, [solutions, activePhaseFilter]);
+    }, [solutions]);
     
     const handleLocalFileChange = (files: FileList) => {
         onFileChange(files, selectedPhaseForUpload);
@@ -190,8 +190,13 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
             if (typeof aVal === 'string' && typeof bVal === 'string') {
                 return aVal.localeCompare(bVal);
             }
-            if (aVal < bVal) return -1;
-            if (aVal > bVal) return 1;
+            // FIX: Replaced unsafe type cast with a proper type guard to prevent runtime errors
+            // when comparing potentially mixed-type values. This resolves the arithmetic error.
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+                if (aVal < bVal) return -1;
+                if (aVal > bVal) return 1;
+                return 0;
+            }
             return 0;
         };
 
@@ -236,7 +241,7 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                                 onClick={() => setActivePhaseFilter(phase)}
                                 className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 ${
                                     activePhaseFilter === phase
-                                    ? 'bg-[#4A5568] text-white ring-2 ring-blue-500'
+                                    ? 'bg-blue-600 text-white shadow-lg'
                                     : 'bg-[#2d3238] text-gray-300 hover:bg-[#3c414b]'
                                 }`}
                             >
