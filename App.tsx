@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from './components/FileUploadScreen.tsx';
@@ -77,7 +78,7 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const basePath = 'spots/final_table/speed20_1';
+            const basePath = './spots/final_table/speed20_1';
             const settingsRes = await fetch(`${basePath}/settings.json`);
             if (!settingsRes.ok) throw new Error(`Failed to load settings.json`);
             const settings: SettingsData = await settingsRes.json();
