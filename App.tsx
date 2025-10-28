@@ -98,13 +98,14 @@ const App: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
   const [currentNodeId, setCurrentNodeId] = useState<number>(0);
 
-  // Auto-load default solutions from a simple index file on startup.
+  // Auto-load default solutions from a structured index file on startup.
   useEffect(() => {
     const loadDefaultSolutions = async () => {
         setIsAppLoading(true);
         setError(null);
         try {
             const cacheBuster = `v=${new Date().getTime()}`;
+            // The index file is now expected to be a JSON file mapping directories to file lists.
             const indexUrl = `spots/index.txt?${cacheBuster}`;
             const response = await fetch(indexUrl);
 
@@ -115,44 +116,56 @@ const App: React.FC = () => {
                 }
                 throw new Error(`Failed to fetch index: ${response.statusText}`);
             }
+            
+            const solutionsIndex = await response.json();
 
-            const indexText = await response.text();
-            const filePaths = indexText.split('\n').map(line => line.trim()).filter(Boolean);
-
-            if (filePaths.length === 0) {
-                console.warn(`'${indexUrl}' is empty. No solutions to load.`);
-                return;
-            }
-
-            const promises = filePaths.map(async (path) => {
-                // Normalize path separators to handle Windows backslashes (\) from .bat script
-                const normalizedPath = path.replace(/\\/g, '/');
-                const pathParts = normalizedPath.split('/');
-
-                if (pathParts.length < 2) {
-                    console.error(`Invalid path in index.txt: ${path}. Skipping.`);
-                    return null;
+            const promises = Object.entries(solutionsIndex).flatMap(([dirName, fileNames]) => {
+                if (!Array.isArray(fileNames)) {
+                    console.warn(`Invalid format for directory '${dirName}' in index.txt. Expected an array of filenames.`);
+                    return [];
                 }
                 
-                const dirName = pathParts[0].trim();
-                const fileName = pathParts.slice(1).join('/').trim();
                 const tournamentPhase = mapDirToPhase(dirName);
+                
+                return (fileNames as string[]).map(fileName => {
+                    return (async () => {
+                        try {
+                            const normalizedPath = `${dirName}/${fileName}`.replace(/\\/g, '/');
+                            const fileUrl = `spots/${normalizedPath}?${cacheBuster}`;
+                            const fileResponse = await fetch(fileUrl);
 
-                const fileUrl = `spots/${normalizedPath}?${cacheBuster}`;
-                const fileResponse = await fetch(fileUrl);
-                if (!fileResponse.ok) {
-                    throw new Error(`Failed to fetch solution file: ${fileUrl} (Status: ${fileResponse.status})`);
-                }
-                const fileBlob = await fileResponse.blob();
-                return parseSolution(fileBlob, fileName, tournamentPhase);
+                            if (!fileResponse.ok) {
+                                console.error(`Failed to fetch solution file: ${fileUrl} (Status: ${fileResponse.status})`);
+                                return null;
+                            }
+                            
+                            const fileBlob = await fileResponse.blob();
+                            return parseSolution(fileBlob, fileName, tournamentPhase);
+
+                        } catch (err) {
+                             console.error(`Error processing solution ${dirName}/${fileName}:`, err);
+                             return null; // Return null on failure for a single file, so Promise.all doesn't fail.
+                        }
+                    })();
+                });
             });
+
+            if (promises.length === 0) {
+                console.warn(`'${indexUrl}' seems to be empty or in an invalid format. No solutions to load.`);
+                return;
+            }
             
             const newSolutions = (await Promise.all(promises)).filter((s): s is AppData => s !== null);
             setSolutions(prev => [...prev, ...newSolutions]);
 
         } catch (err) {
             console.error("Error loading default solutions:", err);
-            setError(err instanceof Error ? `Could not auto-load solutions: ${err.message}` : 'An unknown error occurred during auto-load.');
+            let errorMessage = err instanceof Error ? `Could not auto-load solutions: ${err.message}` : 'An unknown error occurred during auto-load.';
+            // Provide a more specific error if the index file isn't valid JSON.
+            if (err instanceof SyntaxError) {
+                errorMessage = 'Could not auto-load solutions: Failed to parse `spots/index.txt`. Please ensure it is a valid JSON file mapping phases to solution file arrays.';
+            }
+            setError(errorMessage);
         } finally {
             setIsAppLoading(false);
         }
@@ -235,10 +248,28 @@ const App: React.FC = () => {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   <p className="mt-4 text-lg">Loading solutions...</p>
-                   {error && <p className="mt-2 text-red-400 bg-red-900/50 p-3 rounded-md max-w-md text-center">{error}</p>}
               </div>
           </div>
       );
+  }
+
+  // Dedicated error screen for auto-load failures.
+  // This provides clear feedback if the initial data can't be loaded.
+  if (!isAppLoading && error && solutions.length === 0) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-[#1e2227] text-white">
+            <div className="flex flex-col items-center text-center p-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h2 className="mt-4 text-2xl font-bold">Failed to Load Solutions</h2>
+                <p className="mt-2 text-red-300 bg-red-900/50 p-3 rounded-md max-w-xl shadow-lg">{error}</p>
+                <p className="mt-4 text-gray-400">
+                    Please ensure the solution files are correctly placed in the `spots` directory and the `spots/index.txt` file is a valid JSON manifest.
+                </p>
+            </div>
+        </div>
+    );
   }
 
   if (!selectedSolution || !currentNode) {
