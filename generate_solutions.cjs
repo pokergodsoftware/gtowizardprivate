@@ -115,11 +115,22 @@ function generateSolutions() {
     return a.fileName.localeCompare(b.fileName);
   });
 
-  // Salvar arquivo
+  // Salvar arquivo na raiz e em public/
   const outputPath = path.join(__dirname, 'solutions.json');
+  const publicOutputPath = path.join(__dirname, 'public', 'solutions.json');
+  
   fs.writeFileSync(outputPath, JSON.stringify(solutions, null, 2));
   
+  // Criar pasta public se não existir
+  const publicDir = path.join(__dirname, 'public');
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(publicOutputPath, JSON.stringify(solutions, null, 2));
+  
   console.log(`\n✓ Generated solutions.json with ${solutions.length} solutions`);
+  console.log(`✓ Copied to public/solutions.json`);
 }
 
 // Executar

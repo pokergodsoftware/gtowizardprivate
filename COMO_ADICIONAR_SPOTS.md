@@ -36,11 +36,15 @@ spots/
 ### Opção 1: Regenerar Automaticamente (Recomendado)
 
 1. Adicione seus spots na pasta `spots/` seguindo a estrutura acima
-2. Execute o arquivo `generate_index.bat` (Windows) ou rode:
+2. Execute o arquivo `generate_index.bat` (Windows) que irá:
+   - Gerar `solutions.json` com todos os spots
+   - Criar junction de `public/spots` → `spots`
+   - Copiar `solutions.json` para `public/`
+3. Alternativamente, rode manualmente:
    ```bash
    node generate_solutions.cjs
+   .\setup_public.bat
    ```
-3. O arquivo `solutions.json` será regenerado automaticamente com todos os spots encontrados
 
 ### Opção 2: Adicionar Manualmente
 
@@ -97,6 +101,24 @@ Atualmente o projeto tem **51 soluções** carregadas automaticamente:
 
 ## Troubleshooting
 
+### Erro 404: solutions.json not found
+
+**Causa:** O Vite não está servindo os arquivos estáticos corretamente.
+
+**Solução:**
+1. Execute `generate_index.bat` ou `setup_public.bat`
+2. Verifique se existe `public/solutions.json`
+3. Verifique se existe `public/spots` (junction para `spots/`)
+
+### Erro 404: Failed to load settings.json
+
+**Causa:** A pasta `spots` não está acessível via HTTP.
+
+**Solução:**
+1. Execute `setup_public.bat` para criar a junction
+2. Verifique se `public/spots` aponta para `spots/`
+3. Reinicie o servidor de desenvolvimento
+
 ### Spots não aparecem na aplicação
 
 1. Verifique se os caminhos em `solutions.json` começam com `./spots/`
@@ -108,3 +130,14 @@ Atualmente o projeto tem **51 soluções** carregadas automaticamente:
 
 - Certifique-se de que todos os IDs em `nodeIds` correspondem a arquivos existentes em `nodes/`
 - Os arquivos devem ser nomeados como `0.json`, `1.json`, etc.
+
+### Erros de TypeScript no vite.config.ts
+
+**Causa:** `node_modules` não está instalado.
+
+**Solução:**
+```bash
+npm install
+```
+
+Esses erros não afetam a execução, apenas o IntelliSense do editor.
