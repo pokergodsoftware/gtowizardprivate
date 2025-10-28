@@ -7,7 +7,6 @@ import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import type { AppData, NodeData, EquityData, SettingsData } from './types.ts';
-import manifest from './solutions.json';
 
 
 // Main Application Component
@@ -79,11 +78,20 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            if (!Array.isArray(manifest) || manifest.length === 0) {
-                 console.log("solutions.json not found or is empty, starting with empty library.");
-                 setSolutions([]);
-                 setIsLoading(false);
-                 return;
+            const manifestRes = await fetch('./solutions.json');
+            if (!manifestRes.ok) {
+                 if (manifestRes.status === 404) {
+                    console.log("solutions.json not found, starting with empty library.");
+                    setSolutions([]);
+                    setIsLoading(false); // Stop loading if no manifest
+                    return; 
+                 }
+                 throw new Error(`Failed to load solutions manifest: ${manifestRes.statusText}`);
+            }
+            const manifest = await manifestRes.json();
+
+            if (!Array.isArray(manifest)) {
+                throw new Error('solutions.json is not a valid array.');
             }
 
             const solutionPromises = manifest.map(async (solutionInfo) => {
