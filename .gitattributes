@@ -1,0 +1,5 @@
+# Ensure JSON files are treated as text
+*.json text eol=lf
+# Ensure large files are handled correctly
+public/solutions-metadata.json filter=lfs diff=lfs merge=lfs -text
+public/spots/**/*.json filter=lfs diff=lfs merge=lfs -text
