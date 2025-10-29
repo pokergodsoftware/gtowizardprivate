@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6a5fb9f0280f2381ce2c2144a5f5b0992e81e121e76b1d436dd33f6be628fd1a
-size 347
+{"equityUnit":"TABLE_EQUITY_PERCENT","conversionFactors":{"toUSD":2.3411894,"toRegularPrizePercent":0.062699236},"preHandEquity":[12.61695,12.36428,9.95939,38.18366,26.87572],"bubbleFactors":[[-1.0,0.73,0.765,1.018,1.018],[1.017,-1.0,0.765,1.017,1.017],[1.014,1.014,-1.0,1.014,1.014],[0.804,0.724,0.759,-1.0,0.873],[0.806,0.727,0.762,1.036,-1.0]]}
