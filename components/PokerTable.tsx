@@ -1,7 +1,7 @@
 
 import React from 'react';
 import type { NodeData, SettingsData, Action } from '../types.ts';
-import { getPlayerPositions, formatChips } from '../lib/pokerUtils.ts';
+import { getPlayerPositions, formatChips, calculateBountyMultiplier } from '../lib/pokerUtils.ts';
 
 // A more detailed component for each player at the table
 const Player: React.FC<{
@@ -12,10 +12,15 @@ const Player: React.FC<{
   isBB: boolean;
   bigBlind: number;
   displayMode: 'bb' | 'chips';
-}> = ({ position, stackChips, bounty, status, isBB, bigBlind, displayMode }) => {
+  fileName?: string;
+}> = ({ position, stackChips, bounty, status, isBB, bigBlind, displayMode, fileName }) => {
   const stackDisplay = displayMode === 'bb' 
-    ? (bigBlind > 0 ? (stackChips / bigBlind).toFixed(1) : '0.0')
-    : formatChips(stackChips);
+    ? (bigBlind > 0 ? ((stackChips / 100) / (bigBlind / 100)).toFixed(1) : '0.0')
+    : formatChips(stackChips / 100);
+
+  const bountyDisplay = displayMode === 'bb' && fileName
+    ? calculateBountyMultiplier(bounty / 2, fileName)
+    : formatChips(bounty / 2);
 
   // Determine styles based on player status
   const isFolded = status === 'folded';
@@ -45,8 +50,9 @@ const Player: React.FC<{
   );
 
   return (
-    <div className={`relative flex flex-col items-center w-20 h-28 justify-center`}>
-      <div className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center">
+    <div className={`relative flex flex-col items-center justify-center gap-1`}>
+      {/* Player Circle */}
+      <div className="flex items-center justify-center">
         {/* If player is BB and is active, wrap the circle in a square border */}
         {isActive && isBB ? (
           <div className="p-0.5 rounded-md border-2 border-teal-400">
@@ -57,11 +63,11 @@ const Player: React.FC<{
         )}
       </div>
       
-      {/* Bounty Display Below Player */}
+      {/* Bounty Display - Logo abaixo do círculo */}
       {bounty > 0 && (
-        <div className={`absolute bottom-4 flex items-center justify-center space-x-1 text-xs text-yellow-400 font-bold transition-opacity duration-300 ${bountyOpacityClass}`}>
-            <img src="https://waryhub.com/files/preview/960x960/11742569964ly8rjxfvuumzs0lup831ldwasvucbe4pnljcyq7voxhowhzlrmfowailtjbzxv8wrpn9ikcrlm3xqbl9uz9mxvyezd7boik50po6.png" alt="Bounty" className="w-4 h-4" />
-            <span>{(bounty / 2).toLocaleString()}</span>
+        <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded-full bg-black/60 text-xs text-yellow-400 font-semibold transition-opacity duration-300 ${bountyOpacityClass}`}>
+            <img src="https://waryhub.com/files/preview/960x960/11742569964ly8rjxfvuumzs0lup831ldwasvucbe4pnljcyq7voxhowhzlrmfowailtjbzxv8wrpn9ikcrlm3xqbl9uz9mxvyezd7boik50po6.png" alt="Bounty" className="w-3.5 h-3.5" />
+            <span className="text-[11px]">{bountyDisplay}</span>
         </div>
       )}
     </div>
@@ -78,12 +84,15 @@ const DealerButton: React.FC = () => {
 };
 
 
-export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: number; bigBlind: number; currentNode: NodeData; allNodes: Map<number, NodeData>; pathNodeIds: number[]; displayMode: 'bb' | 'chips'; }> = ({ settings, activePlayerIndex, bigBlind, currentNode, allNodes, pathNodeIds, displayMode }) => {
+export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: number; bigBlind: number; currentNode: NodeData; allNodes: Map<number, NodeData>; pathNodeIds: number[]; displayMode: 'bb' | 'chips'; fileName?: string; }> = ({ settings, activePlayerIndex, bigBlind, currentNode, allNodes, pathNodeIds, displayMode, fileName }) => {
   const { stacks, blinds, bounties } = settings.handdata;
   const numPlayers = stacks.length;
   // Robustly determine SB and BB, regardless of order in the data file.
   const smallBlindAmount = blinds.length > 1 ? Math.min(blinds[0], blinds[1]) : (blinds[0] || 0);
   const bigBlindAmount = blinds.length > 1 ? Math.max(blinds[0], blinds[1]) : (blinds[0] || 0);
+  
+  // Ajustar bigBlind para cálculos em modo BB (dividir por 100)
+  const adjustedBigBlind = displayMode === 'bb' ? bigBlindAmount / 100 : bigBlindAmount;
   const ante = blinds.length > 2 ? blinds[2] : 0;
   
   const positions = getPlayerPositions(numPlayers);
@@ -203,15 +212,15 @@ export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: n
       
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center z-0">
           <span className="font-bold text-lg text-white whitespace-nowrap">
-            {displayMode === 'bb' && bigBlind > 0
-              ? `${(potInChips / bigBlind).toFixed(2)} bb` 
-              : formatChips(potInChips)}
+            {displayMode === 'bb' && adjustedBigBlind > 0
+              ? `${((potInChips / 100) / adjustedBigBlind).toFixed(2)} bb` 
+              : formatChips(potInChips / 100)}
           </span>
           {currentBetToCall > 0 && potInChips > currentBetToCall && (
               <span className="text-sm text-gray-400 whitespace-nowrap">
-                {displayMode === 'bb' && bigBlind > 0
-                  ? `${(currentBetToCall / bigBlind).toFixed(2)} bb` 
-                  : formatChips(currentBetToCall)}
+                {displayMode === 'bb' && adjustedBigBlind > 0
+                  ? `${((currentBetToCall / 100) / adjustedBigBlind).toFixed(2)} bb` 
+                  : formatChips(currentBetToCall / 100)}
               </span>
           )}
       </div>
@@ -246,6 +255,7 @@ export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: n
               bigBlind={bigBlind}
               isBB={i === bbIndex}
               displayMode={displayMode}
+              fileName={fileName}
             />
           </div>
         );
@@ -256,8 +266,8 @@ export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: n
           if (amount <= 0 || !layout[playerIndex]) return null;
           
           const displayText = displayMode === 'bb' 
-            ? parseFloat((amount / bigBlindAmount).toFixed(2)).toString() 
-            : formatChips(amount);
+            ? parseFloat(((amount / 100) / adjustedBigBlind).toFixed(2)).toString() 
+            : formatChips(amount / 100);
 
           const chipPosition = getInFrontPosition(layout[playerIndex]);
 
@@ -275,7 +285,7 @@ export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: n
 
       {/* Render Dealer Button */}
       {layout && btnIndex !== -1 && (
-        <div className="absolute" style={getInFrontPosition(layout[btnIndex], 0.30)}>
+        <div className="absolute" style={getInFrontPosition(layout[btnIndex], 0.15)}>
           <DealerButton />
         </div>
       )}

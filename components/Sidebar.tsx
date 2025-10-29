@@ -73,8 +73,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ appData, currentNode, bigBlind
         allNodes={appData.nodes}
         pathNodeIds={pathNodeIds}
         displayMode={displayMode}
+        fileName={appData.fileName}
       />
-      <ActionsBar currentNode={currentNode} bigBlind={bigBlind} settings={appData.settings} displayMode={displayMode} />
+      <div className="mt-6">
+        <ActionsBar currentNode={currentNode} bigBlind={bigBlind} settings={appData.settings} displayMode={displayMode} />
+      </div>
       <ComboDetail 
         selectedHand={selectedHand} 
         currentNode={currentNode} 

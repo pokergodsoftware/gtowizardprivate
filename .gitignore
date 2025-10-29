@@ -16,6 +16,17 @@ dist-ssr
 # Não ignorar public/ para permitir deploy no Vercel
 # public/
 
+# Spots (hospedados no Cloudflare R2)
+/spots/
+/public/spots/
+
+# Arquivos de ambiente
+.env.local
+.env.production.local
+
+# Scripts de upload
+upload-to-r2.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

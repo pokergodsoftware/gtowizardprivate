@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from './components/FileUploadScreen.tsx';
@@ -7,6 +6,7 @@ import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
+import { getResourceUrl } from './config.ts';
 import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } from './types.ts';
 
 
@@ -81,7 +81,7 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const metadataRes = await fetch('./solutions-metadata.json');
+            const metadataRes = await fetch(getResourceUrl('solutions-metadata.json'));
             if (!metadataRes.ok) {
                  if (metadataRes.status === 404) {
                     console.log("solutions-metadata.json not found, starting with empty library.");
@@ -107,11 +107,11 @@ const App: React.FC = () => {
                 }
 
                 try {
-                    const settingsRes = await fetch(`${basePath}/settings.json`);
+                    const settingsRes = await fetch(getResourceUrl(`${basePath}/settings.json`));
                     if (!settingsRes.ok) throw new Error(`Failed to load settings.json for ${fileName}`);
                     const settings: SettingsData = await settingsRes.json();
 
-                    const equityRes = await fetch(`${basePath}/equity.json`);
+                    const equityRes = await fetch(getResourceUrl(`${basePath}/equity.json`));
                     if (!equityRes.ok) throw new Error(`Failed to load equity.json for ${fileName}`);
                     const equity: EquityData = await equityRes.json();
                     
@@ -164,7 +164,7 @@ const App: React.FC = () => {
 
         try {
             // Buscar metadados para obter lista de nodeIds
-            const metadataRes = await fetch('./solutions-metadata.json');
+            const metadataRes = await fetch(getResourceUrl('solutions-metadata.json'));
             const metadata: SolutionMetadata[] = await metadataRes.json();
             const solutionMeta = metadata.find(m => m.path === solution.path);
             
@@ -179,7 +179,7 @@ const App: React.FC = () => {
             
             await Promise.all(initialNodeIds.map(async (id: number) => {
                 try {
-                    const nodeRes = await fetch(`${solution.path}/nodes/${id}.json`);
+                    const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${id}.json`));
                     if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
                     const nodeData: NodeData = await nodeRes.json();
                     nodes.set(id, nodeData);
@@ -217,7 +217,7 @@ const App: React.FC = () => {
 
         setIsLoadingNode(true);
         try {
-            const nodeRes = await fetch(`${solution.path}/nodes/${nodeId}.json`);
+            const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
             if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
             const nodeData: NodeData = await nodeRes.json();
 
@@ -254,7 +254,7 @@ const App: React.FC = () => {
             const loadedNodes = await Promise.all(
                 nodesToLoad.map(async (nodeId) => {
                     try {
-                        const nodeRes = await fetch(`${solution.path}/nodes/${nodeId}.json`);
+                        const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
                         if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
                         const nodeData: NodeData = await nodeRes.json();
                         return { nodeId, nodeData };
@@ -390,6 +390,7 @@ const App: React.FC = () => {
                     tournamentPhase={selectedSolution.tournamentPhase}
                     onChangeSolution={handleChangeSolution}
                     loadMultipleNodes={loadMultipleNodes}
+                    fileName={selectedSolution.fileName}
                 />
                 <main className="flex flex-1 p-3 gap-3 overflow-hidden">
                     <div className="flex-1 flex items-center justify-center p-3 bg-[#23272f] rounded-lg overflow-hidden">

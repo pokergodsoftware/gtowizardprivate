@@ -33,27 +33,52 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
         );
     }
     
-    // Create segments for gradient background
+    // Find the largest raise index (same logic as ActionsBar)
+    const raiseIndices = actions
+        .map((action, index) => ({ action, index }))
+        .filter(({ action }) => action.type === 'R');
+    
+    const largestRaiseIndex = raiseIndices.length > 0
+        ? raiseIndices[raiseIndices.length - 1].index
+        : -1;
+
+    // Create segments for gradient background (cores por ação)
     const segments = handData.played
         .map((freq, index) => {
             const action = actions[index];
             if (!action) return null;
-            const actionName = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
+            
+            // Get action name
+            let actionName = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
+            
+            // Override to "Allin" if this is the largest raise (same logic as ActionsBar)
+            if (index === largestRaiseIndex && action.type === 'R' && !actionName.includes('Allin')) {
+                const sizeMatch = actionName.match(/Raise (.+)/);
+                if (sizeMatch) {
+                    actionName = `Allin ${sizeMatch[1]}`;
+                }
+            }
+            
             const color = getActionColor(actionName, playerIndex, numPlayers);
             return { freq, color };
         })
         .filter((item): item is { freq: number; color: string } => item !== null && item.freq > 0.001);
 
-    // Calculate total frequency (sum of all played frequencies)
-    const totalFreq = handData.played.reduce((acc, freq) => acc + freq, 0);
-    const displayFreq = totalFreq > 0.01 ? (totalFreq * 100).toFixed(totalFreq < 0.1 ? 2 : 0) : '0';
+    // Calculate weighted EV (EV ponderado baseado nas frequências das ações)
+    const weightedEV = handData.played.reduce((acc, freq, index) => {
+        if (freq > 0 && handData.evs[index] !== undefined) {
+            return acc + (freq * handData.evs[index]);
+        }
+        return acc;
+    }, 0);
+    const displayEV = weightedEV.toFixed(2);
 
     return (
         <div 
             className={`relative flex overflow-hidden text-white items-center justify-center cursor-pointer ${isSelected ? 'ring-2 ring-white z-10' : ''}`}
             onClick={() => setSelectedHand(handName)}
         >
-            {/* Background Gradient */}
+            {/* Background Gradient: cores por ação */}
             {segments.length === 1 ? (
                 <div className={`absolute inset-0 ${segments[0].color}`}></div>
             ) : (
@@ -63,11 +88,12 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
                     ))}
                 </div>
             )}
-            {/* Foreground Text */}
+            
+            {/* Foreground Text: exibe EV */}
             <div className="relative flex flex-col items-center justify-center text-center leading-tight p-1">
                 <span className="text-base font-bold" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.9)'}}>{handName}</span>
                 <span className="text-xs font-semibold" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.9)'}}>
-                    {displayFreq}
+                    {displayEV}
                 </span>
             </div>
         </div>

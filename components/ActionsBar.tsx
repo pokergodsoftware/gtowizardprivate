@@ -14,6 +14,15 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({ currentNode, bigBlind, s
   const playerStack = settings.handdata.stacks[currentNode.player];
   const numPlayers = settings.handdata.stacks.length;
 
+  // Find all raise actions and identify the largest one as all-in
+  const raiseIndices = currentNode.actions
+    .map((action, index) => ({ action, index }))
+    .filter(({ action }) => action.type === 'R');
+  
+  const largestRaiseIndex = raiseIndices.length > 0
+    ? raiseIndices[raiseIndices.length - 1].index // Last raise is the largest
+    : -1;
+
   // Step 1: Calculate the raw combo count for each action, correctly weighted.
   const actionStatsRaw = currentNode.actions.map((action, index) => {
     let comboCount = 0;
@@ -30,7 +39,18 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({ currentNode, bigBlind, s
       }
     });
 
-    const name = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
+    // Simple logic: if this is the largest raise, mark it as all-in
+    const isLargestRaise = index === largestRaiseIndex;
+    let name = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
+    
+    // Override the name to "Allin" if this is the largest raise
+    if (isLargestRaise && action.type === 'R' && !name.includes('Allin')) {
+      const sizeMatch = name.match(/Raise (.+)/);
+      if (sizeMatch) {
+        name = `Allin ${sizeMatch[1]}`;
+      }
+    }
+    
     const color = getActionColor(name, currentNode.player, numPlayers);
 
     return {

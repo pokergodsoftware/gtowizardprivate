@@ -36,6 +36,49 @@ function getAvgStackBB(settingsPath) {
   }
 }
 
+// Função para gerar assinatura única de um spot (para detectar duplicatas)
+function getSpotSignature(settingsPath, equityPath, nodesDir) {
+  try {
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    const { stacks, blinds, bounties } = settings.handdata;
+    
+    // Ler equity.json para incluir na assinatura
+    let equityData = null;
+    try {
+      equityData = JSON.parse(fs.readFileSync(equityPath, 'utf8'));
+    } catch (e) {
+      // Se não conseguir ler equity, continua sem ele
+    }
+    
+    // Ler primeiro node (0.json) para comparação mais precisa
+    let firstNodeData = null;
+    try {
+      const firstNodePath = path.join(nodesDir, '0.json');
+      if (fs.existsSync(firstNodePath)) {
+        firstNodeData = JSON.parse(fs.readFileSync(firstNodePath, 'utf8'));
+      }
+    } catch (e) {
+      // Se não conseguir ler node, continua sem ele
+    }
+    
+    // Criar assinatura baseada em dados críticos (valores exatos, não arredondados)
+    const signature = JSON.stringify({
+      stacks: [...stacks].sort((a, b) => a - b), // Cópia ordenada para normalizar
+      blinds: blinds,
+      bounties: bounties ? [...bounties].sort((a, b) => a - b) : [],
+      numPlayers: stacks.length,
+      // Incluir dados do primeiro node se disponível
+      firstNodePlayer: firstNodeData ? firstNodeData.player : null,
+      firstNodeStreet: firstNodeData ? firstNodeData.street : null,
+      firstNodeActionsCount: firstNodeData ? firstNodeData.actions.length : null
+    });
+    
+    return signature;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Função para obter todos os node IDs e validar se os arquivos existem
 function getNodeIds(nodesDir) {
   try {
@@ -72,7 +115,9 @@ const MAX_NODES_PER_SOLUTION = 50; // Limita a 50 nodes por solução
 function generateSolutions() {
   const spotsDir = path.join(__dirname, 'spots');
   const solutions = [];
+  const seenSignatures = new Map(); // Para rastrear duplicatas
   let totalSkippedNodes = 0;
+  let duplicatesRemoved = 0;
 
   // Iterar sobre as fases
   for (const phase of Object.keys(phaseMapping)) {
@@ -99,10 +144,19 @@ function generateSolutions() {
 
       const numPlayers = getNumPlayers(settingsPath);
       const avgStackBB = getAvgStackBB(settingsPath);
+      const signature = getSpotSignature(settingsPath, equityPath, nodesDir);
       let nodeIds = getNodeIds(nodesDir);
 
-      if (!numPlayers || !avgStackBB || nodeIds.length === 0) {
+      if (!numPlayers || !avgStackBB || !signature || nodeIds.length === 0) {
         console.log(`Skipping ${phase}/${subDir} - invalid data`);
+        continue;
+      }
+
+      // Verificar se já existe um spot com a mesma assinatura
+      if (seenSignatures.has(signature)) {
+        const existingSpot = seenSignatures.get(signature);
+        console.log(`🔄 Duplicate found: ${phase}/${subDir} (same as ${existingSpot})`);
+        duplicatesRemoved++;
         continue;
       }
 
@@ -122,6 +176,9 @@ function generateSolutions() {
         fileName += ` #${subDir}`;
       }
 
+      // Registrar assinatura
+      seenSignatures.set(signature, `${phase}/${subDir}`);
+
       solutions.push({
         path: `./spots/${phase}/${subDir}`,
         fileName: fileName,
@@ -129,7 +186,7 @@ function generateSolutions() {
         nodeIds: nodeIds
       });
 
-      console.log(`Added: ${fileName} (${nodeIds.length} nodes)`);
+      console.log(`✓ Added: ${fileName} (${nodeIds.length} nodes)`);
     }
   }
 
@@ -159,6 +216,10 @@ function generateSolutions() {
   
   console.log(`\n✓ Generated solutions.json with ${solutions.length} solutions`);
   console.log(`✓ Copied to public/solutions.json`);
+  
+  if (duplicatesRemoved > 0) {
+    console.log(`\n🔄 Duplicates removed: ${duplicatesRemoved}`);
+  }
   
   if (totalSkippedNodes > 0) {
     console.log(`\n⚠️  Total nodes skipped (over limit): ${totalSkippedNodes}`);

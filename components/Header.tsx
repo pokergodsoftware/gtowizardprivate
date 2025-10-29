@@ -1,7 +1,7 @@
 
 import React, { useMemo, useRef, useEffect } from 'react';
 import type { NodeData, SettingsData } from '../types.ts';
-import { getPlayerPositions, getActionName, formatChips } from '../lib/pokerUtils.ts';
+import { getPlayerPositions, getActionName, formatChips, calculateBountyMultiplier } from '../lib/pokerUtils.ts';
 
 interface HeaderProps {
     currentNodeId: number;
@@ -16,6 +16,7 @@ interface HeaderProps {
     tournamentPhase: string;
     onChangeSolution: () => void;
     loadMultipleNodes: (nodeIds: number[]) => Promise<void>;
+    fileName?: string;
 }
 
 
@@ -29,10 +30,11 @@ interface PlayerStrategyCardProps {
     onNodeChange: (nodeId: number) => void;
     highlightedActionNodeId: number | undefined;
     displayMode: 'bb' | 'chips';
+    fileName?: string;
 }
 
 
-const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardProps>(({ playerIndex, isActive, settings, nodeForActions, bigBlind, onClick, onNodeChange, highlightedActionNodeId, displayMode }, ref) => {
+const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardProps>(({ playerIndex, isActive, settings, nodeForActions, bigBlind, onClick, onNodeChange, highlightedActionNodeId, displayMode, fileName }, ref) => {
     
     const { stacks, bounties } = settings.handdata;
     const numPlayers = stacks.length;
@@ -41,9 +43,10 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
     const stack = stacks[playerIndex];
     const bounty = bounties[playerIndex] || 0;
     const position = positions[playerIndex];
-    const stackInBB = bigBlind > 0 ? (stack / bigBlind).toFixed(1) : '0';
+    const adjustedBigBlind = displayMode === 'bb' ? bigBlind / 100 : bigBlind;
+    const stackInBB = adjustedBigBlind > 0 ? ((stack / 100) / adjustedBigBlind).toFixed(1) : '0';
     const bountyAmount = bounty / 2;
-    const bountyInBB = bigBlind > 0 ? (bountyAmount / bigBlind).toFixed(1) : '0';
+    const bountyInBB = adjustedBigBlind > 0 ? ((bountyAmount / 100) / adjustedBigBlind).toFixed(1) : '0';
 
 
     return (
@@ -54,7 +57,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
         >
             <div className="flex-shrink-0">
                 <span className="font-bold text-lg text-gray-200">{position}</span>
-                <div className="text-xs text-gray-400">{displayMode === 'bb' ? `${stack.toLocaleString()} (~${stackInBB}bb)` : formatChips(stack)}</div>
+                <div className="text-xs text-gray-400">{displayMode === 'bb' ? `${stackInBB}bb` : formatChips(stack / 100)}</div>
             </div>
             
             {bounty > 0 && 
@@ -63,7 +66,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
                         <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" clipRule="evenodd" />
                         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
                     </svg>
-                    <span>{displayMode === 'bb' ? `${bountyAmount.toLocaleString()} (~${bountyInBB}bb)` : formatChips(bountyAmount)}</span>
+                    <span>{displayMode === 'bb' && fileName ? calculateBountyMultiplier(bountyAmount, fileName) : formatChips(bountyAmount)}</span>
                 </div>
             }
 
@@ -103,7 +106,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
 PlayerStrategyCard.displayName = "PlayerStrategyCard";
 
 
-export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigBlind, settings, allNodes, onNodeChange, parentMap, pathNodeIds, displayMode, tournamentPhase, onChangeSolution, loadMultipleNodes }) => {
+export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigBlind, settings, allNodes, onNodeChange, parentMap, pathNodeIds, displayMode, tournamentPhase, onChangeSolution, loadMultipleNodes, fileName }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const activePlayerCardRef = useRef<HTMLDivElement>(null);
 
@@ -262,6 +265,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                             onNodeChange={onNodeChange}
                             highlightedActionNodeId={highlightedActionNodeId}
                             displayMode={displayMode}
+                            fileName={fileName}
                         />
                      );
                  })}

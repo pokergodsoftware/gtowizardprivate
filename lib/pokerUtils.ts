@@ -42,7 +42,7 @@ export const getActionColor = (
         : false;
 
     // Cores inspiradas no GTO Wizard
-    if (actionName.includes('Allin')) return 'bg-[#9333ea]'; // Roxo vibrante para All-in
+    if (actionName.includes('Allin')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
     if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Laranja para Raise
     if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Azul cyan para Fold
     if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Verde para Call
@@ -59,7 +59,11 @@ export const getActionColor = (
 export const formatChips = (amount: number): string => {
   // Use toLocaleString to format the number with thousand separators (e.g., 1,234)
   // instead of abbreviating it (e.g., 1.2k), which was the previous incorrect behavior.
-  // We also round the amount to handle any potential floating point inaccuracies.
+  // Check if the number has decimals, if so, format with up to 2 decimal places
+  const hasDecimals = amount % 1 !== 0;
+  if (hasDecimals) {
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
   return Math.round(amount).toLocaleString('en-US');
 };
 
@@ -70,18 +74,25 @@ export const getActionName = (
     displayMode: 'bb' | 'chips',
     allStacks?: readonly number[]
 ): string => {
-    // A raise is considered "Allin" if it's a true all-in or commits at least 90% of the player's stack.
-    const isAllIn = action.amount >= playerStack;
-    const isEffectivelyAllIn = action.type === 'R' && action.amount >= playerStack * 0.9;
+    // Ajustar bigBlind para cálculos em modo BB (dividir por 100)
+    const adjustedBigBlind = displayMode === 'bb' ? bigBlind / 100 : bigBlind;
+    
+    // Convert action amount and player stack to BB for comparison
+    const actionAmountBB = adjustedBigBlind > 0 ? (action.amount / 100) / adjustedBigBlind : 0;
+    const playerStackBB = adjustedBigBlind > 0 ? (playerStack / 100) / adjustedBigBlind : 0;
+    
+    // A raise is considered "Allin" if it commits at least 95% of the player's stack
+    // This catches both exact all-ins and raises that exceed the stack
+    const isAllIn = action.type === 'R' && playerStackBB > 0 && actionAmountBB >= playerStackBB * 0.95;
     
     // New logic: Check if the raise is an all-in against a shorter-stacked opponent.
     let isOpponentAllIn = false;
-    if (allStacks && action.type === 'R' && bigBlind > 0) {
-        const raiseSizeBB = action.amount / bigBlind;
+    if (allStacks && action.type === 'R' && adjustedBigBlind > 0) {
+        const raiseSizeBB = (action.amount / 100) / adjustedBigBlind;
         for (const stack of allStacks) {
             // Check against stacks smaller than the actor's stack
             if (stack < playerStack) {
-                const opponentStackBB = stack / bigBlind;
+                const opponentStackBB = (stack / 100) / adjustedBigBlind;
                 // Check for a very close match to identify raises sized to put an opponent all-in
                 if (Math.abs(raiseSizeBB - opponentStackBB) < 0.05) {
                     isOpponentAllIn = true;
@@ -97,16 +108,16 @@ export const getActionName = (
         case 'R': 
             let formattedSize: string;
             if (displayMode === 'chips') {
-                formattedSize = formatChips(action.amount);
+                formattedSize = formatChips(action.amount / 100);
             } else {
-                if (bigBlind > 0) {
-                    const raiseSizeBB = (action.amount / bigBlind).toFixed(1);
+                if (adjustedBigBlind > 0) {
+                    const raiseSizeBB = ((action.amount / 100) / adjustedBigBlind).toFixed(1);
                     formattedSize = raiseSizeBB.endsWith('.0') ? raiseSizeBB.slice(0, -2) : raiseSizeBB;
                 } else {
                     formattedSize = action.amount.toString();
                 }
             }
-            if(isAllIn || isEffectivelyAllIn || isOpponentAllIn) return `Allin ${formattedSize}`;
+            if(isAllIn || isOpponentAllIn) return `Allin ${formattedSize}`;
             return `Raise ${formattedSize}`;
         case 'C': return 'Call';
         case 'X': return 'Check';
@@ -200,4 +211,41 @@ export const formatPayouts = (payouts: number[]): { position: string; prize: str
   }
 
   return formatted;
+};
+
+// Mapeamento de bounties iniciais por tipo de speed
+const INITIAL_BOUNTIES: { [key: string]: number } = {
+  'speed32': 7.5,
+  'speed20': 5,
+  'speed50': 12.5,
+  'speed108': 25
+};
+
+/**
+ * Extrai o tipo de speed do nome do arquivo da solução
+ * Ex: "speed32_1" -> "speed32"
+ */
+export const getSpeedType = (fileName: string): string | null => {
+  const match = fileName.match(/speed(\d+)/i);
+  return match ? `speed${match[1]}` : null;
+};
+
+/**
+ * Retorna o bounty inicial baseado no tipo de speed
+ */
+export const getInitialBounty = (fileName: string): number => {
+  const speedType = getSpeedType(fileName);
+  return speedType ? (INITIAL_BOUNTIES[speedType] || 0) : 0;
+};
+
+/**
+ * Calcula quantos bounties iniciais o jogador possui
+ * Retorna string formatada como "1x", "2x", etc.
+ */
+export const calculateBountyMultiplier = (bountyAmount: number, fileName: string): string => {
+  const initialBounty = getInitialBounty(fileName);
+  if (initialBounty === 0 || bountyAmount === 0) return '';
+  
+  const multiplier = Math.round(bountyAmount / initialBounty);
+  return multiplier > 0 ? `${multiplier}x` : '';
 };

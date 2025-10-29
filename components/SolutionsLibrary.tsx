@@ -98,10 +98,13 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
     
     const playerFilters = useMemo<(number | 'All')[]>(() => {
         if (solutions.length === 0) return ['All'];
-        const availableCounts = new Set<number>(solutions.map(s => s.settings.handdata.stacks.length));
+        // Filter solutions by active phase first, then get unique player counts
+        const phaseSolutions = solutions.filter(s => s.tournamentPhase === activePhaseFilter);
+        if (phaseSolutions.length === 0) return ['All'];
+        const availableCounts = new Set<number>(phaseSolutions.map(s => s.settings.handdata.stacks.length));
         const sortedCounts = Array.from(availableCounts).sort((a, b) => a - b);
         return ['All', ...sortedCounts];
-    }, [solutions]);
+    }, [solutions, activePhaseFilter]);
 
     useEffect(() => {
         if (activePlayerFilter !== 'All' && !playerFilters.includes(activePlayerFilter)) {
