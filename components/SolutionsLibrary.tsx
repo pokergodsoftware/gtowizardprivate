@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { AppData } from '../types.ts';
-import { FileUpload } from './FileUploadScreen.tsx';
 import { getPlayerPositions } from '../lib/pokerUtils.ts';
 
 interface SolutionRowProps {
@@ -76,8 +75,7 @@ interface SortConfig {
     direction: SortDirection;
 }
 
-export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution, onFileChange, isLoading, error }) => {
-    const [selectedPhaseForUpload, setSelectedPhaseForUpload] = useState<string>(tournamentPhases[6]); // Default to 'Final table'
+export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution }) => {
     const [activePhaseFilter, setActivePhaseFilter] = useState<string>(tournamentPhases[0]);
     const [activePlayerFilter, setActivePlayerFilter] = useState<number | 'All'>('All');
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
@@ -98,13 +96,9 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
         }
     }, [solutions]);
     
-    const handleLocalFileChange = (files: FileList) => {
-        onFileChange(files, selectedPhaseForUpload);
-    };
-    
     const playerFilters = useMemo<(number | 'All')[]>(() => {
         if (solutions.length === 0) return ['All'];
-        const availableCounts = new Set(solutions.map(s => s.settings.handdata.stacks.length));
+        const availableCounts = new Set<number>(solutions.map(s => s.settings.handdata.stacks.length));
         const sortedCounts = Array.from(availableCounts).sort((a, b) => a - b);
         return ['All', ...sortedCounts];
     }, [solutions]);
@@ -226,11 +220,10 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
       <div className="w-full max-w-7xl mx-auto">
         <header className="mb-6">
             <h1 className="text-4xl font-bold text-gray-100 mb-2">Solutions Library</h1>
-            <p className="text-gray-400">Select a previously loaded solution or upload a new HRC .zip file.</p>
+            <p className="text-gray-400">Select a solution to analyze.</p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
+        <div className="w-full space-y-6">
                 <div>
                     <h2 className="text-lg font-semibold text-gray-300 mb-3">Tournament phase</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -305,35 +298,10 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                     ) : (
                         <div className="text-center py-12 text-gray-500">
                             <p>No solutions found.</p>
-                            <p className="text-sm">Upload a file to get started.</p>
+                            <p className="text-sm">Add solutions manually to the spots folder.</p>
                         </div>
                     )}
                  </div>
-            </div>
-
-            <div className="lg:col-span-1">
-                <div className="bg-[#282c33] p-4 rounded-lg space-y-4 sticky top-8">
-                    <h2 className="text-xl font-semibold text-gray-200">Add New Solution</h2>
-                    <div>
-                        <label htmlFor="tournament-phase" className="block text-sm font-medium text-gray-300 mb-2">
-                            Tournament Phase
-                        </label>
-                        <select
-                            id="tournament-phase"
-                            value={selectedPhaseForUpload}
-                            onChange={(e) => setSelectedPhaseForUpload(e.target.value)}
-                            className="block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                            {tournamentPhases.map(phase => (
-                                <option key={phase} value={phase}>{phase}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <FileUpload onFileChange={handleLocalFileChange} isLoading={isLoading} />
-                    {isLoading && <p className="mt-2 text-blue-400 text-center">Processing file...</p>}
-                    {error && <p className="mt-2 text-red-400 bg-red-900/50 p-3 rounded-md">{error}</p>}
-                </div>
-            </div>
         </div>
       </div>
     </div>
