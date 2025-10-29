@@ -13,7 +13,8 @@ dist-ssr
 *.local
 
 # Public directory (generated)
-public/
+# Não ignorar public/ para permitir deploy no Vercel
+# public/
 
 # Editor directories and files
 .vscode/*
