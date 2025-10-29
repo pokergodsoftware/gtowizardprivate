@@ -24,11 +24,11 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
     if (!handData || handData.played.every(p => p === 0)) {
         return (
             <div 
-                className={`bg-[#2d3238] aspect-square flex flex-col items-center justify-center rounded-sm text-center leading-none p-0.5 cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 z-10' : ''}`}
+                className={`bg-[#1a4d5c] flex flex-col items-center justify-center text-center leading-tight p-1 cursor-pointer ${isSelected ? 'ring-2 ring-white z-10' : ''}`}
                 onClick={() => setSelectedHand(handName)}
             >
-                <span className="text-sm font-bold tracking-tighter text-gray-400">{handName}</span>
-                <span className="text-xs font-mono text-gray-500">0.00</span>
+                <span className="text-base font-bold text-white">{handName}</span>
+                <span className="text-xs font-semibold text-white/70">0</span>
             </div>
         );
     }
@@ -44,12 +44,13 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
         })
         .filter((item): item is { freq: number; color: string } => item !== null && item.freq > 0.001);
 
-    // Calculate total EV for the hand
-    const totalEV = handData.evs.reduce((acc, ev, index) => acc + (ev * handData.played[index]), 0);
+    // Calculate total frequency (sum of all played frequencies)
+    const totalFreq = handData.played.reduce((acc, freq) => acc + freq, 0);
+    const displayFreq = totalFreq > 0.01 ? (totalFreq * 100).toFixed(totalFreq < 0.1 ? 2 : 0) : '0';
 
     return (
         <div 
-            className={`relative aspect-square flex rounded-sm overflow-hidden text-white items-center justify-center cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 z-10' : ''}`}
+            className={`relative flex overflow-hidden text-white items-center justify-center cursor-pointer ${isSelected ? 'ring-2 ring-white z-10' : ''}`}
             onClick={() => setSelectedHand(handName)}
         >
             {/* Background Gradient */}
@@ -63,10 +64,10 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
                 </div>
             )}
             {/* Foreground Text */}
-            <div className="relative flex flex-col items-center justify-center text-center leading-none p-0.5">
-                <span className="text-sm font-bold tracking-tighter" style={{textShadow: '1px 1px 1px rgba(0,0,0,0.8)'}}>{handName}</span>
-                <span className="text-xs font-mono opacity-90" style={{textShadow: '1px 1px 1px rgba(0,0,0,0.8)'}}>
-                    {totalEV.toFixed(2)}
+            <div className="relative flex flex-col items-center justify-center text-center leading-tight p-1">
+                <span className="text-base font-bold" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.9)'}}>{handName}</span>
+                <span className="text-xs font-semibold" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.9)'}}>
+                    {displayFreq}
                 </span>
             </div>
         </div>

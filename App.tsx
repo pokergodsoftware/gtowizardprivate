@@ -392,7 +392,7 @@ const App: React.FC = () => {
                     loadMultipleNodes={loadMultipleNodes}
                 />
                 <main className="flex flex-1 p-3 gap-3 overflow-hidden">
-                    <div className="flex-1 flex items-center justify-center p-6 bg-[#23272f] rounded-lg overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center p-3 bg-[#23272f] rounded-lg overflow-hidden">
                          <RangeGrid 
                             currentNode={currentNode}
                             bigBlind={bigBlind}

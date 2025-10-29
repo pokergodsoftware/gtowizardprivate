@@ -21,8 +21,14 @@ const handMatrix = generateHandMatrix();
 export const RangeGrid: React.FC<RangeGridProps> = ({ currentNode, bigBlind, playerStack, selectedHand, setSelectedHand, displayMode, playerIndex, numPlayers, settings }) => {
   return (
     <div 
-      className="grid gap-0.5 aspect-square max-w-full max-h-full"
-      style={{ gridTemplateColumns: 'repeat(13, 1fr)' }}
+      className="grid gap-[1px] w-full h-full"
+      style={{ 
+        gridTemplateColumns: 'repeat(13, 1fr)',
+        gridTemplateRows: 'repeat(13, 1fr)',
+        aspectRatio: '1 / 1',
+        maxWidth: '100%',
+        maxHeight: '100%'
+      }}
     >
       {handMatrix.flat().map((hand, index) => (
         <HandCell 
