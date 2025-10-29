@@ -57,6 +57,7 @@ interface SolutionsLibraryProps {
   onFileChange: (files: FileList, tournamentPhase: string) => void;
   isLoading: boolean;
   error: string | null;
+  onBack?: () => void;
 }
 
 const tournamentPhases = [
@@ -75,7 +76,7 @@ interface SortConfig {
     direction: SortDirection;
 }
 
-export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution }) => {
+export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, onSelectSolution, onBack }) => {
     const [activePhaseFilter, setActivePhaseFilter] = useState<string>(tournamentPhases[0]);
     const [activePlayerFilter, setActivePlayerFilter] = useState<number | 'All'>('All');
     const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
@@ -222,8 +223,20 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
     <div className="flex items-center justify-center min-h-screen bg-[#1e2227] p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <header className="mb-6">
-            <h1 className="text-4xl font-bold text-gray-100 mb-2">Solutions Library</h1>
-            <p className="text-gray-400">Select a solution to analyze.</p>
+            <div className="flex items-center gap-4 mb-4">
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors"
+                    >
+                        ← Voltar
+                    </button>
+                )}
+                <div>
+                    <h1 className="text-4xl font-bold text-gray-100 mb-2">Solutions Library</h1>
+                    <p className="text-gray-400">Select a solution to analyze.</p>
+                </div>
+            </div>
         </header>
 
         <div className="w-full space-y-6">

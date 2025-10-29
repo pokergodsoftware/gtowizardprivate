@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from './components/FileUploadScreen.tsx';
 import { SolutionsLibrary } from './components/SolutionsLibrary.tsx';
+import { HomePage } from './components/HomePage.tsx';
+import { Trainer } from './components/Trainer.tsx';
 import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
@@ -13,6 +15,7 @@ import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } fr
 // Main Application Component
 const App: React.FC = () => {
     // --- State Management ---
+    const [currentPage, setCurrentPage] = useState<'home' | 'solutions' | 'trainer'>('home');
     const [solutions, setSolutions] = useState<AppData[]>([]);
     const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -342,6 +345,17 @@ const App: React.FC = () => {
 
     const handleChangeSolution = () => {
         setSelectedSolutionId(null);
+        setCurrentPage('solutions');
+    };
+
+    const handleNavigate = (page: 'solutions' | 'trainer') => {
+        setCurrentPage(page);
+        setSelectedSolutionId(null);
+    };
+
+    const handleBackToHome = () => {
+        setCurrentPage('home');
+        setSelectedSolutionId(null);
     };
 
     const handleNodeChange = (nodeId: number) => {
@@ -353,6 +367,24 @@ const App: React.FC = () => {
 
     // --- Render Logic ---
 
+    // Home page
+    if (currentPage === 'home') {
+        return <HomePage onNavigate={handleNavigate} />;
+    }
+
+    // Trainer page
+    if (currentPage === 'trainer') {
+        return (
+            <Trainer 
+                solutions={solutions}
+                onBack={handleBackToHome}
+                loadNode={loadNode}
+                loadMultipleNodes={loadMultipleNodes}
+            />
+        );
+    }
+
+    // Solutions page
     if (!selectedSolution) {
         return (
             <SolutionsLibrary 
@@ -361,6 +393,7 @@ const App: React.FC = () => {
                 onFileChange={handleFileChange}
                 isLoading={isLoading}
                 error={error}
+                onBack={handleBackToHome}
             />
         );
     }
