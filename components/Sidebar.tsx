@@ -49,15 +49,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ appData, currentNode, bigBlind
   const hasPayouts = prizesArray && prizesArray.length > 0;
 
   return (
-    <aside className="w-[380px] flex-shrink-0 bg-[#282c33] rounded-md flex flex-col p-2 space-y-2 overflow-hidden">
+    <aside className="w-[600px] flex-shrink-0 bg-[#23272f] rounded-lg flex flex-col p-3 space-y-3 overflow-hidden">
       <div className="flex justify-between items-center">
         <button
           onClick={() => hasPayouts && setIsPayoutsModalOpen(true)}
           disabled={!hasPayouts}
-          className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
+          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
             hasPayouts
-              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              ? 'bg-[#2d3238] text-gray-200 hover:bg-[#353a42]'
+              : 'bg-[#1e2227] text-gray-600 cursor-not-allowed'
           }`}
         >
           Payouts

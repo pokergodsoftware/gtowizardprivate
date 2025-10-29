@@ -6,7 +6,8 @@ import { SolutionsLibrary } from './components/SolutionsLibrary.tsx';
 import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
-import type { AppData, NodeData, EquityData, SettingsData } from './types.ts';
+import { LoadingOverlay } from './components/LoadingOverlay.tsx';
+import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } from './types.ts';
 
 
 // Main Application Component
@@ -15,6 +16,7 @@ const App: React.FC = () => {
     const [solutions, setSolutions] = useState<AppData[]>([]);
     const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingNode, setIsLoadingNode] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Viewer-specific state
@@ -74,31 +76,33 @@ const App: React.FC = () => {
         }
     }, []);
 
-    const loadSolutionsFromManifest = useCallback(async () => {
+    // Carregar apenas metadados das soluções (lazy loading)
+    const loadSolutionsMetadata = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const manifestRes = await fetch('./solutions.json');
-            if (!manifestRes.ok) {
-                 if (manifestRes.status === 404) {
-                    console.log("solutions.json not found, starting with empty library.");
+            const metadataRes = await fetch('./solutions-metadata.json');
+            if (!metadataRes.ok) {
+                 if (metadataRes.status === 404) {
+                    console.log("solutions-metadata.json not found, starting with empty library.");
                     setSolutions([]);
-                    setIsLoading(false); // Stop loading if no manifest
+                    setIsLoading(false);
                     return; 
                  }
-                 throw new Error(`Failed to load solutions manifest: ${manifestRes.statusText}`);
+                 throw new Error(`Failed to load solutions metadata: ${metadataRes.statusText}`);
             }
-            const manifest = await manifestRes.json();
+            const metadata: SolutionMetadata[] = await metadataRes.json();
 
-            if (!Array.isArray(manifest)) {
-                throw new Error('solutions.json is not a valid array.');
+            if (!Array.isArray(metadata)) {
+                throw new Error('solutions-metadata.json is not a valid array.');
             }
 
-            const solutionPromises = manifest.map(async (solutionInfo) => {
-                const { path: basePath, fileName, tournamentPhase, nodeIds } = solutionInfo;
+            // Carregar apenas settings e equity (não os nodes)
+            const solutionPromises = metadata.map(async (meta) => {
+                const { path: basePath, fileName, tournamentPhase } = meta;
 
-                if (!basePath || !fileName || !tournamentPhase || !Array.isArray(nodeIds)) {
-                    console.warn("Skipping invalid solution entry in manifest:", solutionInfo);
+                if (!basePath || !fileName || !tournamentPhase) {
+                    console.warn("Skipping invalid solution entry in metadata:", meta);
                     return null;
                 }
 
@@ -111,36 +115,29 @@ const App: React.FC = () => {
                     if (!equityRes.ok) throw new Error(`Failed to load equity.json for ${fileName}`);
                     const equity: EquityData = await equityRes.json();
                     
-                    const nodes = new Map<number, NodeData>();
-                    
-                    await Promise.all(nodeIds.map(async (id: number) => {
-                        const nodeRes = await fetch(`${basePath}/nodes/${id}.json`);
-                        if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json for ${fileName}`);
-                        const nodeData: NodeData = await nodeRes.json();
-                        nodes.set(id, nodeData);
-                    }));
-
+                    // Criar solução SEM nodes (serão carregados sob demanda)
                     return {
                         id: uuidv4(),
                         fileName,
                         tournamentPhase,
                         settings,
                         equity,
-                        nodes,
+                        nodes: new Map<number, NodeData>(), // Vazio inicialmente
+                        path: basePath, // Guardar caminho para lazy loading
                     };
                 } catch (e) {
                     console.error(`Error loading solution "${fileName}":`, e);
-                    setError(`Failed to load one or more solutions. Check console for details.`);
-                    return null; // Return null for failed solutions
+                    return null;
                 }
             });
 
-            const loadedSolutions = (await Promise.all(solutionPromises)).filter((s): s is AppData => s !== null);
+            const loadedSolutions = (await Promise.all(solutionPromises)).filter(s => s !== null) as AppData[];
 
             setSolutions(loadedSolutions);
+            console.log(`✅ Loaded ${loadedSolutions.length} solutions (nodes will load on-demand)`);
 
         } catch (err) {
-            console.error("Error loading solutions from manifest:", err);
+            console.error("Error loading solutions metadata:", err);
             setError(err instanceof Error ? err.message : "An unknown error occurred while loading solutions.");
         } finally {
             setIsLoading(false);
@@ -148,8 +145,148 @@ const App: React.FC = () => {
     }, []);
     
     useEffect(() => {
-        loadSolutionsFromManifest();
-    }, [loadSolutionsFromManifest]);
+        loadSolutionsMetadata();
+    }, [loadSolutionsMetadata]);
+
+    // Carregar nodes sob demanda quando uma solução é selecionada
+    const loadNodesForSolution = useCallback(async (solutionId: string) => {
+        const solution = solutions.find(s => s.id === solutionId);
+        if (!solution || !solution.path) return;
+
+        // Se já tem nodes carregados, não precisa recarregar
+        if (solution.nodes.size > 0) {
+            console.log(`✅ Nodes already loaded for "${solution.fileName}"`);
+            return;
+        }
+
+        console.log(`⏳ Loading nodes for "${solution.fileName}"...`);
+        setIsLoading(true);
+
+        try {
+            // Buscar metadados para obter lista de nodeIds
+            const metadataRes = await fetch('./solutions-metadata.json');
+            const metadata: SolutionMetadata[] = await metadataRes.json();
+            const solutionMeta = metadata.find(m => m.path === solution.path);
+            
+            if (!solutionMeta) {
+                throw new Error('Solution metadata not found');
+            }
+
+            const nodes = new Map<number, NodeData>();
+            
+            // Carregar apenas o node 0 inicialmente (root node)
+            const initialNodeIds = [0];
+            
+            await Promise.all(initialNodeIds.map(async (id: number) => {
+                try {
+                    const nodeRes = await fetch(`${solution.path}/nodes/${id}.json`);
+                    if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
+                    const nodeData: NodeData = await nodeRes.json();
+                    nodes.set(id, nodeData);
+                } catch (e) {
+                    console.error(`Error loading node ${id}:`, e);
+                }
+            }));
+
+            // Atualizar solução com nodes carregados
+            setSolutions(prev => prev.map(s => 
+                s.id === solutionId 
+                    ? { ...s, nodes }
+                    : s
+            ));
+
+            console.log(`✅ Loaded ${nodes.size} initial nodes for "${solution.fileName}"`);
+
+        } catch (err) {
+            console.error("Error loading nodes:", err);
+            setError(err instanceof Error ? err.message : "Failed to load nodes");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [solutions]);
+
+    // Carregar node específico sob demanda
+    const loadNode = useCallback(async (nodeId: number) => {
+        const solution = solutions.find(s => s.id === selectedSolutionId);
+        if (!solution || !solution.path) return;
+
+        // Se já tem o node carregado, não precisa recarregar
+        if (solution.nodes.has(nodeId)) {
+            return;
+        }
+
+        setIsLoadingNode(true);
+        try {
+            const nodeRes = await fetch(`${solution.path}/nodes/${nodeId}.json`);
+            if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
+            const nodeData: NodeData = await nodeRes.json();
+
+            // Atualizar solução com o novo node
+            setSolutions(prev => prev.map(s => {
+                if (s.id === selectedSolutionId) {
+                    const newNodes = new Map(s.nodes);
+                    newNodes.set(nodeId, nodeData);
+                    return { ...s, nodes: newNodes };
+                }
+                return s;
+            }));
+
+            console.log(`✅ Loaded node ${nodeId}`);
+
+        } catch (err) {
+            console.error(`Error loading node ${nodeId}:`, err);
+        } finally {
+            setIsLoadingNode(false);
+        }
+    }, [solutions, selectedSolutionId]);
+
+    // Carregar múltiplos nodes de uma vez
+    const loadMultipleNodes = useCallback(async (nodeIds: number[]) => {
+        const solution = solutions.find(s => s.id === selectedSolutionId);
+        if (!solution || !solution.path) return;
+
+        // Filtrar apenas nodes que ainda não foram carregados
+        const nodesToLoad = nodeIds.filter(id => !solution.nodes.has(id));
+        if (nodesToLoad.length === 0) return;
+
+        setIsLoadingNode(true);
+        try {
+            const loadedNodes = await Promise.all(
+                nodesToLoad.map(async (nodeId) => {
+                    try {
+                        const nodeRes = await fetch(`${solution.path}/nodes/${nodeId}.json`);
+                        if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
+                        const nodeData: NodeData = await nodeRes.json();
+                        return { nodeId, nodeData };
+                    } catch (err) {
+                        console.error(`Error loading node ${nodeId}:`, err);
+                        return null;
+                    }
+                })
+            );
+
+            // Atualizar solução com os novos nodes
+            setSolutions(prev => prev.map(s => {
+                if (s.id === selectedSolutionId) {
+                    const newNodes = new Map(s.nodes);
+                    loadedNodes.forEach(result => {
+                        if (result) {
+                            newNodes.set(result.nodeId, result.nodeData);
+                        }
+                    });
+                    return { ...s, nodes: newNodes };
+                }
+                return s;
+            }));
+
+            console.log(`✅ Loaded ${loadedNodes.filter(r => r !== null).length} nodes`);
+
+        } catch (err) {
+            console.error(`Error loading multiple nodes:`, err);
+        } finally {
+            setIsLoadingNode(false);
+        }
+    }, [solutions, selectedSolutionId]);
 
 
     // --- Memoized Derived State for Viewer ---
@@ -199,6 +336,8 @@ const App: React.FC = () => {
         setSelectedSolutionId(id);
         setCurrentNodeId(0); // Reset to root node
         setSelectedHand(null);
+        // Carregar nodes para esta solução
+        loadNodesForSolution(id);
     };
 
     const handleChangeSolution = () => {
@@ -208,6 +347,8 @@ const App: React.FC = () => {
     const handleNodeChange = (nodeId: number) => {
         setCurrentNodeId(nodeId);
         setSelectedHand(null); // Deselect hand when action changes
+        // Carregar node se ainda não foi carregado
+        loadNode(nodeId);
     };
 
     // --- Render Logic ---
@@ -234,45 +375,49 @@ const App: React.FC = () => {
     const numPlayers = stacks.length;
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-[#1e2227]">
-            <Header 
-                currentNodeId={currentNodeId}
-                currentNode={currentNode}
-                bigBlind={bigBlind}
-                settings={settings}
-                allNodes={selectedSolution.nodes}
-                onNodeChange={handleNodeChange}
-                parentMap={parentMap}
-                pathNodeIds={pathNodeIds}
-                displayMode={displayMode}
-                tournamentPhase={selectedSolution.tournamentPhase}
-                onChangeSolution={handleChangeSolution}
-            />
-            <main className="flex flex-1 p-2 gap-2 overflow-hidden">
-                <div className="flex-1 flex items-center justify-center p-4 bg-[#282c33] rounded-md overflow-hidden">
-                     <RangeGrid 
-                        currentNode={currentNode}
-                        bigBlind={bigBlind}
-                        playerStack={playerStack}
-                        selectedHand={selectedHand}
-                        setSelectedHand={setSelectedHand}
-                        displayMode={displayMode}
-                        playerIndex={currentNode.player}
-                        numPlayers={numPlayers}
-                        settings={settings}
-                    />
-                </div>
-                <Sidebar 
-                    appData={selectedSolution}
+        <>
+            <div className="flex flex-col h-screen overflow-hidden bg-[#1a1d23]">
+                <Header 
+                    currentNodeId={currentNodeId}
                     currentNode={currentNode}
                     bigBlind={bigBlind}
-                    selectedHand={selectedHand}
+                    settings={settings}
+                    allNodes={selectedSolution.nodes}
+                    onNodeChange={handleNodeChange}
+                    parentMap={parentMap}
                     pathNodeIds={pathNodeIds}
                     displayMode={displayMode}
-                    onDisplayModeToggle={() => setDisplayMode(m => m === 'bb' ? 'chips' : 'bb')}
+                    tournamentPhase={selectedSolution.tournamentPhase}
+                    onChangeSolution={handleChangeSolution}
+                    loadMultipleNodes={loadMultipleNodes}
                 />
-            </main>
-        </div>
+                <main className="flex flex-1 p-3 gap-3 overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center p-6 bg-[#23272f] rounded-lg overflow-hidden">
+                         <RangeGrid 
+                            currentNode={currentNode}
+                            bigBlind={bigBlind}
+                            playerStack={playerStack}
+                            selectedHand={selectedHand}
+                            setSelectedHand={setSelectedHand}
+                            displayMode={displayMode}
+                            playerIndex={currentNode.player}
+                            numPlayers={numPlayers}
+                            settings={settings}
+                        />
+                    </div>
+                    <Sidebar 
+                        appData={selectedSolution}
+                        currentNode={currentNode}
+                        bigBlind={bigBlind}
+                        selectedHand={selectedHand}
+                        pathNodeIds={pathNodeIds}
+                        displayMode={displayMode}
+                        onDisplayModeToggle={() => setDisplayMode(m => m === 'bb' ? 'chips' : 'bb')}
+                    />
+                </main>
+            </div>
+            <LoadingOverlay isLoading={isLoadingNode} message="Loading node..." />
+        </>
     );
 };
 

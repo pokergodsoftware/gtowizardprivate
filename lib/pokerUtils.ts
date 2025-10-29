@@ -41,19 +41,19 @@ export const getActionColor = (
         ? playerIndex === numPlayers - 1 
         : false;
 
-    // Use `includes` for 'Allin' to make the check more robust.
-    if (actionName.includes('Allin')) return 'bg-red-600';
-    if (actionName.startsWith('Raise')) return 'bg-pink-600';
-    if (actionName.startsWith('Fold')) return 'bg-sky-600';
-    if (actionName.startsWith('Call')) return 'bg-lime-500';
+    // Cores inspiradas no GTO Wizard
+    if (actionName.includes('Allin')) return 'bg-[#9333ea]'; // Roxo vibrante para All-in
+    if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Laranja para Raise
+    if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Azul cyan para Fold
+    if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Verde para Call
     if (actionName.startsWith('Check')) {
         // If the current player is the Big Blind, their "Check" action is green, like a "Call".
         if (isPlayerBB) {
-            return 'bg-lime-500';
+            return 'bg-[#10b981]';
         }
-        return 'bg-gray-500';
+        return 'bg-[#6b7280]';
     }
-    return 'bg-gray-700'; // Fallback for unexpected actions
+    return 'bg-[#4b5563]'; // Fallback for unexpected actions
 };
 
 export const formatChips = (amount: number): string => {

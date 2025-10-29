@@ -2,6 +2,16 @@
 
 Uma aplicação React/TypeScript para visualizar e analisar soluções de poker GTO (Game Theory Optimal).
 
+## ⚡ Nova Versão 2.0 - Lazy Loading
+
+A aplicação agora usa **carregamento sob demanda** (lazy loading) para máxima performance:
+- ✅ Inicialização instantânea (<2s)
+- ✅ Carrega apenas o necessário
+- ✅ Sem sobrecarga do navegador
+- ✅ Suporta 12.000+ nodes sem problemas
+
+Veja [LAZY_LOADING.md](./LAZY_LOADING.md) para detalhes técnicos.
+
 ## 🚀 Quick Start
 
 ### Pré-requisitos
@@ -70,6 +80,16 @@ WizardPrivadoo/
 
 ### Erro 404: solutions.json not found
 Execute `generate_index.bat` para criar a estrutura necessária.
+
+### Erro: Failed to fetch / ERR_INSUFFICIENT_RESOURCES
+**Causa:** Muitos nodes tentando carregar simultaneamente.
+
+**Solução:** O script agora limita automaticamente a 50 nodes por solução. Execute:
+```bash
+.\generate_index.bat
+```
+
+Veja [SOLUCAO_ERROS.md](./SOLUCAO_ERROS.md) para detalhes.
 
 ### Spots não carregam
 1. Verifique se `public/spots` existe (junction)

@@ -36,23 +36,43 @@ function getAvgStackBB(settingsPath) {
   }
 }
 
-// Função para obter todos os node IDs
+// Função para obter todos os node IDs e validar se os arquivos existem
 function getNodeIds(nodesDir) {
   try {
     const files = fs.readdirSync(nodesDir);
-    return files
+    const nodeIds = files
       .filter(f => f.endsWith('.json'))
       .map(f => parseInt(f.replace('.json', '')))
+      .filter(id => !isNaN(id))
       .sort((a, b) => a - b);
+    
+    // Validar que todos os arquivos existem e são válidos
+    const validNodeIds = nodeIds.filter(id => {
+      const filePath = path.join(nodesDir, `${id}.json`);
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        JSON.parse(content); // Valida se é JSON válido
+        return true;
+      } catch (e) {
+        console.log(`  ⚠️  Invalid node file: ${id}.json`);
+        return false;
+      }
+    });
+    
+    return validNodeIds;
   } catch (e) {
     return [];
   }
 }
 
+// Configuração: Limitar nodes para evitar sobrecarga
+const MAX_NODES_PER_SOLUTION = 50; // Limita a 50 nodes por solução
+
 // Função principal
 function generateSolutions() {
   const spotsDir = path.join(__dirname, 'spots');
   const solutions = [];
+  let totalSkippedNodes = 0;
 
   // Iterar sobre as fases
   for (const phase of Object.keys(phaseMapping)) {
@@ -79,11 +99,19 @@ function generateSolutions() {
 
       const numPlayers = getNumPlayers(settingsPath);
       const avgStackBB = getAvgStackBB(settingsPath);
-      const nodeIds = getNodeIds(nodesDir);
+      let nodeIds = getNodeIds(nodesDir);
 
       if (!numPlayers || !avgStackBB || nodeIds.length === 0) {
         console.log(`Skipping ${phase}/${subDir} - invalid data`);
         continue;
+      }
+
+      // Limitar nodes se necessário
+      if (nodeIds.length > MAX_NODES_PER_SOLUTION) {
+        const skipped = nodeIds.length - MAX_NODES_PER_SOLUTION;
+        totalSkippedNodes += skipped;
+        nodeIds = nodeIds.slice(0, MAX_NODES_PER_SOLUTION);
+        console.log(`  ⚠️  Limited to ${MAX_NODES_PER_SOLUTION} nodes (${skipped} skipped)`);
       }
 
       // Criar nome descritivo
@@ -101,7 +129,7 @@ function generateSolutions() {
         nodeIds: nodeIds
       });
 
-      console.log(`Added: ${fileName}`);
+      console.log(`Added: ${fileName} (${nodeIds.length} nodes)`);
     }
   }
 
@@ -131,6 +159,11 @@ function generateSolutions() {
   
   console.log(`\n✓ Generated solutions.json with ${solutions.length} solutions`);
   console.log(`✓ Copied to public/solutions.json`);
+  
+  if (totalSkippedNodes > 0) {
+    console.log(`\n⚠️  Total nodes skipped (over limit): ${totalSkippedNodes}`);
+    console.log(`   To include more nodes, increase MAX_NODES_PER_SOLUTION in generate_solutions.cjs`);
+  }
 }
 
 // Executar

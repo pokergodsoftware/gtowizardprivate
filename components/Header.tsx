@@ -15,6 +15,7 @@ interface HeaderProps {
     displayMode: 'bb' | 'chips';
     tournamentPhase: string;
     onChangeSolution: () => void;
+    loadMultipleNodes: (nodeIds: number[]) => Promise<void>;
 }
 
 
@@ -48,16 +49,16 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
     return (
         <div 
             ref={ref}
-            className={`flex-shrink-0 w-48 p-2 rounded-md border-2 ${isActive ? 'border-teal-400 bg-[#3c414b]' : 'border-transparent bg-[#353a42]'} transition-colors duration-200 cursor-pointer hover:border-teal-500/50`}
+            className={`flex-shrink-0 w-48 min-h-[180px] p-3 rounded-lg border-2 ${isActive ? 'border-teal-400 bg-[#3c414b]' : 'border-transparent bg-[#353a42]'} transition-colors duration-200 cursor-pointer hover:border-teal-500/50 flex flex-col`}
             onClick={onClick}
         >
-            <div>
-                <span className="font-bold text-base text-gray-200">{position}</span>
+            <div className="flex-shrink-0">
+                <span className="font-bold text-lg text-gray-200">{position}</span>
                 <div className="text-xs text-gray-400">{displayMode === 'bb' ? `${stack.toLocaleString()} (~${stackInBB}bb)` : formatChips(stack)}</div>
             </div>
             
             {bounty > 0 && 
-                <div className="flex items-center space-x-1 text-xs text-yellow-400 mt-1">
+                <div className="flex items-center space-x-1 text-xs text-yellow-400 mt-1 flex-shrink-0">
                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                         <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" clipRule="evenodd" />
                         <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
@@ -66,7 +67,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
                 </div>
             }
 
-            <div className="mt-2 space-y-1 text-sm text-gray-100">
+            <div className="mt-2 space-y-0.5 text-sm text-gray-100 flex-1 overflow-hidden">
                 {nodeForActions && nodeForActions.actions.map((action, index) => {
                      const playerStack = stacks[nodeForActions.player];
                      const actionName = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
@@ -84,7 +85,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
                        <div 
                            key={index} 
                            className={`
-                                p-1 rounded transition-colors duration-150 font-medium
+                                px-2 py-1 rounded transition-colors duration-150 font-medium text-sm
                                 ${isSelectedAction ? 'bg-black/50' : ''}
                                 ${isClickable && !isSelectedAction ? 'hover:bg-black/25' : ''}
                                 ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-400'}
@@ -102,7 +103,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
 PlayerStrategyCard.displayName = "PlayerStrategyCard";
 
 
-export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigBlind, settings, allNodes, onNodeChange, parentMap, pathNodeIds, displayMode, tournamentPhase, onChangeSolution }) => {
+export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigBlind, settings, allNodes, onNodeChange, parentMap, pathNodeIds, displayMode, tournamentPhase, onChangeSolution, loadMultipleNodes }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const activePlayerCardRef = useRef<HTMLDivElement>(null);
 
@@ -129,6 +130,33 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             }
         }, 100);
     }, [currentNodeId]);
+
+    // Carregar nodes necessários para mostrar todos os cards
+    useEffect(() => {
+        const numPlayers = settings.handdata.stacks.length;
+        const nodesToLoad: number[] = [];
+
+        // Encontrar o primeiro node de cada jogador
+        const playerFirstNodeMap = new Map<number, number>();
+        for (const [nodeId, node] of allNodes.entries()) {
+            if (!playerFirstNodeMap.has(node.player)) {
+                playerFirstNodeMap.set(node.player, nodeId);
+            }
+        }
+
+        // Verificar quais nodes precisam ser carregados
+        for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
+            const firstNodeId = playerFirstNodeMap.get(playerIndex);
+            if (firstNodeId !== undefined && !allNodes.has(firstNodeId)) {
+                nodesToLoad.push(firstNodeId);
+            }
+        }
+
+        // Carregar nodes se necessário
+        if (nodesToLoad.length > 0) {
+            loadMultipleNodes(nodesToLoad);
+        }
+    }, [allNodes, settings.handdata.stacks, loadMultipleNodes]);
     
     const pathSuccessorMap = useMemo(() => {
         const map = new Map<number, number>();
@@ -137,6 +165,48 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         }
         return map;
     }, [pathNodeIds]);
+
+    // Criar lista de todos os jogadores mostrando cards
+    const allPlayerCards = useMemo(() => {
+        const numPlayers = settings.handdata.stacks.length;
+        const cards: Array<{ playerIndex: number; nodeId: number; showAllActions: boolean }> = [];
+        
+        // Criar mapa de qual node cada jogador agiu no path atual
+        const playerToNodeMap = new Map<number, number>();
+        pathNodeIds.forEach(nodeId => {
+            const node = allNodes.get(nodeId);
+            if (node) {
+                playerToNodeMap.set(node.player, nodeId);
+            }
+        });
+
+        // Encontrar o primeiro node de cada jogador (node onde ele age pela primeira vez)
+        const playerFirstNodeMap = new Map<number, number>();
+        for (const [nodeId, node] of allNodes.entries()) {
+            if (!playerFirstNodeMap.has(node.player)) {
+                playerFirstNodeMap.set(node.player, nodeId);
+            }
+        }
+
+        // Adicionar card para cada jogador na ordem de ação (UTG até BB)
+        for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
+            const nodeIdInPath = playerToNodeMap.get(playerIndex);
+            const firstNodeId = playerFirstNodeMap.get(playerIndex);
+            
+            if (nodeIdInPath !== undefined) {
+                // Jogador tem um node real no path - mostrar esse node
+                cards.push({ playerIndex, nodeId: nodeIdInPath, showAllActions: true });
+            } else if (firstNodeId !== undefined) {
+                // Jogador não está no path, mas tem um node inicial - mostrar todas as ações disponíveis
+                cards.push({ playerIndex, nodeId: firstNodeId, showAllActions: true });
+            } else {
+                // Jogador não tem nenhum node (não deveria acontecer)
+                cards.push({ playerIndex, nodeId: -1, showAllActions: false });
+            }
+        }
+
+        return cards;
+    }, [pathNodeIds, allNodes, settings.handdata.stacks]);
 
     return (
         <header className="bg-[#282c33] border-b border-gray-700">
@@ -158,24 +228,37 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                 </button>
             </div>
             <div ref={scrollContainerRef} className="p-2 flex items-center space-x-2 overflow-x-auto border-t border-black/20">
-                 {pathNodeIds.map((nodeId) => {
-                     const nodeData = allNodes.get(nodeId);
-                     if (!nodeData) return null;
-
-                     const playerIndex = nodeData.player;
+                 {allPlayerCards.map(({ playerIndex, nodeId, showAllActions }) => {
+                     const nodeData = nodeId >= 0 ? allNodes.get(nodeId) : null;
                      const isActive = nodeId === currentNodeId;
-                     const highlightedActionNodeId = pathSuccessorMap.get(nodeId);
+                     const highlightedActionNodeId = nodeId >= 0 ? pathSuccessorMap.get(nodeId) : undefined;
+                     
+                     // Se não tem node válido, criar um node fake com apenas Fold
+                     const displayNode = !showAllActions || !nodeData ? {
+                         player: playerIndex,
+                         street: 0,
+                         children: 0,
+                         sequence: [],
+                         actions: [{ type: 'F' as const, amount: 0 }],
+                         hands: {}
+                     } : nodeData;
+
+                     if (!displayNode) return null;
                      
                      return (
                         <PlayerStrategyCard
                             ref={isActive ? activePlayerCardRef : null}
-                            key={nodeId}
+                            key={`${playerIndex}-${nodeId}`}
                             playerIndex={playerIndex}
                             isActive={isActive}
                             settings={settings}
-                            nodeForActions={nodeData}
+                            nodeForActions={displayNode}
                             bigBlind={bigBlind}
-                            onClick={() => onNodeChange(nodeId)}
+                            onClick={() => {
+                                if (nodeId >= 0) {
+                                    onNodeChange(nodeId);
+                                }
+                            }}
                             onNodeChange={onNodeChange}
                             highlightedActionNodeId={highlightedActionNodeId}
                             displayMode={displayMode}

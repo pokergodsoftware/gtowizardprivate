@@ -1,11 +1,12 @@
 @echo off
 echo ========================================
 echo   GTO Wizard Private - Setup Script
+echo   (Lazy Loading Mode)
 echo ========================================
 echo.
 
-echo [1/2] Generating solutions.json...
-node generate_solutions.cjs
+echo [1/2] Generating solutions-metadata.json...
+node generate_solutions_lazy.cjs
 
 echo.
 echo [2/2] Setting up public directory...
@@ -24,6 +25,9 @@ echo.
 echo ========================================
 echo   Setup Complete!
 echo ========================================
+echo.
+echo Nodes will be loaded on-demand when you select a solution!
+echo This prevents browser overload and makes the app much faster.
 echo.
 echo You can now run: npm run dev
 echo.

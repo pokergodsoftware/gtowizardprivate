@@ -53,6 +53,14 @@ export interface EquityData {
 }
 
 
+export interface SolutionMetadata {
+  path: string;
+  fileName: string;
+  tournamentPhase: string;
+  nodeIds: number[];
+  totalNodes: number;
+}
+
 export interface AppData {
   id: string;
   fileName: string;
@@ -60,4 +68,5 @@ export interface AppData {
   settings: SettingsData;
   equity: EquityData;
   nodes: Map<number, NodeData>;
+  path?: string; // Caminho para carregar nodes sob demanda
 }

@@ -30,8 +30,7 @@ const SolutionRow: React.FC<SolutionRowProps> = ({ solution, onSelect, positions
             className="bg-[#2d3238] hover:bg-[#3c414b] cursor-pointer transition-colors duration-150"
             onClick={() => onSelect(solution.id)}
         >
-            <td className="p-3 rounded-l-md font-semibold text-gray-200">{solution.fileName}</td>
-            <td className="p-3 text-center">{numPlayers}</td>
+            <td className="p-3 rounded-l-md text-center">{numPlayers}</td>
             <td className="p-3 text-center">{avgStackBB}bb</td>
             
             {positionsHeader.map((headerPos) => {
@@ -279,13 +278,7 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                                 <table className="w-full border-separate" style={{ borderSpacing: '0 0.5rem' }}>
                                     <thead>
                                         <tr className="text-xs text-gray-400 uppercase font-semibold">
-                                            <th className="p-3 text-left cursor-pointer select-none hover:text-gray-200" onClick={() => requestSort('fileName')}>
-                                                <div className="flex items-center">
-                                                    <span>File Name</span>
-                                                    {sortConfig?.key === 'fileName' && <span className="ml-1 text-xs">{sortConfig.direction === 'ascending' ? '▲' : '▼'}</span>}
-                                                </div>
-                                            </th>
-                                            <SortableHeader label="Players" sortKey="players" />
+                                            <SortableHeader label="Players" sortKey="players" className="rounded-l-md" />
                                             <SortableHeader label="Avg. Stack" sortKey="avgStack" />
                                             {positionsHeader.map(pos => <SortableHeader key={pos} label={pos} sortKey={pos} />)}
                                             {/* Empty header for spacing to match rounded corners */}
