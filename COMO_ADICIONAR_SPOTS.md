@@ -23,6 +23,7 @@ spots/
 ├── 60-40/           # 60~40% left
 ├── 40-20/           # 40~20% left
 ├── near_bubble/     # Near bubble
+├── after_bubble/    # After bubble
 ├── 3tables/         # 3 tables
 ├── 2tables/         # 2 tables
 └── final_table/     # Final table
@@ -69,6 +70,7 @@ Edite o arquivo `solutions.json` e adicione uma nova entrada:
 - `60~40% left`
 - `40~20% left`
 - `Near bubble`
+- `After bubble`
 - `3 tables`
 - `2 tables`
 - `Final table`
@@ -94,10 +96,10 @@ Added: Final table - 3p 11bb (speed20_1)
 
 ## Solução Atual
 
-Atualmente o projeto tem **51 soluções** carregadas automaticamente:
-- 16 spots de "100~60% left"
-- 10 spots de "60~40% left"
-- 25 spots de "Final table"
+Atualmente o projeto tem **64 soluções** carregadas automaticamente:
+- 26 spots de "100~60% left"
+- 20 spots de "After bubble"
+- 18 spots de "Final table"
 
 ## Troubleshooting
 

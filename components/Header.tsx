@@ -48,29 +48,38 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
     const bountyAmount = bounty / 2;
     const bountyInBB = adjustedBigBlind > 0 ? ((bountyAmount / 100) / adjustedBigBlind).toFixed(1) : '0';
 
+    // Determinar tamanho do texto baseado no número de ações
+    const numActions = nodeForActions?.actions.length || 0;
+    let textSizeClass = 'text-sm';
+    let paddingClass = 'px-2 py-1';
+    let spaceClass = 'space-y-0.5';
+    
+    if (numActions > 8) {
+        textSizeClass = 'text-[10px]';
+        paddingClass = 'px-2 py-0.5';
+        spaceClass = 'space-y-0';
+    } else if (numActions > 6) {
+        textSizeClass = 'text-xs';
+        paddingClass = 'px-2 py-0.5';
+        spaceClass = 'space-y-0';
+    } else if (numActions > 4) {
+        textSizeClass = 'text-sm';
+        paddingClass = 'px-2 py-1';
+        spaceClass = 'space-y-0.5';
+    }
 
     return (
         <div 
             ref={ref}
-            className={`flex-shrink-0 w-48 min-h-[180px] p-3 rounded-lg border-2 ${isActive ? 'border-teal-400 bg-[#3c414b]' : 'border-transparent bg-[#353a42]'} transition-colors duration-200 cursor-pointer hover:border-teal-500/50 flex flex-col`}
+            className={`flex-shrink-0 w-48 h-[180px] p-3 rounded-lg border-2 ${isActive ? 'border-teal-400 bg-[#3c414b]' : 'border-transparent bg-[#353a42]'} transition-colors duration-200 cursor-pointer hover:border-teal-500/50 flex flex-col`}
             onClick={onClick}
         >
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 mb-2">
                 <span className="font-bold text-lg text-gray-200">{position}</span>
                 <div className="text-xs text-gray-400">{displayMode === 'bb' ? `${stackInBB}bb` : formatChips(stack / 100)}</div>
             </div>
-            
-            {bounty > 0 && 
-                <div className="flex items-center space-x-1 text-xs text-yellow-400 mt-1 flex-shrink-0">
-                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" clipRule="evenodd" />
-                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                    </svg>
-                    <span>{displayMode === 'bb' && fileName ? calculateBountyMultiplier(bountyAmount, fileName) : formatChips(bountyAmount)}</span>
-                </div>
-            }
 
-            <div className="mt-2 space-y-0.5 text-sm text-gray-100 flex-1 overflow-hidden">
+            <div className={`${spaceClass} text-gray-100 flex-1`}>
                 {nodeForActions && nodeForActions.actions.map((action, index) => {
                      const playerStack = stacks[nodeForActions.player];
                      const actionName = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
@@ -88,7 +97,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
                        <div 
                            key={index} 
                            className={`
-                                px-2 py-1 rounded transition-colors duration-150 font-medium text-sm
+                                ${paddingClass} rounded transition-colors duration-150 font-medium ${textSizeClass}
                                 ${isSelectedAction ? 'bg-black/50' : ''}
                                 ${isClickable && !isSelectedAction ? 'hover:bg-black/25' : ''}
                                 ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed text-gray-400'}
@@ -134,32 +143,74 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         }, 100);
     }, [currentNodeId]);
 
-    // Carregar nodes necessários para mostrar todos os cards
+    // Carregar TODOS os primeiros nodes dos jogadores para mostrar todas as ações disponíveis
     useEffect(() => {
         const numPlayers = settings.handdata.stacks.length;
+        
+        // Carregar nodes 0 até numPlayers-1 (geralmente são os primeiros nodes de cada jogador)
         const nodesToLoad: number[] = [];
-
-        // Encontrar o primeiro node de cada jogador
-        const playerFirstNodeMap = new Map<number, number>();
-        for (const [nodeId, node] of allNodes.entries()) {
-            if (!playerFirstNodeMap.has(node.player)) {
-                playerFirstNodeMap.set(node.player, nodeId);
-            }
-        }
-
-        // Verificar quais nodes precisam ser carregados
-        for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
-            const firstNodeId = playerFirstNodeMap.get(playerIndex);
-            if (firstNodeId !== undefined && !allNodes.has(firstNodeId)) {
-                nodesToLoad.push(firstNodeId);
+        for (let i = 0; i < numPlayers; i++) {
+            if (!allNodes.has(i)) {
+                nodesToLoad.push(i);
             }
         }
 
         // Carregar nodes se necessário
         if (nodesToLoad.length > 0) {
+            console.log(`📦 Carregando primeiros nodes de todos os jogadores: [${nodesToLoad.join(', ')}]`);
             loadMultipleNodes(nodesToLoad);
         }
     }, [allNodes, settings.handdata.stacks, loadMultipleNodes]);
+
+    // Carregar próximos nodes quando o currentNode muda (navegação em profundidade)
+    useEffect(() => {
+        if (!currentNode) return;
+        
+        const nodesToLoad: number[] = [];
+        const visited = new Set<number>();
+        const queue: number[] = [];
+        
+        // Adicionar todos os nodes filhos do node atual
+        currentNode.actions.forEach(action => {
+            if (typeof action.node === 'number') {
+                queue.push(action.node);
+            }
+        });
+        
+        // BFS limitado para carregar nodes até encontrar todos os jogadores
+        const numPlayers = settings.handdata.stacks.length;
+        const foundPlayers = new Set<number>();
+        
+        while (queue.length > 0 && foundPlayers.size < numPlayers) {
+            const nodeId = queue.shift()!;
+            
+            if (visited.has(nodeId)) continue;
+            visited.add(nodeId);
+            
+            // Adicionar à lista de nodes para carregar
+            if (!allNodes.has(nodeId)) {
+                nodesToLoad.push(nodeId);
+            }
+            
+            const node = allNodes.get(nodeId);
+            if (node) {
+                foundPlayers.add(node.player);
+                
+                // Se ainda faltam jogadores, continuar explorando
+                if (foundPlayers.size < numPlayers && node.actions.length > 0) {
+                    const firstAction = node.actions[0];
+                    if (typeof firstAction.node === 'number') {
+                        queue.push(firstAction.node);
+                    }
+                }
+            }
+        }
+        
+        if (nodesToLoad.length > 0) {
+            console.log(`📦 Carregando próximos nodes (BFS): [${nodesToLoad.join(', ')}]`);
+            loadMultipleNodes(nodesToLoad);
+        }
+    }, [currentNode, allNodes, loadMultipleNodes, settings.handdata.stacks]);
     
     const pathSuccessorMap = useMemo(() => {
         const map = new Map<number, number>();
@@ -174,7 +225,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         const numPlayers = settings.handdata.stacks.length;
         const cards: Array<{ playerIndex: number; nodeId: number; showAllActions: boolean }> = [];
         
-        // Criar mapa de qual node cada jogador agiu no path atual
+        // Criar mapa de qual node cada jogador está agindo no path atual
         const playerToNodeMap = new Map<number, number>();
         pathNodeIds.forEach(nodeId => {
             const node = allNodes.get(nodeId);
@@ -182,34 +233,72 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                 playerToNodeMap.set(node.player, nodeId);
             }
         });
-
-        // Encontrar o primeiro node de cada jogador (node onde ele age pela primeira vez)
-        const playerFirstNodeMap = new Map<number, number>();
-        for (const [nodeId, node] of allNodes.entries()) {
-            if (!playerFirstNodeMap.has(node.player)) {
-                playerFirstNodeMap.set(node.player, nodeId);
+        
+        // Encontrar próximos nodes disponíveis para jogadores que ainda não agiram
+        // Navegar pela árvore seguindo a primeira ação até encontrar todos os jogadores
+        const nextNodesMap = new Map<number, number>();
+        if (currentNode) {
+            const visited = new Set<number>();
+            const queue: number[] = [];
+            
+            // Adicionar todos os nodes filhos do node atual à fila
+            currentNode.actions.forEach(action => {
+                if (typeof action.node === 'number') {
+                    queue.push(action.node);
+                }
+            });
+            
+            // BFS para encontrar os próximos nodes de cada jogador
+            while (queue.length > 0) {
+                const nodeId = queue.shift()!;
+                
+                if (visited.has(nodeId)) continue;
+                visited.add(nodeId);
+                
+                const node = allNodes.get(nodeId);
+                if (!node) continue;
+                
+                // Se este jogador ainda não agiu e não temos um node para ele, guardar
+                if (!playerToNodeMap.has(node.player) && !nextNodesMap.has(node.player)) {
+                    nextNodesMap.set(node.player, nodeId);
+                }
+                
+                // Se ainda faltam jogadores, continuar explorando
+                const numPlayers = settings.handdata.stacks.length;
+                const foundPlayers = playerToNodeMap.size + nextNodesMap.size;
+                
+                if (foundPlayers < numPlayers && node.actions.length > 0) {
+                    // Adicionar o primeiro filho à fila para continuar explorando
+                    const firstAction = node.actions[0];
+                    if (typeof firstAction.node === 'number' && !visited.has(firstAction.node)) {
+                        queue.push(firstAction.node);
+                    }
+                }
             }
         }
-
-        // Adicionar card para cada jogador na ordem de ação (UTG até BB)
+        
+        // Para cada jogador, determinar qual node mostrar
         for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
             const nodeIdInPath = playerToNodeMap.get(playerIndex);
-            const firstNodeId = playerFirstNodeMap.get(playerIndex);
+            const nextNodeId = nextNodesMap.get(playerIndex);
             
-            if (nodeIdInPath !== undefined) {
-                // Jogador tem um node real no path - mostrar esse node
-                cards.push({ playerIndex, nodeId: nodeIdInPath, showAllActions: true });
-            } else if (firstNodeId !== undefined) {
-                // Jogador não está no path, mas tem um node inicial - mostrar todas as ações disponíveis
-                cards.push({ playerIndex, nodeId: firstNodeId, showAllActions: true });
-            } else {
-                // Jogador não tem nenhum node (não deveria acontecer)
-                cards.push({ playerIndex, nodeId: -1, showAllActions: false });
-            }
+            // Prioridade: 
+            // 1. Node onde o jogador já agiu no path
+            // 2. Próximo node disponível (filho do node atual)
+            // 3. Node inicial do jogador
+            const nodeId = nodeIdInPath !== undefined 
+                ? nodeIdInPath 
+                : (nextNodeId !== undefined ? nextNodeId : playerIndex);
+            
+            cards.push({ 
+                playerIndex, 
+                nodeId,
+                showAllActions: true 
+            });
         }
 
         return cards;
-    }, [pathNodeIds, allNodes, settings.handdata.stacks]);
+    }, [settings.handdata.stacks, pathNodeIds, allNodes, currentNode]);
 
     return (
         <header className="bg-[#282c33] border-b border-gray-700">

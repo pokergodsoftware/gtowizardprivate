@@ -65,6 +65,7 @@ const tournamentPhases = [
     '60~40% left',
     '40~20% left',
     'Near bubble',
+    'After bubble',
     '3 tables',
     '2 tables',
     'Final table'

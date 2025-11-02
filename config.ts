@@ -14,7 +14,7 @@ export function getResourceUrl(path: string): string {
   
   // Em desenvolvimento, usa arquivos locais
   if (config.isDevelopment) {
-    return `./${cleanPath}`;
+    return `/${cleanPath}`;
   }
   
   // Em produção, usa CDN se configurado
@@ -23,5 +23,5 @@ export function getResourceUrl(path: string): string {
   }
   
   // Fallback para arquivos locais
-  return `./${cleanPath}`;
+  return `/${cleanPath}`;
 }

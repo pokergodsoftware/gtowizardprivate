@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from './components/FileUploadScreen.tsx';
 import { SolutionsLibrary } from './components/SolutionsLibrary.tsx';
@@ -9,6 +9,7 @@ import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
 import { getResourceUrl } from './config.ts';
+import { decodeUrlState, updateUrl, createUrlStateFromSolution, findSolutionByPath } from './lib/urlUtils.ts';
 import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } from './types.ts';
 
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
     // --- State Management ---
     const [currentPage, setCurrentPage] = useState<'home' | 'solutions' | 'trainer'>('home');
     const [solutions, setSolutions] = useState<AppData[]>([]);
+    const solutionsRef = useRef<AppData[]>([]);
     const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingNode, setIsLoadingNode] = useState(false);
@@ -26,6 +28,9 @@ const App: React.FC = () => {
     const [currentNodeId, setCurrentNodeId] = useState<number>(0);
     const [selectedHand, setSelectedHand] = useState<string | null>(null);
     const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
+    
+    // Flag para controlar se já restauramos o estado da URL
+    const [hasRestoredFromUrl, setHasRestoredFromUrl] = useState(false);
 
     // --- Data Parsing and Loading ---
 
@@ -70,7 +75,11 @@ const App: React.FC = () => {
             const folderName = firstPath.substring(0, firstPath.indexOf('/'));
 
             const newSolution = await parseHrcFolder(files, folderName, tournamentPhase);
-            setSolutions(prev => [...prev, newSolution]);
+            setSolutions(prev => {
+                const updated = [...prev, newSolution];
+                solutionsRef.current = updated;
+                return updated;
+            });
         } catch (err) {
             console.error("Error processing uploaded files:", err);
             setError(err instanceof Error ? err.message : "Ocorreu um erro desconhecido ao processar o arquivo.");
@@ -89,6 +98,7 @@ const App: React.FC = () => {
                  if (metadataRes.status === 404) {
                     console.log("solutions-metadata.json not found, starting with empty library.");
                     setSolutions([]);
+                    solutionsRef.current = [];
                     setIsLoading(false);
                     return; 
                  }
@@ -137,6 +147,7 @@ const App: React.FC = () => {
             const loadedSolutions = (await Promise.all(solutionPromises)).filter(s => s !== null) as AppData[];
 
             setSolutions(loadedSolutions);
+            solutionsRef.current = loadedSolutions;
             console.log(`✅ Loaded ${loadedSolutions.length} solutions (nodes will load on-demand)`);
 
         } catch (err) {
@@ -152,61 +163,141 @@ const App: React.FC = () => {
     }, [loadSolutionsMetadata]);
 
     // Carregar nodes sob demanda quando uma solução é selecionada
-    const loadNodesForSolution = useCallback(async (solutionId: string) => {
-        const solution = solutions.find(s => s.id === solutionId);
-        if (!solution || !solution.path) return;
+    const loadNodesForSolution = useCallback(async (solutionId: string, nodeIdsToLoad?: number[]): Promise<AppData | null> => {
+        console.log(`⏳ Loading nodes for solution ID: ${solutionId}`);
+        
+        // Acessar solutions via ref (sempre atualizado)
+        const currentSolutions = solutionsRef.current;
+        const solutionToLoad = currentSolutions.find(s => s.id === solutionId);
 
-        // Se já tem nodes carregados, não precisa recarregar
-        if (solution.nodes.size > 0) {
-            console.log(`✅ Nodes already loaded for "${solution.fileName}"`);
-            return;
+        if (!solutionToLoad) {
+            console.error(`❌ Solution not found: ${solutionId}`);
+            return null;
+        }
+        
+        console.log(`✅ Found solution: ${solutionToLoad.fileName}`);
+
+        if (!solutionToLoad.path) {
+            console.error('Solution has no path');
+            return null;
         }
 
-        console.log(`⏳ Loading nodes for "${solution.fileName}"...`);
-        setIsLoading(true);
+        // Define quais nodes carregar
+        const nodesToLoad = nodeIdsToLoad || [0];
+        
+        // Filtra apenas nodes que ainda não foram carregados
+        const missingNodes = nodesToLoad.filter(id => !solutionToLoad!.nodes.has(id));
+        
+        if (missingNodes.length === 0) {
+            console.log(`✅ All requested nodes already loaded for "${solutionToLoad.fileName}"`);
+            return solutionToLoad;
+        }
+
+        console.log(`⏳ Loading ${missingNodes.length} nodes for "${solutionToLoad.fileName}": [${missingNodes.join(', ')}]`);
 
         try {
-            // Buscar metadados para obter lista de nodeIds
-            const metadataRes = await fetch(getResourceUrl('solutions-metadata.json'));
-            const metadata: SolutionMetadata[] = await metadataRes.json();
-            const solutionMeta = metadata.find(m => m.path === solution.path);
+            // Cria um novo Map com os nodes existentes
+            const nodes = new Map(solutionToLoad.nodes);
             
-            if (!solutionMeta) {
-                throw new Error('Solution metadata not found');
-            }
-
-            const nodes = new Map<number, NodeData>();
-            
-            // Carregar apenas o node 0 inicialmente (root node)
-            const initialNodeIds = [0];
-            
-            await Promise.all(initialNodeIds.map(async (id: number) => {
+            // Carrega os nodes faltantes
+            await Promise.all(missingNodes.map(async (id: number) => {
                 try {
-                    const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${id}.json`));
+                    const nodeRes = await fetch(getResourceUrl(`${solutionToLoad!.path}/nodes/${id}.json`));
                     if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
                     const nodeData: NodeData = await nodeRes.json();
                     nodes.set(id, nodeData);
+                    console.log(`✅ Successfully loaded node ${id}`);
                 } catch (e) {
                     console.error(`Error loading node ${id}:`, e);
                 }
             }));
 
-            // Atualizar solução com nodes carregados
-            setSolutions(prev => prev.map(s => 
-                s.id === solutionId 
-                    ? { ...s, nodes }
-                    : s
-            ));
+            if (nodes.size === solutionToLoad.nodes.size) {
+                throw new Error('No new nodes were loaded');
+            }
 
-            console.log(`✅ Loaded ${nodes.size} initial nodes for "${solution.fileName}"`);
+            // Criar solução atualizada
+            const updatedSolution = { ...solutionToLoad, nodes };
+
+            // Atualizar solução com nodes carregados
+            setSolutions(prev => {
+                const updated = prev.map(s => 
+                    s.id === solutionId 
+                        ? updatedSolution
+                        : s
+                );
+                solutionsRef.current = updated;
+                console.log(`✅ Updated solutions array with ${nodes.size} total nodes for "${solutionToLoad!.fileName}"`);
+                return updated;
+            });
+
+            console.log(`✅ Loaded ${missingNodes.length} new nodes for "${solutionToLoad.fileName}"`);
+            
+            // Retorna a solução atualizada diretamente
+            return updatedSolution;
 
         } catch (err) {
             console.error("Error loading nodes:", err);
             setError(err instanceof Error ? err.message : "Failed to load nodes");
-        } finally {
-            setIsLoading(false);
+            return null;
         }
-    }, [solutions]);
+    }, []);
+
+    // Restaurar estado da URL após carregar as soluções
+    useEffect(() => {
+        if (!hasRestoredFromUrl && !isLoading && solutions.length > 0) {
+            const urlState = decodeUrlState();
+            
+            console.log('🔗 Restaurando estado da URL:', urlState);
+            
+            // Se tem solução na URL, restaurar
+            if (urlState.solutionPath) {
+                const solution = findSolutionByPath(solutions, urlState.solutionPath);
+                
+                if (solution) {
+                    console.log(`✅ Solução encontrada na URL: ${solution.fileName}`);
+                    
+                    // Carregar solução e node primeiro (async)
+                    const nodeToLoad = urlState.nodeId || 0;
+                    
+                    (async () => {
+                        // Carregar todos os nodes de 0 até o node desejado para garantir o caminho completo
+                        const nodesToLoad = Array.from({ length: nodeToLoad + 1 }, (_, i) => i);
+                        console.log(`📦 Carregando nodes do caminho: [0...${nodeToLoad}]`);
+                        
+                        await loadNodesForSolution(solution.id, nodesToLoad);
+                        
+                        // Só depois de carregar, definir o estado
+                        setSelectedSolutionId(solution.id);
+                        setCurrentNodeId(nodeToLoad);
+                        
+                        if (urlState.hand) {
+                            setSelectedHand(urlState.hand);
+                        }
+                        
+                        // Definir página
+                        if (urlState.page) {
+                            setCurrentPage(urlState.page);
+                        } else {
+                            setCurrentPage('solutions');
+                        }
+                        
+                        setHasRestoredFromUrl(true);
+                    })();
+                    
+                } else {
+                    console.warn(`⚠️ Solução não encontrada: ${urlState.solutionPath}`);
+                    setHasRestoredFromUrl(true);
+                }
+            } else if (urlState.page) {
+                // Sem solução, mas tem página
+                setCurrentPage(urlState.page);
+                setHasRestoredFromUrl(true);
+            } else {
+                setHasRestoredFromUrl(true);
+            }
+        }
+    }, [hasRestoredFromUrl, isLoading, solutions, loadNodesForSolution]);
 
     // Carregar node específico sob demanda
     const loadNode = useCallback(async (nodeId: number) => {
@@ -225,14 +316,18 @@ const App: React.FC = () => {
             const nodeData: NodeData = await nodeRes.json();
 
             // Atualizar solução com o novo node
-            setSolutions(prev => prev.map(s => {
-                if (s.id === selectedSolutionId) {
-                    const newNodes = new Map(s.nodes);
-                    newNodes.set(nodeId, nodeData);
-                    return { ...s, nodes: newNodes };
-                }
-                return s;
-            }));
+            setSolutions(prev => {
+                const updated = prev.map(s => {
+                    if (s.id === selectedSolutionId) {
+                        const newNodes = new Map(s.nodes);
+                        newNodes.set(nodeId, nodeData);
+                        return { ...s, nodes: newNodes };
+                    }
+                    return s;
+                });
+                solutionsRef.current = updated;
+                return updated;
+            });
 
             console.log(`✅ Loaded node ${nodeId}`);
 
@@ -269,18 +364,22 @@ const App: React.FC = () => {
             );
 
             // Atualizar solução com os novos nodes
-            setSolutions(prev => prev.map(s => {
-                if (s.id === selectedSolutionId) {
-                    const newNodes = new Map(s.nodes);
-                    loadedNodes.forEach(result => {
-                        if (result) {
-                            newNodes.set(result.nodeId, result.nodeData);
-                        }
-                    });
-                    return { ...s, nodes: newNodes };
-                }
-                return s;
-            }));
+            setSolutions(prev => {
+                const updated = prev.map(s => {
+                    if (s.id === selectedSolutionId) {
+                        const newNodes = new Map(s.nodes);
+                        loadedNodes.forEach(result => {
+                            if (result) {
+                                newNodes.set(result.nodeId, result.nodeData);
+                            }
+                        });
+                        return { ...s, nodes: newNodes };
+                    }
+                    return s;
+                });
+                solutionsRef.current = updated;
+                return updated;
+            });
 
             console.log(`✅ Loaded ${loadedNodes.filter(r => r !== null).length} nodes`);
 
@@ -335,12 +434,14 @@ const App: React.FC = () => {
 
     // --- Event Handlers ---
 
-    const handleSelectSolution = (id: string) => {
+    const handleSelectSolution = async (id: string) => {
         setSelectedSolutionId(id);
         setCurrentNodeId(0); // Reset to root node
         setSelectedHand(null);
-        // Carregar nodes para esta solução
-        loadNodesForSolution(id);
+        setIsLoadingNode(true);
+        // Carregar nodes para esta solução e esperar
+        await loadNodesForSolution(id);
+        setIsLoadingNode(false);
     };
 
     const handleChangeSolution = () => {
@@ -365,6 +466,20 @@ const App: React.FC = () => {
         loadNode(nodeId);
     };
 
+    // Sincronizar estado com URL (após restauração inicial)
+    useEffect(() => {
+        if (!hasRestoredFromUrl) return;
+        
+        const urlState = createUrlStateFromSolution(
+            currentPage,
+            selectedSolution || null,
+            currentNodeId,
+            selectedHand || undefined
+        );
+        
+        updateUrl(urlState, true); // replace = true para não criar histórico excessivo
+    }, [hasRestoredFromUrl, currentPage, selectedSolution, currentNodeId, selectedHand]);
+
     // --- Render Logic ---
 
     // Home page
@@ -380,6 +495,7 @@ const App: React.FC = () => {
                 onBack={handleBackToHome}
                 loadNode={loadNode}
                 loadMultipleNodes={loadMultipleNodes}
+                loadNodesForSolution={loadNodesForSolution}
             />
         );
     }
@@ -399,7 +515,12 @@ const App: React.FC = () => {
     }
 
     if (!currentNode) {
-         return <div className="flex items-center justify-center h-screen">Error: Current node not found.</div>;
+        // Se não tem node, está carregando
+        return (
+            <>
+                <LoadingOverlay isLoading={true} message="Loading solution..." />
+            </>
+        );
     }
     
     const { settings } = selectedSolution;
