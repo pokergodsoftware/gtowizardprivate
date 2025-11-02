@@ -7,29 +7,43 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
 
-# Public directory (generated)
-# Não ignorar public/ para permitir deploy no Vercel
-# public/
+# Build outputs
+build/
+.vercel
 
-# Spots (hospedados no Cloudflare R2)
+# Spots (hospedados no Cloudflare R2 - não fazer commit)
 /spots/
 /public/spots/
 
+# Metadados gerados (regenerar com generate_solutions_lazy.cjs)
+solutions-metadata.json
+public/solutions-metadata.json
+solutions.json
+public/solutions.json
+
 # Arquivos de ambiente
+.env
 .env.local
+.env.production
 .env.production.local
+.env.development.local
 
 # Scripts de upload
 upload-to-r2.js
 
+# Configuração rclone (contém credenciais)
+rclone.conf
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -37,3 +51,12 @@ upload-to-r2.js
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
