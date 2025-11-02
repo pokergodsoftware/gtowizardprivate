@@ -17,15 +17,22 @@ dist-ssr
 build/
 .vercel
 
-# Spots (hospedados no Cloudflare R2 - não fazer commit)
-/spots/
-/public/spots/
+# Spots (hospedados no Cloudflare R2)
+# COMENTADO TEMPORARIAMENTE PARA DEPLOY NO VERCEL
+# /spots/
+# /public/spots/
+
+# Trainer assets (hospedados no Cloudflare R2)
+/public/trainer/
+!/public/trainer/AUDIO_INSTRUCTIONS.md
+!/public/trainer/README_AUDIO.md
 
 # Metadados gerados (regenerar com generate_solutions_lazy.cjs)
-solutions-metadata.json
-public/solutions-metadata.json
-solutions.json
-public/solutions.json
+# COMENTADO TEMPORARIAMENTE PARA DEPLOY NO VERCEL
+# solutions-metadata.json
+# public/solutions-metadata.json
+# solutions.json
+# public/solutions.json
 
 # Arquivos de ambiente
 .env

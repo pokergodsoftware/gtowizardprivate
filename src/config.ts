@@ -25,3 +25,19 @@ export function getResourceUrl(path: string): string {
   // Fallback para arquivos locais
   return `/${cleanPath}`;
 }
+
+// Função helper para construir URLs de assets do trainer (sempre usa CDN em produção)
+export function getTrainerAssetUrl(filename: string): string {
+  // Em desenvolvimento, usa arquivos locais
+  if (config.isDevelopment) {
+    return `/trainer/${filename}`;
+  }
+  
+  // Em produção, SEMPRE usa CDN
+  if (config.CDN_URL) {
+    return `${config.CDN_URL}/trainer/${filename}`;
+  }
+  
+  // Fallback para arquivos locais
+  return `/trainer/${filename}`;
+}

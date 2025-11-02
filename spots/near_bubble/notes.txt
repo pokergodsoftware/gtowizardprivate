@@ -1,0 +1,1 @@
+speed20 nao lembro de ter rodado com CI baixo

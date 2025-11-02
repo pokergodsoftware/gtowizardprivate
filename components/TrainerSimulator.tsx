@@ -6,6 +6,7 @@ import { randomElement, selectHandFromRange, comboIndexToString } from '../lib/t
 import allCombos from '../combos.json';
 import { generateHandMatrix } from '../lib/pokerUtils.ts';
 import { saveSpotResult, saveSpotHistory } from '../utils/statsUtils.ts';
+import { getTrainerAssetUrl } from '../src/config.ts';
 
 interface TrainerSimulatorProps {
     solutions: AppData[];
@@ -89,9 +90,9 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     // Inicializar áudios do timebank
     useEffect(() => {
         if (tournamentMode) {
-            timebankAudio1.current = new Audio('./trainer/timebank1.mp3');
-            timebankAudio2.current = new Audio('./trainer/timebank2.mp3');
-            console.log('🎵 Timebank audios initialized');
+            timebankAudio1.current = new Audio(getTrainerAssetUrl('timebank1.mp3'));
+            timebankAudio2.current = new Audio(getTrainerAssetUrl('timebank2.mp3'));
+            console.log('🎵 Timebank audios initialized from CDN');
         }
     }, [tournamentMode]);
     

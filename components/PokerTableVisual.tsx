@@ -1,6 +1,7 @@
 import React from 'react';
 import type { NodeData, SettingsData } from '../types.ts';
 import { getPlayerPositions } from '../lib/pokerUtils.ts';
+import { getTrainerAssetUrl } from '../src/config.ts';
 
 // Versão 2.0 - Com fichas visuais
 
@@ -182,8 +183,8 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
 
     // Determina qual imagem da mesa usar
     const tableImage = tournamentPhase === 'Final table' 
-        ? '/trainer/final_table.png' 
-        : '/trainer/table.png';
+        ? getTrainerAssetUrl('final_table.png')
+        : getTrainerAssetUrl('table.png');
 
     // Extrai e formata o nome do torneio a partir do nome do arquivo
     const getTournamentName = (): string => {
@@ -579,7 +580,7 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
                                             return (
                                                 <div className="relative z-0 -mb-5">
                                                     <img 
-                                                        src={`/trainer/avatar${avatarNumber}.png`} 
+                                                        src={getTrainerAssetUrl(`avatar${avatarNumber}.png`)}
                                                         alt={position}
                                                         className="w-20 h-20 rounded-full"
                                                     />
@@ -590,7 +591,7 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
                                             return (
                                                 <div className="relative z-0 -mb-3">
                                                     <img 
-                                                        src="/trainer/cards.png" 
+                                                        src={getTrainerAssetUrl('cards.png')}
                                                         alt="cards"
                                                         className="w-16"
                                                     />
