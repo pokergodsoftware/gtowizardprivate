@@ -262,28 +262,39 @@ const App: React.FC = () => {
                     const nodeToLoad = urlState.nodeId || 0;
                     
                     (async () => {
-                        // Carregar todos os nodes de 0 até o node desejado para garantir o caminho completo
-                        const nodesToLoad = Array.from({ length: nodeToLoad + 1 }, (_, i) => i);
-                        console.log(`📦 Carregando nodes do caminho: [0...${nodeToLoad}]`);
-                        
-                        await loadNodesForSolution(solution.id, nodesToLoad);
-                        
-                        // Só depois de carregar, definir o estado
-                        setSelectedSolutionId(solution.id);
-                        setCurrentNodeId(nodeToLoad);
-                        
-                        if (urlState.hand) {
-                            setSelectedHand(urlState.hand);
+                        try {
+                            // Mostrar loading
+                            setIsLoadingNode(true);
+                            
+                            // Carregar todos os nodes de 0 até o node desejado para garantir o caminho completo
+                            const nodesToLoad = Array.from({ length: nodeToLoad + 1 }, (_, i) => i);
+                            console.log(`📦 Carregando nodes do caminho: [0...${nodeToLoad}]`);
+                            
+                            await loadNodesForSolution(solution.id, nodesToLoad);
+                            
+                            // Só depois de carregar, definir o estado
+                            setSelectedSolutionId(solution.id);
+                            setCurrentNodeId(nodeToLoad);
+                            
+                            if (urlState.hand) {
+                                setSelectedHand(urlState.hand);
+                            }
+                            
+                            // Definir página
+                            if (urlState.page) {
+                                setCurrentPage(urlState.page);
+                            } else {
+                                setCurrentPage('solutions');
+                            }
+                            
+                            setHasRestoredFromUrl(true);
+                        } catch (error) {
+                            console.error('❌ Erro ao carregar spot:', error);
+                            setHasRestoredFromUrl(true);
+                        } finally {
+                            // Esconder loading
+                            setIsLoadingNode(false);
                         }
-                        
-                        // Definir página
-                        if (urlState.page) {
-                            setCurrentPage(urlState.page);
-                        } else {
-                            setCurrentPage('solutions');
-                        }
-                        
-                        setHasRestoredFromUrl(true);
                     })();
                     
                 } else {
@@ -572,7 +583,7 @@ const App: React.FC = () => {
                     />
                 </main>
             </div>
-            <LoadingOverlay isLoading={isLoadingNode} message="Loading node..." />
+            <LoadingOverlay isLoading={isLoadingNode} message="Loading spot..." />
             <VersionBadge position="bottom-right" />
         </>
     );
