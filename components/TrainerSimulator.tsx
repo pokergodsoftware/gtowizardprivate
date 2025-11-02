@@ -669,22 +669,45 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                 console.log(`📉 Using ${handsToUse.length} hands with worst EVs (range: ${handsWithEV[0]?.maxEv.toFixed(2)} to ${handsWithEV[worstHandsCount - 1]?.maxEv.toFixed(2)} BB)`);
             }
 
-            // 7. Sorteia uma mão do range filtrado
-            const randomHandName = randomElement(handsToUse);
-            const handData = currentNode.hands[randomHandName];
-
-            // Log do melhor EV da mão selecionada
-            if (handData && handData.evs) {
-                const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
-                if (validEvs.length >= 1) {
-                    const maxEv = Math.max(...validEvs);
-                    console.log(`✅ Selected hand: ${randomHandName} (best EV: ${maxEv.toFixed(2)} BB)`);
-                } else {
-                    console.log(`✅ Selected hand: ${randomHandName}`);
+            // 7. Sorteia uma mão do range filtrado (com re-roll para spots marginais)
+            let randomHandName: string;
+            let handData: any;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 10;
+            
+            do {
+                randomHandName = randomElement(handsToUse);
+                handData = currentNode.hands[randomHandName];
+                attempts++;
+                
+                // Verifica se é um spot marginal (diferença de EV < 0.05 BB)
+                if (handData && handData.evs) {
+                    const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+                    if (validEvs.length >= 2) {
+                        const sortedEvs = [...validEvs].sort((a, b) => b - a);
+                        const evDiff = sortedEvs[0] - sortedEvs[1];
+                        
+                        if (evDiff >= 0.05) {
+                            // Spot OK - diferença clara entre ações
+                            console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
+                            break;
+                        } else if (attempts < MAX_ATTEMPTS) {
+                            // Spot marginal - tenta outro
+                            console.log(`🔄 Marginal spot detected (${randomHandName}, diff: ${evDiff.toFixed(2)} BB) - re-rolling...`);
+                            continue;
+                        } else {
+                            // Atingiu limite de tentativas - usa mesmo assim
+                            console.log(`⚠️ Max attempts reached - using ${randomHandName} (diff: ${evDiff.toFixed(2)} BB)`);
+                            break;
+                        }
+                    }
                 }
-            } else {
+                
+                // Se não tem EVs válidos, aceita a mão
                 console.log(`✅ Selected hand: ${randomHandName}`);
-            }
+                break;
+                
+            } while (attempts < MAX_ATTEMPTS);
 
             // 8. Filtra combos que pertencem à mão selecionada
             const flatCombos = allCombos.flat();
@@ -1283,22 +1306,45 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             console.log(`📉 Using ${handsToUse.length} hands with worst EVs (range: ${handsWithEV[0]?.maxEv.toFixed(2)} to ${handsWithEV[worstHandsCount - 1]?.maxEv.toFixed(2)} BB)`);
         }
 
-        // 7. Sorteia uma mão do range filtrado
-        const randomHandName = randomElement(handsToUse);
-        const handData = currentNode.hands[randomHandName];
-
-        // Log do melhor EV da mão selecionada
-        if (handData && handData.evs) {
-            const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
-            if (validEvs.length >= 1) {
-                const maxEv = Math.max(...validEvs);
-                console.log(`✅ Selected hand: ${randomHandName} (best EV: ${maxEv.toFixed(2)} BB)`);
-            } else {
-                console.log(`✅ Selected hand: ${randomHandName}`);
+        // 7. Sorteia uma mão do range filtrado (com re-roll para spots marginais)
+        let randomHandName: string;
+        let handData: any;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 10;
+        
+        do {
+            randomHandName = randomElement(handsToUse);
+            handData = currentNode.hands[randomHandName];
+            attempts++;
+            
+            // Verifica se é um spot marginal (diferença de EV < 0.05 BB)
+            if (handData && handData.evs) {
+                const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+                if (validEvs.length >= 2) {
+                    const sortedEvs = [...validEvs].sort((a, b) => b - a);
+                    const evDiff = sortedEvs[0] - sortedEvs[1];
+                    
+                    if (evDiff >= 0.05) {
+                        // Spot OK - diferença clara entre ações
+                        console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
+                        break;
+                    } else if (attempts < MAX_ATTEMPTS) {
+                        // Spot marginal - tenta outro
+                        console.log(`🔄 Marginal spot detected (${randomHandName}, diff: ${evDiff.toFixed(2)} BB) - re-rolling...`);
+                        continue;
+                    } else {
+                        // Atingiu limite de tentativas - usa mesmo assim
+                        console.log(`⚠️ Max attempts reached - using ${randomHandName} (diff: ${evDiff.toFixed(2)} BB)`);
+                        break;
+                    }
+                }
             }
-        } else {
+            
+            // Se não tem EVs válidos, aceita a mão
             console.log(`✅ Selected hand: ${randomHandName}`);
-        }
+            break;
+            
+        } while (attempts < MAX_ATTEMPTS);
 
         // 8. Filtra combos que pertencem à mão selecionada
         const flatCombos = allCombos.flat();
