@@ -8,6 +8,7 @@ import { Header } from './components/Header.tsx';
 import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
+import { VersionBadge } from './components/VersionBadge.tsx';
 import { getResourceUrl } from './config.ts';
 import { decodeUrlState, updateUrl, createUrlStateFromSolution, findSolutionByPath } from './lib/urlUtils.ts';
 import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } from './types.ts';
@@ -572,6 +573,7 @@ const App: React.FC = () => {
                 </main>
             </div>
             <LoadingOverlay isLoading={isLoadingNode} message="Loading node..." />
+            <VersionBadge position="bottom-right" />
         </>
     );
 };
