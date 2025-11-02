@@ -18,9 +18,8 @@ build/
 .vercel
 
 # Spots (hospedados no Cloudflare R2)
-# COMENTADO TEMPORARIAMENTE PARA DEPLOY NO VERCEL
-# /spots/
-# /public/spots/
+/spots/
+/public/spots/
 
 # Trainer assets (hospedados no Cloudflare R2)
 /public/trainer/
@@ -28,11 +27,10 @@ build/
 !/public/trainer/README_AUDIO.md
 
 # Metadados gerados (regenerar com generate_solutions_lazy.cjs)
-# COMENTADO TEMPORARIAMENTE PARA DEPLOY NO VERCEL
-# solutions-metadata.json
-# public/solutions-metadata.json
-# solutions.json
-# public/solutions.json
+solutions-metadata.json
+public/solutions-metadata.json
+solutions.json
+public/solutions.json
 
 # Arquivos de ambiente
 .env
