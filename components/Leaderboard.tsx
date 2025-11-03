@@ -49,9 +49,22 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                 }
             });
 
-            // Ordenar por pontos (decrescente)
+            // Ordenar por pontos (decrescente) e pegar apenas top 10
             entries.sort((a, b) => b.totalPoints - a.totalPoints);
-            setLeaderboard(entries);
+            
+            // Limitar a 10 jogadores, mas sempre incluir o usuário atual se ele não estiver no top 10
+            let top10 = entries.slice(0, 10);
+            
+            // Se o usuário atual não está no top 10, adiciona ele no final
+            const currentUserInTop10 = top10.some(e => e.userId === currentUserId);
+            if (!currentUserInTop10) {
+                const currentUserEntry = entries.find(e => e.userId === currentUserId);
+                if (currentUserEntry) {
+                    top10.push(currentUserEntry);
+                }
+            }
+            
+            setLeaderboard(top10);
         } catch (err) {
             console.error('Erro ao carregar leaderboard:', err);
         } finally {
