@@ -27,16 +27,30 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
             const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
             const entries: LeaderboardEntry[] = [];
 
+            console.log('🏆 Loading leaderboard...');
+            console.log('📊 Total users registered:', Object.keys(users).length);
+
             Object.entries(users).forEach(([username, userData]: [string, any]) => {
                 const userId = userData.id;
                 const userStatsKey = `poker_stats_${userId}`;
                 const statsData = localStorage.getItem(userStatsKey);
+
+                console.log(`👤 Checking user: ${username} (${userId})`);
+                console.log(`   Stats key: ${userStatsKey}`);
+                console.log(`   Has stats: ${!!statsData}`);
 
                 if (statsData) {
                     const stats = JSON.parse(statsData);
                     const accuracy = stats.totalSpots > 0 
                         ? (stats.correctSpots / stats.totalSpots) * 100 
                         : 0;
+
+                    console.log(`   ✅ Stats found:`, {
+                        totalPoints: stats.totalPoints,
+                        totalSpots: stats.totalSpots,
+                        correctSpots: stats.correctSpots,
+                        accuracy: accuracy.toFixed(1) + '%'
+                    });
 
                     entries.push({
                         userId,
@@ -46,11 +60,17 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                         correctSpots: stats.correctSpots || 0,
                         accuracy
                     });
+                } else {
+                    console.log(`   ❌ No stats found for ${username}`);
                 }
             });
 
+            console.log(`📈 Total entries with stats: ${entries.length}`);
+
             // Ordenar por pontos (decrescente) e pegar apenas top 10
             entries.sort((a, b) => b.totalPoints - a.totalPoints);
+            
+            console.log('🏅 Top players:', entries.map((e, i) => `${i+1}. ${e.username} (${e.totalPoints} pts)`));
             
             // Limitar a 10 jogadores, mas sempre incluir o usuário atual se ele não estiver no top 10
             let top10 = entries.slice(0, 10);
@@ -60,13 +80,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
             if (!currentUserInTop10) {
                 const currentUserEntry = entries.find(e => e.userId === currentUserId);
                 if (currentUserEntry) {
+                    console.log(`➕ Adding current user outside top 10: ${currentUserEntry.username}`);
                     top10.push(currentUserEntry);
                 }
             }
             
+            console.log(`✅ Final leaderboard size: ${top10.length}`);
             setLeaderboard(top10);
         } catch (err) {
-            console.error('Erro ao carregar leaderboard:', err);
+            console.error('❌ Erro ao carregar leaderboard:', err);
         } finally {
             setLoading(false);
         }
