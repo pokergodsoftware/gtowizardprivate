@@ -30,7 +30,12 @@ components/TrainerSimulator/
 - ✅ `formatBounty(bounty, showInDollars, fileName)` - Formats bounty display
 - ✅ `getAverageStackBB(solution)` - Calculates average stack in BB
 
-#### 4. Created Index Files
+#### 4. Extracted Hooks (`hooks/`)
+- ✅ `useTrainerSettings.ts` - Display mode, bounty display, auto-advance with localStorage
+- ✅ `useTimebank.ts` - Timer countdown with audio alerts (8s, 4s warnings)
+- ✅ `useTrainerStats.ts` - Statistics tracking and updates
+
+#### 5. Created Index Files
 - ✅ `utils/index.ts` - Export point for utilities
 - ✅ `utils/spotGenerators/index.ts` - Placeholder for Phase 3
 - ✅ `hooks/index.ts` - Placeholder for Phase 2
@@ -49,12 +54,33 @@ import { TOURNAMENT_PHASES } from './TrainerSimulator/types.ts';
 import { getInitialBounty, formatBounty, getAverageStackBB } from './TrainerSimulator/utils';
 ```
 
+#### Importing Hooks
+```typescript
+import { 
+    useTrainerSettings, 
+    useTimebank, 
+    useTrainerStats 
+} from './TrainerSimulator/hooks';
+
+// In component:
+const { displayMode, toggleDisplayMode, showBountyInDollars, ... } = useTrainerSettings();
+const { timeLeft, stopAudios } = useTimebank({ tournamentMode, currentSpot, showFeedback, onTimeExpired });
+const { stats, updateStats } = useTrainerStats();
+```
+
 ### 🔄 Next Steps
 
-**Phase 2: Extract Hooks** (Ready to start)
-- [ ] `useTrainerSettings.ts` - Display mode, bounty display, auto-advance
-- [ ] `useTimebank.ts` - Timer and timebank audio logic
-- [ ] `useTrainerStats.ts` - Statistics tracking and persistence
+**Phase 3: Extract Spot Generators** (Ready to start)
+- [ ] `generateRFISpot.ts` - RFI spot generation
+- [ ] `generateVsOpenSpot.ts` - vs Open spot generation
+- [ ] `generateVsShoveSpot.ts` - vs Shove spot generation
+- [ ] `generateVsMultiwaySpot.ts` - vs Multiway spot generation
+- [ ] `generateAnySpot.ts` - Any spot generation
+
+**Phase 2: Extract Hooks** ✅ COMPLETED
+- ✅ `useTrainerSettings.ts` - Display mode, bounty display, auto-advance
+- ✅ `useTimebank.ts` - Timer and timebank audio logic
+- ✅ `useTrainerStats.ts` - Statistics tracking and persistence
 
 **Phase 3: Extract Spot Generators** (After Phase 2)
 - [ ] `generateRFISpot.ts` - RFI spot generation
@@ -78,9 +104,6 @@ import { getInitialBounty, formatBounty, getAverageStackBB } from './TrainerSimu
 
 ### 📊 Impact
 
-**Before Phase 1:**
-- 1 monolithic file: `TrainerSimulator.tsx` (~2300 lines)
-
 **After Phase 1:**
 - Folder structure created ✅
 - 2 new files with extracted code ✅
@@ -88,9 +111,19 @@ import { getInitialBounty, formatBounty, getAverageStackBB } from './TrainerSimu
 - Original file unchanged ✅
 - Zero compilation errors ✅
 
-**Status:** ✅ Phase 1 Complete - Ready for Phase 2
+**After Phase 2:**
+- 3 custom hooks extracted ✅
+- ~250 lines of state management logic isolated ✅
+- Hooks fully functional and reusable ✅
+- Zero compilation errors ✅
+- Original file still unchanged ✅
+
+**Status:** ✅ Phase 2 Complete - Ready for Phase 3
 
 ---
 
 **Last Updated:** November 3, 2025  
+**Current Phase:** ✅ Phase 2 Complete  
+**Files Created:** 10 total (7 in Phase 1, 3 in Phase 2)  
+**Lines Extracted:** ~450 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`

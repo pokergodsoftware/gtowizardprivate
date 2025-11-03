@@ -130,78 +130,51 @@ mkdir components/TrainerSimulator/components
 
 ---
 
-### Phase 2: Extract Hooks (Medium Risk)
+### Phase 2: Extract Hooks (Medium Risk) - ✅ COMPLETED
 **Goal:** Isolate state management logic
 
-#### Step 2.1: Extract useTrainerSettings hook
-**What to extract:**
-- `displayMode` state + `toggleDisplayMode()`
-- `showBountyInDollars` state + `toggleShowBountyInDollars()`
-- `autoAdvance` state + `toggleAutoAdvance()`
-- localStorage sync logic
+#### Step 2.1: Extract useTrainerSettings hook ✅
+**What extracted:**
+- ✅ `displayMode` state + `toggleDisplayMode()`
+- ✅ `showBountyInDollars` state + `toggleShowBountyInDollars()`
+- ✅ `autoAdvance` state + `toggleAutoAdvance()`
+- ✅ localStorage sync logic
 
 **File:** `components/TrainerSimulator/hooks/useTrainerSettings.ts`
 
-**Interface:**
-```typescript
-export const useTrainerSettings = () => {
-  return {
-    displayMode,
-    toggleDisplayMode,
-    showBountyInDollars,
-    toggleShowBountyInDollars,
-    autoAdvance,
-    toggleAutoAdvance
-  };
-};
-```
-
-#### Step 2.2: Extract useTimebank hook
-**What to extract:**
-- `timeLeft` state
-- `hasPlayedTimebank1/2` states
-- Timer countdown logic
-- Audio initialization and playback
-- `handleTimeExpired()` function
+#### Step 2.2: Extract useTimebank hook ✅
+**What extracted:**
+- ✅ `timeLeft` state
+- ✅ `hasPlayedTimebank1/2` states
+- ✅ Timer countdown logic (1 second intervals)
+- ✅ Audio initialization and playback (8s and 4s warnings)
+- ✅ `stopAudios()` function for cleanup
+- ✅ Callback pattern for `onTimeExpired`
 
 **File:** `components/TrainerSimulator/hooks/useTimebank.ts`
 
-**Interface:**
-```typescript
-export const useTimebank = (
-  tournamentMode: boolean,
-  currentSpot: SpotSimulation | null,
-  showFeedback: boolean,
-  onTimeExpired: () => void
-) => {
-  return {
-    timeLeft,
-    resetTimebank: () => void
-  };
-};
-```
-
-#### Step 2.3: Extract useTrainerStats hook
-**What to extract:**
-- `stats` state
-- Stats update logic
-- Integration with `saveSpotResult()` and `saveSpotHistory()`
+#### Step 2.3: Extract useTrainerStats hook ✅
+**What extracted:**
+- ✅ `stats` state with all fields
+- ✅ `updateStats()` function with isCorrect, phase, points params
+- ✅ `resetStats()` function for cleanup
+- ✅ Tournament progress tracking (tournamentsPlayed, reachedFinalTable, completedTournaments)
 
 **File:** `components/TrainerSimulator/hooks/useTrainerStats.ts`
 
-**Interface:**
-```typescript
-export const useTrainerStats = (userId: string) => {
-  return {
-    stats,
-    updateStats: (isCorrect: boolean, phase: string, points: number) => void
-  };
-};
-```
+#### Step 2.4: Update hooks index ✅
+- ✅ Export all 3 hooks from `hooks/index.ts`
+
+**Phase 2 Status:** ✅ Complete (November 3, 2025)
+- 3 hooks created (~250 lines)
+- All hooks fully functional and tested
+- Zero compilation errors
+- Original TrainerSimulator.tsx unchanged
+- Hooks ready to use in refactored component
 
 ---
 
-### Phase 3: Extract Navigation Utils (Medium Risk)
+### Phase 3: Extract Navigation Utils (Medium Risk) - 🔄 READY TO START
 **Goal:** Isolate tree navigation logic
 
 #### Step 3.1: Create navigation utility functions
