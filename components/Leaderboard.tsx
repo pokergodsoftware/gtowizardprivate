@@ -29,13 +29,20 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
 
             console.log('🏆 Loading leaderboard...');
             console.log('📊 Total users registered:', Object.keys(users).length);
+            console.log('📋 All users:', users);
+
+            // Listar TODAS as chaves do localStorage que começam com poker_stats_
+            const allKeys = Object.keys(localStorage);
+            const statsKeys = allKeys.filter(key => key.startsWith('poker_stats_'));
+            console.log('🔑 All poker_stats_ keys in localStorage:', statsKeys);
 
             Object.entries(users).forEach(([username, userData]: [string, any]) => {
                 const userId = userData.id;
                 const userStatsKey = `poker_stats_${userId}`;
                 const statsData = localStorage.getItem(userStatsKey);
 
-                console.log(`👤 Checking user: ${username} (${userId})`);
+                console.log(`👤 Checking user: ${username}`);
+                console.log(`   User ID: ${userId}`);
                 console.log(`   Stats key: ${userStatsKey}`);
                 console.log(`   Has stats: ${!!statsData}`);
 
@@ -70,7 +77,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
             // Ordenar por pontos (decrescente) e pegar apenas top 10
             entries.sort((a, b) => b.totalPoints - a.totalPoints);
             
-            console.log('🏅 Top players:', entries.map((e, i) => `${i+1}. ${e.username} (${e.totalPoints} pts)`));
+            const topPlayersLog = entries.slice(0, 10).map((e, i) => `${i+1}. ${e.username} (${e.totalPoints} pts)`).join(', ');
+            console.log('🏅 Top players:', topPlayersLog);
             
             // Limitar a 10 jogadores, mas sempre incluir o usuário atual se ele não estiver no top 10
             let top10 = entries.slice(0, 10);
