@@ -77,6 +77,16 @@ import {
     type LoadNodesFunction,
     type NavigationResult
 } from './TrainerSimulator/utils';
+
+// Hand selection utilities
+import {
+    getPlayedHands,
+    filterHandsByEV,
+    filterNonMarginalHands,
+    selectTrainingHands,
+    selectRandomCombo,
+    getHandNameFromCombo
+} from './TrainerSimulator/utils';
 ```
 
 #### Importing Hooks
@@ -95,13 +105,18 @@ const { stats, updateStats } = useTrainerStats();
 
 ### 🔄 Next Steps
 
-**Phase 4: Extract Hand Selection Utils** (Ready to start)
-- [ ] `handSelection.ts` - Hand filtering and combo selection utilities
-  - `getPlayedHands()` - Filter hands with freq > 0
-  - `filterHandsByEV()` - EV range filtering
-  - `filterNonMarginalHands()` - MIN_EV_DIFF filtering
-  - `selectRandomCombo()` - Combo selection
-  - `getHandNameFromCombo()` - Combo to hand name conversion
+**Phase 5: Extract Spot Generators** (Ready to start)
+- [ ] `generateRFISpot.ts` - RFI spot generation
+- [ ] `generateVsOpenSpot.ts` - vs Open spot generation
+- [ ] `generateVsShoveSpot.ts` - vs Shove spot generation
+- [ ] `generateVsMultiwaySpot.ts` - vs Multiway spot generation
+- [ ] `generateAnySpot.ts` - Any spot generation
+
+**Phase 4: Extract Hand Selection Utils** ✅ COMPLETED
+- ✅ `handSelection.ts` - Hand filtering and combo selection
+- ✅ 7 functions extracted (~280 lines)
+- ✅ Smart cascade filtering (marginal → difficult → worst → all)
+- ✅ Type-safe combo selection with flat/nested array support
 
 **Phase 3: Extract Navigation Utils** ✅ COMPLETED
 - ✅ `navigationUtils.ts` - Tree navigation and validation
@@ -113,19 +128,6 @@ const { stats, updateStats } = useTrainerStats();
 - ✅ `useTrainerSettings.ts` - Display mode, bounty display, auto-advance
 - ✅ `useTimebank.ts` - Timer and timebank audio logic
 - ✅ `useTrainerStats.ts` - Statistics tracking and persistence
-
-**Phase 3: Extract Spot Generators** (After Phase 2)
-- [ ] `generateRFISpot.ts` - RFI spot generation
-- [ ] `generateVsOpenSpot.ts` - vs Open spot generation
-- [ ] `generateVsShoveSpot.ts` - vs Shove spot generation
-- [ ] `generateVsMultiwaySpot.ts` - vs Multiway spot generation
-- [ ] `generateAnySpot.ts` - Any spot generation
-
-**Phase 4: Extract UI Components** (After Phase 3)
-- [ ] `TrainerHeader.tsx` - Header with stats and controls
-- [ ] `TrainerTable.tsx` - Poker table with Study button
-- [ ] `TrainerActions.tsx` - Action buttons (Fold/Call/Raise)
-- [ ] `TrainerFeedback.tsx` - Feedback modal
 
 ### ⚠️ Important Notes
 
@@ -151,18 +153,24 @@ const { stats, updateStats } = useTrainerStats();
 - 8 reusable navigation functions ✅
 - Type-safe interfaces for all functions ✅
 
+**After Phase 4:**
+- 1 hand selection utilities file extracted ✅
+- ~280 lines of filtering logic modularized ✅
+- 7 hand selection functions (+ smart cascade) ✅
+- Type-safe combo selection with flexible array handling ✅
+
 **Total Progress:**
-- **13 files** created across 3 phases
-- **~1,100 lines** extracted and organized
+- **16 files** created across 4 phases
+- **~1,400 lines** extracted and organized
 - Original file still unchanged ✅
 - Zero compilation errors ✅
 
-**Status:** ✅ Phase 3 Complete - Ready for Phase 4
+**Status:** ✅ Phase 4 Complete - Ready for Phase 5
 
 ---
 
-**Last Updated:** November 3, 2025  
-**Current Phase:** ✅ Phase 3 Complete  
-**Files Created:** 13 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3)  
-**Lines Extracted:** ~1,100 lines organized  
+**Last Updated:** December 2024  
+**Current Phase:** ✅ Phase 4 Complete  
+**Files Created:** 16 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4)  
+**Lines Extracted:** ~1,400 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`

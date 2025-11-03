@@ -6,3 +6,4 @@
 
 export * from './trainerHelpers.ts';
 export * from './navigationUtils.ts';
+export * from './handSelection.ts';
