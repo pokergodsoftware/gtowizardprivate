@@ -154,7 +154,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const handleTimeExpired = () => {
         if (!currentSpot || showFeedback) return;
         
-        console.log('⏰ Timebank expired - counting as mistake');
+        console.log('⏰ Timebank expired - auto-folding');
         
         // Busca solução atualizada
         const currentSolution = solutions.find(s => s.id === currentSpot.solution.id);
@@ -163,35 +163,79 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         const node = currentSolution.nodes.get(currentSpot.nodeId);
         if (!node) return;
         
-        // Marca como erro
-        setUserAction('TIMEOUT');
+        const handData = node.hands[currentSpot.playerHandName];
+        if (!handData) return;
+        
+        // Procura a ação de Fold
+        const foldActionIndex = node.actions.findIndex(a => a.type === 'F');
+        
+        if (foldActionIndex === -1) {
+            // Não tem Fold disponível - marca como erro
+            console.log('⚠️ No Fold action available - counting as mistake');
+            setUserAction('TIMEOUT (No Fold)');
+            setShowFeedback(true);
+            
+            const actualPhase = currentSpot.solution.tournamentPhase;
+            saveSpotResult(userId, false, actualPhase);
+            saveSpotHistory(
+                userId, 
+                currentSpot.playerHandName, 
+                false, 
+                actualPhase, 
+                0,
+                currentSpot.playerHand,
+                currentSpot.solution.path || currentSpot.solution.id,
+                currentSpot.nodeId
+            );
+            
+            setStats(prev => ({
+                totalQuestions: prev.totalQuestions + 1,
+                correctAnswers: prev.correctAnswers,
+                score: prev.score
+            }));
+            
+            if (onSpotResult) {
+                onSpotResult(false);
+                setTimeout(() => generateNewSpot(), 5000);
+            }
+            return;
+        }
+        
+        // Verifica se Fold é a ação correta (tem frequência > 0)
+        const foldFrequency = handData.played[foldActionIndex] || 0;
+        const isCorrect = foldFrequency > 0;
+        
+        console.log(`⏰ Auto-fold: ${isCorrect ? 'CORRECT' : 'WRONG'} (fold freq: ${(foldFrequency * 100).toFixed(1)}%)`);
+        
+        // Marca a ação como Fold
+        setUserAction('Fold (Timeout)');
         setShowFeedback(true);
         
-        // Salvar como erro
+        // Salvar resultado
         const actualPhase = currentSpot.solution.tournamentPhase;
-        saveSpotResult(userId, false, actualPhase);
+        saveSpotResult(userId, isCorrect, actualPhase);
         saveSpotHistory(
             userId, 
             currentSpot.playerHandName, 
-            false, 
+            isCorrect, 
             actualPhase, 
-            0, // 0 pontos
+            isCorrect ? 1 : 0, // 1 ponto se correto, 0 se errado
             currentSpot.playerHand,
-            currentSpot.solution.path || currentSpot.solution.id, // solutionPath (usa path ou id como fallback)
+            currentSpot.solution.path || currentSpot.solution.id,
             currentSpot.nodeId
         );
         
-        console.log(`📊 Stats saved: TIMEOUT - 0 points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
+        console.log(`📊 Stats saved: ${isCorrect ? 'CORRECT' : 'WRONG'} - ${isCorrect ? 1 : 0} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
         
         setStats(prev => ({
             totalQuestions: prev.totalQuestions + 1,
-            correctAnswers: prev.correctAnswers,
-            score: prev.score
+            correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
+            score: isCorrect ? prev.score + 1 : prev.score
         }));
         
         // Callback para modo torneio
         if (onSpotResult) {
-            onSpotResult(false);
+            onSpotResult(isCorrect);
             
             // Auto-avançar após 5 segundos
             setTimeout(() => {
@@ -669,45 +713,49 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                 console.log(`📉 Using ${handsToUse.length} hands with worst EVs (range: ${handsWithEV[0]?.maxEv.toFixed(2)} to ${handsWithEV[worstHandsCount - 1]?.maxEv.toFixed(2)} BB)`);
             }
 
-            // 7. Sorteia uma mão do range filtrado (com re-roll para spots marginais)
-            let randomHandName: string;
-            let handData: any;
-            let attempts = 0;
-            const MAX_ATTEMPTS = 10;
+            // 6.5. FILTRO ADICIONAL: Remove mãos extremamente marginais (diferença de EV < 0.05 BB)
+            const MIN_EV_DIFF = 0.05; // Diferença mínima de EV entre ações
+            const nonMarginalHands = handsToUse.filter((handName) => {
+                const handData = currentNode!.hands[handName];
+                if (!handData || !handData.evs) return true; // Se não tem EVs, aceita
+                
+                const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+                if (validEvs.length < 2) return true; // Se tem apenas 1 ação, aceita
+                
+                // Ordena EVs do maior para o menor
+                const sortedEvs = [...validEvs].sort((a, b) => b - a);
+                const evDiff = sortedEvs[0] - sortedEvs[1];
+                
+                // Aceita apenas se a diferença for >= 0.05 BB
+                return evDiff >= MIN_EV_DIFF;
+            });
+
+            console.log(`🔍 Filtered out marginal hands: ${handsToUse.length} → ${nonMarginalHands.length} hands (min EV diff: ${MIN_EV_DIFF} BB)`);
+
+            // Se filtrou TODAS as mãos, usa as originais (melhor ter spot marginal que travar)
+            const finalHandsToUse = nonMarginalHands.length > 0 ? nonMarginalHands : handsToUse;
             
-            do {
-                randomHandName = randomElement(handsToUse);
-                handData = currentNode.hands[randomHandName];
-                attempts++;
-                
-                // Verifica se é um spot marginal (diferença de EV < 0.05 BB)
-                if (handData && handData.evs) {
-                    const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
-                    if (validEvs.length >= 2) {
-                        const sortedEvs = [...validEvs].sort((a, b) => b - a);
-                        const evDiff = sortedEvs[0] - sortedEvs[1];
-                        
-                        if (evDiff >= 0.05) {
-                            // Spot OK - diferença clara entre ações
-                            console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
-                            break;
-                        } else if (attempts < MAX_ATTEMPTS) {
-                            // Spot marginal - tenta outro
-                            console.log(`🔄 Marginal spot detected (${randomHandName}, diff: ${evDiff.toFixed(2)} BB) - re-rolling...`);
-                            continue;
-                        } else {
-                            // Atingiu limite de tentativas - usa mesmo assim
-                            console.log(`⚠️ Max attempts reached - using ${randomHandName} (diff: ${evDiff.toFixed(2)} BB)`);
-                            break;
-                        }
-                    }
+            if (nonMarginalHands.length === 0) {
+                console.log(`⚠️ All hands are marginal - using original pool of ${handsToUse.length} hands`);
+            }
+
+            // 7. Sorteia uma mão do range filtrado
+            const randomHandName = randomElement(finalHandsToUse);
+            const handData = currentNode.hands[randomHandName];
+            
+            // Log detalhado da mão selecionada
+            if (handData && handData.evs) {
+                const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+                if (validEvs.length >= 2) {
+                    const sortedEvs = [...validEvs].sort((a, b) => b - a);
+                    const evDiff = sortedEvs[0] - sortedEvs[1];
+                    console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, 2nd best: ${sortedEvs[1].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
+                } else {
+                    console.log(`✅ Selected hand: ${randomHandName} (single action)`);
                 }
-                
-                // Se não tem EVs válidos, aceita a mão
+            } else {
                 console.log(`✅ Selected hand: ${randomHandName}`);
-                break;
-                
-            } while (attempts < MAX_ATTEMPTS);
+            }
 
             // 8. Filtra combos que pertencem à mão selecionada
             const flatCombos = allCombos.flat();
@@ -1306,45 +1354,49 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             console.log(`📉 Using ${handsToUse.length} hands with worst EVs (range: ${handsWithEV[0]?.maxEv.toFixed(2)} to ${handsWithEV[worstHandsCount - 1]?.maxEv.toFixed(2)} BB)`);
         }
 
-        // 7. Sorteia uma mão do range filtrado (com re-roll para spots marginais)
-        let randomHandName: string;
-        let handData: any;
-        let attempts = 0;
-        const MAX_ATTEMPTS = 10;
+        // 6.5. FILTRO ADICIONAL: Remove mãos extremamente marginais (diferença de EV < 0.05 BB)
+        const MIN_EV_DIFF = 0.05; // Diferença mínima de EV entre ações
+        const nonMarginalHands = handsToUse.filter((handName) => {
+            const handData = currentNode!.hands[handName];
+            if (!handData || !handData.evs) return true; // Se não tem EVs, aceita
+            
+            const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+            if (validEvs.length < 2) return true; // Se tem apenas 1 ação, aceita
+            
+            // Ordena EVs do maior para o menor
+            const sortedEvs = [...validEvs].sort((a, b) => b - a);
+            const evDiff = sortedEvs[0] - sortedEvs[1];
+            
+            // Aceita apenas se a diferença for >= 0.05 BB
+            return evDiff >= MIN_EV_DIFF;
+        });
+
+        console.log(`🔍 Filtered out marginal hands: ${handsToUse.length} → ${nonMarginalHands.length} hands (min EV diff: ${MIN_EV_DIFF} BB)`);
+
+        // Se filtrou TODAS as mãos, usa as originais (melhor ter spot marginal que travar)
+        const finalHandsToUse = nonMarginalHands.length > 0 ? nonMarginalHands : handsToUse;
         
-        do {
-            randomHandName = randomElement(handsToUse);
-            handData = currentNode.hands[randomHandName];
-            attempts++;
-            
-            // Verifica se é um spot marginal (diferença de EV < 0.05 BB)
-            if (handData && handData.evs) {
-                const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
-                if (validEvs.length >= 2) {
-                    const sortedEvs = [...validEvs].sort((a, b) => b - a);
-                    const evDiff = sortedEvs[0] - sortedEvs[1];
-                    
-                    if (evDiff >= 0.05) {
-                        // Spot OK - diferença clara entre ações
-                        console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
-                        break;
-                    } else if (attempts < MAX_ATTEMPTS) {
-                        // Spot marginal - tenta outro
-                        console.log(`🔄 Marginal spot detected (${randomHandName}, diff: ${evDiff.toFixed(2)} BB) - re-rolling...`);
-                        continue;
-                    } else {
-                        // Atingiu limite de tentativas - usa mesmo assim
-                        console.log(`⚠️ Max attempts reached - using ${randomHandName} (diff: ${evDiff.toFixed(2)} BB)`);
-                        break;
-                    }
-                }
+        if (nonMarginalHands.length === 0) {
+            console.log(`⚠️ All hands are marginal - using original pool of ${handsToUse.length} hands`);
+        }
+
+        // 7. Sorteia uma mão do range filtrado
+        const randomHandName = randomElement(finalHandsToUse);
+        const handData = currentNode.hands[randomHandName];
+        
+        // Log detalhado da mão selecionada
+        if (handData && handData.evs) {
+            const validEvs = handData.evs.filter((ev, idx) => handData.played[idx] > 0);
+            if (validEvs.length >= 2) {
+                const sortedEvs = [...validEvs].sort((a, b) => b - a);
+                const evDiff = sortedEvs[0] - sortedEvs[1];
+                console.log(`✅ Selected hand: ${randomHandName} (best EV: ${sortedEvs[0].toFixed(2)} BB, 2nd best: ${sortedEvs[1].toFixed(2)} BB, diff: ${evDiff.toFixed(2)} BB)`);
+            } else {
+                console.log(`✅ Selected hand: ${randomHandName} (single action)`);
             }
-            
-            // Se não tem EVs válidos, aceita a mão
+        } else {
             console.log(`✅ Selected hand: ${randomHandName}`);
-            break;
-            
-        } while (attempts < MAX_ATTEMPTS);
+        }
 
         // 8. Filtra combos que pertencem à mão selecionada
         const flatCombos = allCombos.flat();

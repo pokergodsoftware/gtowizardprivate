@@ -33,14 +33,14 @@ const spotTypes = [
     'vs Multiway shove'
 ];
 
-type ViewMode = 'config' | 'training' | 'tournament' | 'profile' | 'leaderboard';
+type ViewMode = 'modeSelection' | 'config' | 'training' | 'tournament' | 'profile' | 'leaderboard';
 
 export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, loadNodesForSolution }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState<{ userId: string; username: string } | null>(null);
     const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
     const [selectedSpotTypes, setSelectedSpotTypes] = useState<string[]>(['Any']); // Any por padrão
-    const [viewMode, setViewMode] = useState<ViewMode>('config');
+    const [viewMode, setViewMode] = useState<ViewMode>('modeSelection');
 
     // Verificar se o usuário já está logado
     useEffect(() => {
@@ -68,12 +68,110 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
         localStorage.removeItem('poker_current_user');
         setCurrentUser(null);
         setIsAuthenticated(false);
-        setViewMode('config');
+        setViewMode('modeSelection');
     };
 
     // Se não estiver autenticado, mostrar página de login
     if (!isAuthenticated) {
         return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+    }
+
+    // Tela de seleção de modo (primeira tela após login)
+    if (viewMode === 'modeSelection') {
+        return (
+            <div className="flex flex-col h-screen bg-[#1a1d23]">
+                {/* Header */}
+                <div className="bg-[#23272f] border-b border-gray-700 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span className="font-semibold">Voltar</span>
+                        </button>
+                        <h1 className="text-2xl font-bold text-white">Trainer</h1>
+                        {/* Informações do usuário */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setViewMode('profile')}
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span className="text-white font-semibold text-sm">{currentUser?.username}</span>
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-semibold"
+                                title="Sair"
+                            >
+                                Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Conteúdo - 3 Botões Grandes */}
+                <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+                        {/* Botão 1: Jogar fases do torneio */}
+                        <button
+                            onClick={() => setViewMode('config')}
+                            className="group relative bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 rounded-2xl p-12 transition-all duration-300 transform hover:scale-105 shadow-2xl border-4 border-purple-400/30 hover:border-purple-400/60"
+                        >
+                            <div className="flex flex-col items-center justify-center space-y-6">
+                                <div className="text-7xl">🎯</div>
+                                <h2 className="text-3xl font-black text-white text-center leading-tight">
+                                    Jogar fases<br />do torneio
+                                </h2>
+                                <p className="text-purple-200 text-center text-sm">
+                                    Escolha fases específicas e tipos de spots para treinar
+                                </p>
+                            </div>
+                            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
+                        </button>
+
+                        {/* Botão 2: Jogar modo torneio */}
+                        <button
+                            onClick={() => setViewMode('tournament')}
+                            className="group relative bg-gradient-to-br from-orange-600 to-red-700 hover:from-orange-700 hover:to-red-800 rounded-2xl p-12 transition-all duration-300 transform hover:scale-105 shadow-2xl border-4 border-orange-400/30 hover:border-orange-400/60"
+                        >
+                            <div className="flex flex-col items-center justify-center space-y-6">
+                                <div className="text-7xl">🏆</div>
+                                <h2 className="text-3xl font-black text-white text-center leading-tight">
+                                    Jogar modo<br />torneio
+                                </h2>
+                                <p className="text-orange-200 text-center text-sm">
+                                    Simule um torneio completo do início ao fim
+                                </p>
+                            </div>
+                            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
+                        </button>
+
+                        {/* Botão 3: Ranking */}
+                        <button
+                            onClick={() => setViewMode('leaderboard')}
+                            className="group relative bg-gradient-to-br from-yellow-500 to-yellow-700 hover:from-yellow-600 hover:to-yellow-800 rounded-2xl p-12 transition-all duration-300 transform hover:scale-105 shadow-2xl border-4 border-yellow-400/30 hover:border-yellow-400/60"
+                        >
+                            <div className="flex flex-col items-center justify-center space-y-6">
+                                <div className="text-7xl">📊</div>
+                                <h2 className="text-3xl font-black text-white text-center leading-tight">
+                                    Ranking
+                                </h2>
+                                <p className="text-yellow-200 text-center text-sm">
+                                    Veja os melhores jogadores e suas estatísticas
+                                </p>
+                            </div>
+                            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     // Renderizar views baseado no modo
@@ -82,7 +180,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
             <UserProfile
                 userId={currentUser.userId}
                 username={currentUser.username}
-                onBack={() => setViewMode('config')}
+                onBack={() => setViewMode('modeSelection')}
             />
         );
     }
@@ -91,7 +189,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
         return (
             <Leaderboard
                 currentUserId={currentUser.userId}
-                onBack={() => setViewMode('config')}
+                onBack={() => setViewMode('modeSelection')}
             />
         );
     }
@@ -115,7 +213,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
         return (
             <TournamentMode
                 solutions={solutions}
-                onBack={() => setViewMode('config')}
+                onBack={() => setViewMode('modeSelection')}
                 loadNode={loadNode}
                 loadNodesForSolution={loadNodesForSolution}
                 userId={currentUser?.userId || ''}
@@ -180,7 +278,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                 <div className="bg-[#23272f] border-b border-gray-700 px-6 py-4">
                     <div className="flex items-center justify-between">
                         <button
-                            onClick={onBack}
+                            onClick={() => setViewMode('modeSelection')}
                             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
