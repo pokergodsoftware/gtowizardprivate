@@ -30,12 +30,22 @@ components/TrainerSimulator/
 - ✅ `formatBounty(bounty, showInDollars, fileName)` - Formats bounty display
 - ✅ `getAverageStackBB(solution)` - Calculates average stack in BB
 
-#### 4. Extracted Hooks (`hooks/`)
+#### 4. Extracted Navigation Utils (`utils/navigationUtils.ts`)
+- ✅ `loadNodeIfNeeded()` - Loads a node if not already in solution
+- ✅ `findFoldAction()` - Finds fold action in node actions
+- ✅ `findRaiseAction()` - Finds raise action with specific BB amount
+- ✅ `findAllInAction()` - Finds all-in action for a player
+- ✅ `foldUntilPosition()` - Navigates folding until reaching target position
+- ✅ `findValidRaiser()` - Finds valid position that can raise 2BB
+- ✅ `findValidShover()` - Finds valid position that can go all-in
+- ✅ `navigateToHeroPosition()` - Complex navigation with raiser/shover logic
+
+#### 5. Extracted Hooks (`hooks/`)
 - ✅ `useTrainerSettings.ts` - Display mode, bounty display, auto-advance with localStorage
 - ✅ `useTimebank.ts` - Timer countdown with audio alerts (8s, 4s warnings)
 - ✅ `useTrainerStats.ts` - Statistics tracking and updates
 
-#### 5. Created Index Files
+#### 6. Created Index Files
 - ✅ `utils/index.ts` - Export point for utilities
 - ✅ `utils/spotGenerators/index.ts` - Placeholder for Phase 3
 - ✅ `hooks/index.ts` - Placeholder for Phase 2
@@ -51,7 +61,22 @@ import { TOURNAMENT_PHASES } from './TrainerSimulator/types.ts';
 
 #### Importing Utilities
 ```typescript
-import { getInitialBounty, formatBounty, getAverageStackBB } from './TrainerSimulator/utils';
+import { 
+    getInitialBounty, 
+    formatBounty, 
+    getAverageStackBB 
+} from './TrainerSimulator/utils';
+
+// Navigation utilities
+import { 
+    loadNodeIfNeeded,
+    foldUntilPosition,
+    findValidRaiser,
+    findValidShover,
+    navigateToHeroPosition,
+    type LoadNodesFunction,
+    type NavigationResult
+} from './TrainerSimulator/utils';
 ```
 
 #### Importing Hooks
@@ -70,12 +95,19 @@ const { stats, updateStats } = useTrainerStats();
 
 ### 🔄 Next Steps
 
-**Phase 3: Extract Spot Generators** (Ready to start)
-- [ ] `generateRFISpot.ts` - RFI spot generation
-- [ ] `generateVsOpenSpot.ts` - vs Open spot generation
-- [ ] `generateVsShoveSpot.ts` - vs Shove spot generation
-- [ ] `generateVsMultiwaySpot.ts` - vs Multiway spot generation
-- [ ] `generateAnySpot.ts` - Any spot generation
+**Phase 4: Extract Hand Selection Utils** (Ready to start)
+- [ ] `handSelection.ts` - Hand filtering and combo selection utilities
+  - `getPlayedHands()` - Filter hands with freq > 0
+  - `filterHandsByEV()` - EV range filtering
+  - `filterNonMarginalHands()` - MIN_EV_DIFF filtering
+  - `selectRandomCombo()` - Combo selection
+  - `getHandNameFromCombo()` - Combo to hand name conversion
+
+**Phase 3: Extract Navigation Utils** ✅ COMPLETED
+- ✅ `navigationUtils.ts` - Tree navigation and validation
+- ✅ 8 navigation functions extracted (~450 lines)
+- ✅ Type-safe with full TypeScript support
+- ✅ Reusable across all spot generators
 
 **Phase 2: Extract Hooks** ✅ COMPLETED
 - ✅ `useTrainerSettings.ts` - Display mode, bounty display, auto-advance
@@ -108,22 +140,29 @@ const { stats, updateStats } = useTrainerStats();
 - Folder structure created ✅
 - 2 new files with extracted code ✅
 - 4 index files for future exports ✅
-- Original file unchanged ✅
-- Zero compilation errors ✅
 
 **After Phase 2:**
 - 3 custom hooks extracted ✅
 - ~250 lines of state management logic isolated ✅
-- Hooks fully functional and reusable ✅
-- Zero compilation errors ✅
-- Original file still unchanged ✅
 
-**Status:** ✅ Phase 2 Complete - Ready for Phase 3
+**After Phase 3:**
+- 1 navigation utilities file extracted ✅
+- ~450 lines of navigation logic modularized ✅
+- 8 reusable navigation functions ✅
+- Type-safe interfaces for all functions ✅
+
+**Total Progress:**
+- **13 files** created across 3 phases
+- **~1,100 lines** extracted and organized
+- Original file still unchanged ✅
+- Zero compilation errors ✅
+
+**Status:** ✅ Phase 3 Complete - Ready for Phase 4
 
 ---
 
 **Last Updated:** November 3, 2025  
-**Current Phase:** ✅ Phase 2 Complete  
-**Files Created:** 10 total (7 in Phase 1, 3 in Phase 2)  
-**Lines Extracted:** ~450 lines organized  
+**Current Phase:** ✅ Phase 3 Complete  
+**Files Created:** 13 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3)  
+**Lines Extracted:** ~1,100 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`

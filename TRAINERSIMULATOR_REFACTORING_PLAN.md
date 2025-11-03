@@ -174,40 +174,38 @@ mkdir components/TrainerSimulator/components
 
 ---
 
-### Phase 3: Extract Navigation Utils (Medium Risk) - 🔄 READY TO START
+### Phase 3: Extract Navigation Utils (Medium Risk) - ✅ COMPLETED
 **Goal:** Isolate tree navigation logic
 
-#### Step 3.1: Create navigation utility functions
-**What to extract:**
-- Node navigation logic (fold until position)
-- Raiser validation logic
-- Shover validation logic
-- Node loading helpers
+#### Step 3.1: Create navigation utility functions ✅
+**What extracted:**
+- ✅ `loadNodeIfNeeded()` - Loads node if not in solution (~30 lines)
+- ✅ `findFoldAction()` - Finds fold action in actions array (~5 lines)
+- ✅ `findRaiseAction()` - Finds raise with specific BB amount (~15 lines)
+- ✅ `findAllInAction()` - Finds all-in action (~10 lines)
+- ✅ `foldUntilPosition()` - Navigates folding to target position (~80 lines)
+- ✅ `findValidRaiser()` - Finds valid 2BB raiser position (~50 lines)
+- ✅ `findValidShover()` - Finds valid all-in position (~50 lines)
+- ✅ `navigateToHeroPosition()` - Complex navigation with roles (~140 lines)
 
 **File:** `components/TrainerSimulator/utils/navigationUtils.ts`
 
-**Functions:**
-```typescript
-export const navigateToPosition = async (
-  startNode: NodeData,
-  targetPosition: number,
-  solution: AppData,
-  loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
-) => Promise<{ nodeId: number; solution: AppData } | null>
+**Types created:**
+- ✅ `LoadNodesFunction` - Type for node loading function
+- ✅ `FindValidPlayerConfig` - Config for finding raiser/shover
+- ✅ `NavigationResult` - Result of successful navigation
 
-export const findValidRaiser = async (
-  possibleRaisers: number[],
-  solution: AppData,
-  loadNodes: ...
-) => Promise<number | null>
-
-export const findValidShover = async (...)
-export const navigateWithAction = async (...)
-```
+**Phase 3 Status:** ✅ Complete (November 3, 2025)
+- 1 utilities file created (~450 lines)
+- 8 navigation functions extracted
+- 3 TypeScript types/interfaces
+- Zero compilation errors
+- Original TrainerSimulator.tsx unchanged
+- Functions ready for use in spot generators (Phase 5)
 
 ---
 
-### Phase 4: Extract Hand Selection Utils (Medium Risk)
+### Phase 4: Extract Hand Selection Utils (Medium Risk) - 🔄 READY TO START
 **Goal:** Isolate hand filtering and combo selection
 
 #### Step 4.1: Create hand selection utilities
