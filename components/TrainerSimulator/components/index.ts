@@ -1,12 +1,12 @@
 /**
  * TrainerSimulator Components Index
  * 
- * Central export point for all sub-components.
- * (To be populated in Phase 4)
+ * Central export point for all TrainerSimulator UI components.
+ * Updated in Phase 7 with actual component exports.
  */
 
-// TODO: Export components here in Phase 4
-// export * from './TrainerHeader.tsx';
-// export * from './TrainerTable.tsx';
-// export * from './TrainerActions.tsx';
-// export * from './TrainerFeedback.tsx';
+export { TrainerHeader } from './TrainerHeader';
+export { TrainerTable } from './TrainerTable';
+export { TrainerFeedback } from './TrainerFeedback';
+
+// Note: TrainerActions are integrated within TrainerTable (action buttons)

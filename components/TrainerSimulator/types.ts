@@ -7,6 +7,9 @@
 
 import type { AppData, VillainAction } from '../../types.ts';
 
+// Re-export VillainAction for easier imports
+export type { VillainAction };
+
 /**
  * Represents a simulated poker spot for training
  */

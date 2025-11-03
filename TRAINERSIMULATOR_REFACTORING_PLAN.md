@@ -330,6 +330,114 @@ interface UseSpotGenerationReturn {
 
 ---
 
+### Phase 7: Extract UI Components (Medium Risk) - ✅ COMPLETED
+**Goal:** Separate presentation from logic
+
+#### Step 7.1: Extract TrainerHeader component ✅
+**What extracted:**
+- ✅ Stats display (totalQuestions, correctAnswers, score, tournaments)
+- ✅ Back button and phase selector display
+- ✅ Control buttons (display mode toggles)
+- ✅ Timebank display (tournament mode)
+
+**File:** `components/TrainerSimulator/components/TrainerHeader.tsx`
+
+**Props:**
+```typescript
+interface TrainerHeaderProps {
+  stats: TrainerStats;
+  tournamentMode: boolean;
+  timeLeft?: number;
+  displayMode: 'bb' | 'chips';
+  showBountyInDollars: boolean;
+  autoAdvance: boolean;
+  selectedPhases: string[];
+  onToggleDisplayMode: () => void;
+  onToggleShowBountyInDollars: () => void;
+  onToggleAutoAdvance: () => void;
+  onBack: () => void;
+}
+```
+
+#### Step 7.2: Extract TrainerTable component ✅
+**What extracted:**
+- ✅ PokerTableVisual rendering
+- ✅ Action buttons (Fold/Call/Check/Raise) with dynamic sizing
+- ✅ Hero hand display with cards
+- ✅ Blind chips display (SB/BB)
+- ✅ Bounty display toggle
+- ✅ Stack display with toggle (BB/chips)
+- ✅ Timebank progress bar (tournament mode)
+
+**File:** `components/TrainerSimulator/components/TrainerTable.tsx`
+
+**Props:**
+```typescript
+interface TrainerTableProps {
+  solution: AppData;
+  node: NodeData;
+  playerPosition: number;
+  playerHand: string;
+  displayMode: 'bb' | 'chips';
+  showBountyInDollars: boolean;
+  showFeedback: boolean;
+  tournamentMode: boolean;
+  timeLeft?: number;
+  spotType: string;
+  raiserPosition?: number;
+  shoverPositions?: number[];
+  villainActions?: VillainAction[];
+  onCheckAnswer: (actionName: string) => void;
+  onToggleDisplayMode: () => void;
+  onToggleBountyDisplay: () => void;
+}
+```
+
+#### Step 7.3: Extract TrainerActions component ✅ (SKIPPED)
+**Note:** Action buttons are already integrated within TrainerTable component for better cohesion.
+The buttons are positioned relative to the hero position and need table context.
+
+#### Step 7.4: Extract TrainerFeedback component ✅
+**What extracted:**
+- ✅ Feedback modal/overlay with result indicator
+- ✅ Correct/Incorrect/Timeout display
+- ✅ MARK HAND button with state management
+- ✅ STUDY button (opens Solutions Viewer)
+- ✅ Action cards with frequencies and EV values
+- ✅ Visual frequency progress bar
+- ✅ NEXT HAND button (training mode)
+- ✅ Auto-advancing message (tournament mode)
+
+**File:** `components/TrainerSimulator/components/TrainerFeedback.tsx`
+
+**Props:**
+```typescript
+interface TrainerFeedbackProps {
+  show: boolean;
+  currentSpot: SpotSimulation;
+  node: NodeData;
+  userAction: string | null;
+  isHandMarked: boolean;
+  autoAdvance: boolean;
+  tournamentMode: boolean;
+  bigBlind: number;
+  userId: string;
+  onSetIsHandMarked: (marked: boolean) => void;
+  onNextSpot: () => void;
+}
+```
+
+**Phase 7 Status:** ✅ Complete (November 3, 2025)
+- 3 UI components created (~815 lines)
+- TrainerHeader: stats and navigation (~145 lines)
+- TrainerTable: poker table and actions (~350 lines)
+- TrainerFeedback: results and next spot (~320 lines)
+- Zero compilation errors
+- Original TrainerSimulator.tsx unchanged
+- Components ready for integration in Phase 8
+
+---
+
 ### Phase 5: Extract Spot Generators (High Risk) - 🔄 NEXT
 **Goal:** Separate presentation from logic
 

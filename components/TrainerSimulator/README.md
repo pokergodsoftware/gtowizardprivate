@@ -127,11 +127,18 @@ const { currentSpot, generateNewSpot, isGenerating } = useSpotGeneration({
 
 ### 🔄 Next Steps
 
-**Phase 7: Extract UI Components** (Next phase)
-- [ ] `TrainerHeader.tsx` - Stats display and control buttons
-- [ ] `TrainerTable.tsx` - Poker table with Study button
-- [ ] `TrainerActions.tsx` - Action buttons (Fold/Call/Raise)
-- [ ] `TrainerFeedback.tsx` - Feedback modal after answer
+**Phase 8: Main Component Refactor** (Next phase)
+- [ ] Simplify `TrainerSimulator.tsx` to use extracted components
+- [ ] Remove duplicated code
+- [ ] Orchestrate with hooks and components
+- [ ] Full regression testing
+
+**Phase 7: Extract UI Components** ✅ COMPLETED
+- ✅ `TrainerHeader.tsx` - Stats display and control buttons (145 lines)
+- ✅ `TrainerTable.tsx` - Poker table with action buttons (350 lines)
+- ✅ `TrainerFeedback.tsx` - Feedback modal after answer (320 lines)
+- ✅ 3 presentational components extracted (~815 lines)
+- ✅ Note: Action buttons integrated within TrainerTable (not separate component)
 
 **Phase 6: Extract Spot Generation Hook** ✅ COMPLETED
 - ✅ `useSpotGeneration.ts` - Orchestrates all 5 spot generators
@@ -208,18 +215,25 @@ const { currentSpot, generateNewSpot, isGenerating } = useSpotGeneration({
 - Centralized spot generation state management ✅
 - Error handling and retry logic ✅
 
+**After Phase 7:**
+- 3 UI components extracted ✅
+- ~815 lines of presentation logic modularized ✅
+- TrainerHeader for stats and navigation ✅
+- TrainerTable for poker table and action buttons ✅
+- TrainerFeedback for result display and next spot ✅
+
 **Total Progress:**
-- **24 files** created across 6 phases
-- **~2,815 lines** extracted and organized
+- **27 files** created across 7 phases
+- **~3,630 lines** extracted and organized
 - Original file still unchanged ✅
 - Zero compilation errors ✅
 
-**Status:** ✅ Phase 6 Complete - Ready for Phase 7
+**Status:** ✅ Phase 7 Complete - Ready for Phase 8
 
 ---
 
 **Last Updated:** November 3, 2025  
-**Current Phase:** ✅ Phase 6 Complete  
-**Files Created:** 23 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4, 7 in Phase 5)  
-**Lines Extracted:** ~2,600 lines organized  
+**Current Phase:** ✅ Phase 7 Complete  
+**Files Created:** 27 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4, 7 in Phase 5, 1 in Phase 6, 3 in Phase 7)  
+**Lines Extracted:** ~3,630 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`
