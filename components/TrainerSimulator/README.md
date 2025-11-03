@@ -87,6 +87,20 @@ import {
     selectRandomCombo,
     getHandNameFromCombo
 } from './TrainerSimulator/utils';
+
+// Spot generators
+import {
+    generateRFISpot,
+    generateVsOpenSpot,
+    generateVsShoveSpot,
+    generateVsMultiwaySpot,
+    generateAnySpot,
+    isValidRFISolution,
+    isValidVsOpenSolution,
+    isValidVsShoveSolution,
+    isValidVsMultiwaySolution,
+    isValidAnySolution
+} from './TrainerSimulator/utils/spotGenerators';
 ```
 
 #### Importing Hooks
@@ -105,12 +119,19 @@ const { stats, updateStats } = useTrainerStats();
 
 ### 🔄 Next Steps
 
-**Phase 5: Extract Spot Generators** (Ready to start)
-- [ ] `generateRFISpot.ts` - RFI spot generation
-- [ ] `generateVsOpenSpot.ts` - vs Open spot generation
-- [ ] `generateVsShoveSpot.ts` - vs Shove spot generation
-- [ ] `generateVsMultiwaySpot.ts` - vs Multiway spot generation
-- [ ] `generateAnySpot.ts` - Any spot generation
+**Phase 6: Extract Spot Generation Hook** (Ready to start)
+- [ ] `useSpotGeneration.ts` - Orchestrates all 5 spot generators
+- [ ] Manages currentSpot state
+- [ ] Handles solution filtering and spot type selection
+- [ ] Provides generateNewSpot() function
+
+**Phase 5: Extract Spot Generators** ✅ COMPLETED
+- ✅ `generateRFISpot.ts` - RFI spot generation (145 lines)
+- ✅ `generateVsOpenSpot.ts` - vs Open spot generation (210 lines)
+- ✅ `generateVsShoveSpot.ts` - vs Shove spot generation (225 lines)
+- ✅ `generateVsMultiwaySpot.ts` - vs Multiway spot generation (320 lines)
+- ✅ `generateAnySpot.ts` - Any spot generation (340 lines)
+- ✅ 5 generators + validation functions (~1,200 lines extracted)
 
 **Phase 4: Extract Hand Selection Utils** ✅ COMPLETED
 - ✅ `handSelection.ts` - Hand filtering and combo selection
@@ -159,18 +180,24 @@ const { stats, updateStats } = useTrainerStats();
 - 7 hand selection functions (+ smart cascade) ✅
 - Type-safe combo selection with flexible array handling ✅
 
+**After Phase 5:**
+- 5 spot generator files extracted ✅
+- ~1,200 lines of generation logic modularized ✅
+- 20+ functions across RFI, vs Open, vs Shove, vs Multiway, Any ✅
+- Comprehensive validation and examples ✅
+
 **Total Progress:**
-- **16 files** created across 4 phases
-- **~1,400 lines** extracted and organized
+- **23 files** created across 5 phases
+- **~2,600 lines** extracted and organized
 - Original file still unchanged ✅
 - Zero compilation errors ✅
 
-**Status:** ✅ Phase 4 Complete - Ready for Phase 5
+**Status:** ✅ Phase 5 Complete - Ready for Phase 6
 
 ---
 
 **Last Updated:** December 2024  
-**Current Phase:** ✅ Phase 4 Complete  
-**Files Created:** 16 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4)  
-**Lines Extracted:** ~1,400 lines organized  
+**Current Phase:** ✅ Phase 5 Complete  
+**Files Created:** 23 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4, 7 in Phase 5)  
+**Lines Extracted:** ~2,600 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`
