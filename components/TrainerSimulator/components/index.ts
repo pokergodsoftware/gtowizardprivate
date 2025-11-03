@@ -8,5 +8,6 @@
 export { TrainerHeader } from './TrainerHeader';
 export { TrainerTable } from './TrainerTable';
 export { TrainerFeedback } from './TrainerFeedback';
+export { TrainerPayoutInfo } from './TrainerPayoutInfo';
 
 // Note: TrainerActions are integrated within TrainerTable (action buttons)

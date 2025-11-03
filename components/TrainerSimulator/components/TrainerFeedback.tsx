@@ -1,8 +1,6 @@
 import React from 'react';
 import type { NodeData } from '../../../types';
 import type { SpotSimulation } from '../types';
-import type { MarkedHand } from '../../../utils/statsUtils';
-import { saveMarkedHand } from '../../../utils/statsUtils';
 
 /**
  * TrainerFeedback Component
@@ -30,7 +28,10 @@ interface TrainerFeedbackProps {
     bigBlind: number;
     userId: string;
     onSetIsHandMarked: (marked: boolean) => void;
+    onMarkHand: () => void;
+    onUnmarkHand: () => void;
     onNextSpot: () => void;
+    onStudy: () => void;
 }
 
 export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
@@ -44,7 +45,10 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
     bigBlind,
     userId,
     onSetIsHandMarked,
-    onNextSpot
+    onMarkHand,
+    onUnmarkHand,
+    onNextSpot,
+    onStudy
 }) => {
     if (!show) return null;
 
@@ -97,34 +101,10 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                 {/* Botão MARK HAND */}
                                 <button
                                     onClick={async () => {
-                                        const newMarkedState = !isHandMarked;
-                                        onSetIsHandMarked(newMarkedState);
-                                        
-                                        // Gerar ID único para a mão marcada (baseado em timestamp + nodeId)
-                                        const handId = `${currentSpot.solution.id}_${currentSpot.nodeId}_${currentSpot.playerHand}_${Date.now()}`;
-                                        
-                                        if (newMarkedState) {
-                                            // Marcar a mão
-                                            const markedHand: MarkedHand = {
-                                                id: handId,
-                                                timestamp: Date.now(),
-                                                solutionPath: currentSpot.solution.path || currentSpot.solution.id,
-                                                nodeId: currentSpot.nodeId,
-                                                hand: currentSpot.playerHandName,
-                                                combo: currentSpot.playerHand,
-                                                position: currentSpot.playerPosition,
-                                                playerAction: userAction || 'N/A',
-                                                isCorrect: isCorrect,
-                                                ev: userActionEv,
-                                                phase: currentSpot.solution.tournamentPhase
-                                            };
-                                            
-                                            await saveMarkedHand(userId, markedHand);
-                                            console.log('⭐ Hand marked:', markedHand);
+                                        if (isHandMarked) {
+                                            await onUnmarkHand();
                                         } else {
-                                            // Desmarcar (precisaria buscar o ID correto, por enquanto só atualiza o estado)
-                                            console.log('❌ Hand unmarked');
-                                            // TODO: Implementar lógica de desmarcar baseado em critérios de busca
+                                            await onMarkHand();
                                         }
                                     }}
                                     className={`${
@@ -138,25 +118,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                 
                                 {/* Botão STUDY */}
                                 <button
-                                    onClick={() => {
-                                        // Cria URL para o Solutions Library com o spot atual
-                                        const baseUrl = window.location.origin + window.location.pathname;
-                                        const params = new URLSearchParams();
-                                        params.set('page', 'solutions');
-                                        
-                                        // Usa path se disponível, senão usa o id da solução
-                                        const solutionPath = currentSpot.solution.path || currentSpot.solution.id;
-                                        console.log('🔗 Study button - solution path:', solutionPath);
-                                        console.log('🔗 Study button - solution id:', currentSpot.solution.id);
-                                        
-                                        params.set('solution', solutionPath);
-                                        params.set('node', currentSpot.nodeId.toString());
-                                        params.set('hand', currentSpot.playerHandName);
-                                        
-                                        const studyUrl = `${baseUrl}?${params.toString()}`;
-                                        console.log('🔗 Opening study URL:', studyUrl);
-                                        window.open(studyUrl, '_blank');
-                                    }}
+                                    onClick={onStudy}
                                     className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg font-black text-xl tracking-wider transition-all shadow-lg border-2 border-purple-400/50 whitespace-nowrap"
                                 >
                                     📚 STUDY
@@ -307,7 +269,8 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     );
                 })()}
 
-                {!tournamentMode && (
+                {/* Next Hand button - only show if auto-advance is OFF */}
+                {!autoAdvance && (
                     <button
                         onClick={onNextSpot}
                         className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white px-4 py-2.5 rounded font-bold text-sm transition-all shadow-lg uppercase tracking-wide"
@@ -316,7 +279,8 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     </button>
                 )}
                 
-                {tournamentMode && (
+                {/* Auto-advance message - only show if auto-advance is ON */}
+                {autoAdvance && (
                     <div className="w-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 px-4 py-2.5 rounded font-bold text-sm text-center">
                         Auto-advancing in 5s...
                     </div>

@@ -20,23 +20,58 @@ const [viewerState, setViewerState] = useState({ currentNodeId, selectedHand, di
 ```
 **Critical**: Use `solutionsRef.current` for synchronous access to latest solutions state (ref kept in sync via useEffect).
 
+### Modular Refactoring Pattern (Established Dec 2024)
+This project follows a proven refactoring methodology:
+1. **Extract types** first (`types.ts` in component folder)
+2. **Extract pure utilities** (`utils/` - no React dependencies)
+3. **Extract custom hooks** (`hooks/` - React state/effects)
+4. **Extract UI sub-components** (`components/` - presentational)
+5. **Refactor main component** to orchestrate extracted pieces
+
+**Example**: `TrainerSimulator.tsx` reduced from 1744 lines → 450 lines via 8-phase refactoring (see `PHASE_8_COMPLETION_REPORT.md`).
+
+**Pattern in action**:
+```typescript
+// Before: Monolithic component
+TrainerSimulator.tsx (1744 lines)
+
+// After: Modular architecture
+TrainerSimulator/
+├── types.ts                    # Type definitions
+├── hooks/
+│   ├── useSpotGeneration.ts   # Spot generation logic
+│   ├── useTrainerSettings.ts  # Settings with localStorage
+│   ├── useTimebank.ts         # Timer with audio alerts
+│   └── useTrainerStats.ts     # Statistics tracking
+├── utils/
+│   ├── trainerHelpers.ts      # Pure functions (bounty, stack calc)
+│   ├── navigationUtils.ts     # Tree navigation logic
+│   └── spotGenerators/        # Spot type generators (RFI, vs Open, etc)
+└── components/
+    ├── TrainerTable.tsx       # Poker table + settings UI
+    └── TrainerFeedback.tsx    # Feedback display
+```
+
 ### URL State Synchronization
 - All viewer state encoded in URL via `lib/urlUtils.ts`: `?page=solutions&solution=./spots/final_table/speed32_1&node=5&hand=AKs`
 - Use `updateUrl()` on navigation, `decodeUrlState()` on mount, `findSolutionByPath()` for solution lookup
 - Enables deep linking and browser back/forward navigation
+- **Critical**: URLs use relative paths (`./spots/...`) not absolute (`/spots/...`) for Vite compatibility
 
 ## Critical Developer Workflows
 
 ### Setup (Windows)
-```bash
+```powershell
 npm install
 .\generate_index.bat  # Generates solutions-metadata.json + creates public/spots junction
 npm run dev           # Vite dev server on port 3000
 ```
 **Key**: `generate_solutions.cjs` scans `/spots/` folder structure, reads `settings.json`/`equity.json`/`nodes/*.json`, generates manifests with relative paths (`./spots/...` not `/spots/...` - this is critical for Vite).
 
+**Important**: The `public/spots` junction point enables Vite to serve spot files during development. On Windows, this is created automatically by the batch script using `mklink /J`.
+
 ### Versioning & Deploy
-```bash
+```powershell
 .\release.bat         # Interactive: bump version → commit → push → Vercel auto-deploy
 # Or individual: .\version-patch.bat, .\version-minor.bat, .\version-major.bat
 ```
@@ -45,7 +80,9 @@ Updates `package.json` and `src/version.ts` using SemVer. Vercel auto-deploys on
 ### Adding New Spots
 1. Place folder in `/spots/{tournament_phase}/{spot_id}/` with `settings.json`, `equity.json`, `nodes/*.json`
 2. Run `.\generate_index.bat` to regenerate metadata
-3. Restart dev server
+3. Restart dev server (`npm run dev`)
+
+**Note**: Spot metadata is not auto-watched - always re-run `generate_index.bat` after modifying spot files.
 
 ## Project-Specific Patterns
 
@@ -145,6 +182,36 @@ define: { 'process.env.GEMINI_API_KEY': ... }  // API keys injected
 - **Asset URLs**: Use `getResourceUrl()` or `getTrainerAssetUrl()` helpers, never hardcode paths
 - **Type imports**: `import type { NodeData } from '../types.ts'` (explicit .ts extension in imports)
 
+## Refactoring Large Components
+
+When encountering a component >500 lines, apply the proven 8-phase pattern:
+
+### Phase 1-2: Types & Settings
+1. Create `ComponentName/types.ts` with all interfaces and constants
+2. Create `ComponentName/hooks/useComponentSettings.ts` for localStorage-persisted settings
+
+### Phase 3-5: Logic Extraction
+3. Extract pure functions to `utils/helpers.ts` (no React dependencies)
+4. Extract navigation/selection logic to `utils/navigationUtils.ts` or `utils/selectionUtils.ts`
+5. Create specific generators in `utils/generators/` if applicable
+
+### Phase 6: State Management
+6. Create `hooks/useComponentState.ts` for complex state orchestration
+   - Example: `useSpotGeneration` consolidates filtering, navigation, hand selection
+
+### Phase 7: UI Components
+7. Extract presentational components to `components/`:
+   - Keep props minimal and focused
+   - Example: `TrainerTable.tsx` handles display, `TrainerFeedback.tsx` handles results
+
+### Phase 8: Main Component
+8. Refactor main component to orchestrate hooks and sub-components:
+   - Should be ~400-500 lines max
+   - Focus on event handling and coordination
+   - No complex logic - delegate to hooks/utils
+
+**See**: `PHASE_8_COMPLETION_REPORT.md` for successful 1744 → 450 line reduction example.
+
 ## Common Tasks
 
 **Debug node loading**: Check `AppData.path` is set, verify `loadNode()` fetches from correct URL, inspect Network tab for 404s.
@@ -165,6 +232,9 @@ define: { 'process.env.GEMINI_API_KEY': ... }  // API keys injected
 - `ANALISE_PROJETO.md` - Deep technical architecture
 - `ARQUITETURA_VISUAL.md` - Component diagrams and data flow
 - `POKERTABLE_ARCHITECTURE_DIAGRAM.md` - Visual component breakdown
+- `POKER_TABLE_SEPARATION.md` - **CRITICAL**: Two separate table implementations
+- `PHASE_8_COMPLETION_REPORT.md` - TrainerSimulator refactoring case study (1744→450 lines)
+- `components/TrainerSimulator/README.md` - Modular refactoring structure
 - `TRAINER_DOCS.md` - Trainer feature details
 - `VERSIONING.md` - Release process
 - `DEPLOY_STEPS.md` - Cloudflare R2 + Vercel setup

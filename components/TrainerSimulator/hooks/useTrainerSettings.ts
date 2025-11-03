@@ -22,30 +22,50 @@ export interface UseTrainerSettingsReturn {
     toggleAutoAdvance: () => void;
 }
 
+interface UseTrainerSettingsProps {
+    tournamentMode?: boolean;
+}
+
 /**
  * Custom hook for managing trainer settings
  * All settings are persisted to localStorage
+ * 
+ * Default values:
+ * - displayMode: 'bb' (Show in big blinds)
+ * - showBountyInDollars: true (Show bounty as $)
+ * - autoAdvance: true in tournament mode, false in training mode
  */
-export const useTrainerSettings = (): UseTrainerSettingsReturn => {
-    // Display mode: BB or Chips
-    const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
+export const useTrainerSettings = ({ tournamentMode = false }: UseTrainerSettingsProps = {}): UseTrainerSettingsReturn => {
+    // Display mode: BB or Chips - DEFAULT: BB
+    const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>(() => {
+        const stored = localStorage.getItem('trainer_display_mode');
+        return (stored === 'bb' || stored === 'chips') ? stored : 'bb';
+    });
     
-    // Bounty display: $ (dollars) or x (multiplier)
+    // Bounty display: $ (dollars) or x (multiplier) - DEFAULT: $
     const [showBountyInDollars, setShowBountyInDollars] = useState(() => {
-        // Default: true for first time users
         const stored = localStorage.getItem('trainer_show_bounty_in_dollars');
         return stored ? stored === 'true' : true;
     });
     
     // Auto-advance to next spot after answering
+    // DEFAULT: ON in tournament mode, OFF in training mode
     const [autoAdvance, setAutoAdvance] = useState(() => {
         const stored = localStorage.getItem('trainer_auto_advance');
-        return stored ? stored === 'true' : false;
+        if (stored !== null) {
+            return stored === 'true';
+        }
+        // Default based on mode
+        return tournamentMode;
     });
 
     // Toggle display mode between BB and Chips
     const toggleDisplayMode = () => {
-        setDisplayMode(prev => prev === 'bb' ? 'chips' : 'bb');
+        setDisplayMode(prev => {
+            const newMode = prev === 'bb' ? 'chips' : 'bb';
+            localStorage.setItem('trainer_display_mode', newMode);
+            return newMode;
+        });
     };
     
     // Toggle bounty display between $ and x

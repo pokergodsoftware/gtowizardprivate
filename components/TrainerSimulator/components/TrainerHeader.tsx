@@ -50,86 +50,138 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
     onToggleAutoAdvance,
     onBack
 }) => {
-    // Don't render in tournament mode
+    // Hide header in tournament mode
     if (tournamentMode) {
         return null;
     }
 
+    // Calculate accuracy percentage
+    const accuracy = stats.totalQuestions > 0 
+        ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) 
+        : 0;
+
     return (
-        <div className="bg-[#282c33] border-b border-gray-700 p-4">
-            <div className="flex items-center justify-between max-w-7xl mx-auto">
-                {/* Left side: Back button and phase display */}
-                <div className="flex items-center gap-4">
+        <header className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 px-6 py-4 shadow-lg">
+            <div className="max-w-[1800px] mx-auto">
+                {/* Top Row: Back button and Phase selector */}
+                <div className="flex items-center justify-between mb-4">
+                    {/* Back Button */}
                     <button
                         onClick={onBack}
-                        className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
                     >
-                        ← Voltar
+                        <span>←</span>
+                        <span>Voltar</span>
                     </button>
-                    <h1 className="text-xl font-bold text-white">
-                        {selectedPhases.length === 1 
-                            ? selectedPhases[0]
-                            : `${selectedPhases.length} Fases Selecionadas`
-                        }
-                    </h1>
+
+                    {/* Phase Display */}
+                    <div className="text-slate-300 text-sm font-medium">
+                        {selectedPhases.length === 1 ? (
+                            <span>📊 Fase: {selectedPhases[0]}</span>
+                        ) : (
+                            <span>📊 Fases: {selectedPhases.join(', ')}</span>
+                        )}
+                    </div>
                 </div>
-                
-                {/* Right side: Statistics */}
-                <div className="flex items-center gap-6 text-white">
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-teal-400">
-                            {Math.round(stats.score)}
+
+                {/* Stats Row */}
+                <div className="flex items-center justify-between">
+                    {/* Left: Statistics */}
+                    <div className="flex items-center gap-6">
+                        {/* Total Questions */}
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-xs uppercase tracking-wide">Questões</span>
+                            <span className="text-white text-2xl font-bold">{stats.totalQuestions}</span>
                         </div>
-                        <div className="text-xs text-gray-400">Pontos</div>
+
+                        {/* Correct Answers */}
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-xs uppercase tracking-wide">Acertos</span>
+                            <span className="text-green-400 text-2xl font-bold">{stats.correctAnswers}</span>
+                        </div>
+
+                        {/* Accuracy */}
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-xs uppercase tracking-wide">Precisão</span>
+                            <span className={`text-2xl font-bold ${
+                                accuracy >= 70 ? 'text-green-400' : 
+                                accuracy >= 50 ? 'text-yellow-400' : 
+                                'text-red-400'
+                            }`}>
+                                {accuracy}%
+                            </span>
+                        </div>
+
+                        {/* Score */}
+                        <div className="flex flex-col">
+                            <span className="text-slate-400 text-xs uppercase tracking-wide">Pontos</span>
+                            <span className="text-blue-400 text-2xl font-bold">{stats.score}</span>
+                        </div>
+
+                        {/* Tournament Stats (if applicable) */}
+                        {stats.tournamentsPlayed > 0 && (
+                            <>
+                                <div className="h-8 w-px bg-slate-600"></div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-xs uppercase tracking-wide">Torneios</span>
+                                    <span className="text-purple-400 text-2xl font-bold">{stats.tournamentsPlayed}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-xs uppercase tracking-wide">FT</span>
+                                    <span className="text-yellow-400 text-2xl font-bold">{stats.reachedFinalTable}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vitórias</span>
+                                    <span className="text-green-400 text-2xl font-bold">{stats.completedTournaments}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold">
-                            {stats.correctAnswers}/{stats.totalQuestions}
-                        </div>
-                        <div className="text-xs text-gray-400">Acertos</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-emerald-400">
-                            {stats.totalQuestions > 0 
-                                ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) 
-                                : 0
-                            }%
-                        </div>
-                        <div className="text-xs text-gray-400">Precisão</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-400">
-                            {stats.tournamentsPlayed}
-                        </div>
-                        <div className="text-xs text-gray-400">Tournaments Played</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-orange-400">
-                            {stats.reachedFinalTable}
-                        </div>
-                        <div className="text-xs text-gray-400">Reached Final Table</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-lime-400">
-                            {stats.completedTournaments}
-                        </div>
-                        <div className="text-xs text-gray-400">Completed Tournaments</div>
+
+                    {/* Right: Control Toggles */}
+                    <div className="flex items-center gap-3">
+                        {/* Display Mode Toggle (BB/Chips) */}
+                        <button
+                            onClick={onToggleDisplayMode}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                                displayMode === 'bb'
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                            }`}
+                            title="Toggle between BB and chips display"
+                        >
+                            {displayMode === 'bb' ? 'BB' : 'Chips'}
+                        </button>
+
+                        {/* Bounty Display Toggle ($/x) */}
+                        <button
+                            onClick={onToggleShowBountyInDollars}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                                showBountyInDollars
+                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                            }`}
+                            title="Toggle bounty display between $ and x"
+                        >
+                            {showBountyInDollars ? '$' : 'x'}
+                        </button>
+
+                        {/* Auto-Advance Toggle */}
+                        <button
+                            onClick={onToggleAutoAdvance}
+                            className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+                                autoAdvance
+                                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                            }`}
+                            title="Auto-advance to next hand after answer"
+                        >
+                            <span>⏭️</span>
+                            <span>{autoAdvance ? 'Auto' : 'Manual'}</span>
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            {/* Timebank display (only in tournament mode) */}
-            {tournamentMode && timeLeft !== undefined && (
-                <div className="mt-3 flex items-center justify-center">
-                    <div className={`px-4 py-2 rounded-lg font-bold ${
-                        timeLeft <= 4 ? 'bg-red-600 text-white animate-pulse' :
-                        timeLeft <= 8 ? 'bg-orange-500 text-white' :
-                        'bg-gray-700 text-gray-300'
-                    }`}>
-                        ⏱️ Timebank: {timeLeft}s
-                    </div>
-                </div>
-            )}
-        </div>
+        </header>
     );
 };

@@ -52,6 +52,15 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
 
+    console.log('🎮 TournamentMode render:', {
+        currentStageIndex,
+        currentStage: currentStage.displayName,
+        handsPlayedInStage,
+        totalHandsPlayed,
+        mistakes,
+        showingResult
+    });
+
     // Callback quando o usuário responde um spot
     const handleSpotResult = (isCorrect: boolean) => {
         if (!isCorrect) {
@@ -71,25 +80,24 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         setHandsPlayedInStage(newHandsInStage);
         setTotalHandsPlayed(newTotalHands);
 
-        // Aguardar 5 segundos antes de avançar para o próximo spot
-        setTimeout(() => {
-            // Verificar se completou o estágio
-            if (newHandsInStage >= currentStage.handsToPlay) {
-                // Verificar se completou o torneio
-                if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
-                    setIsComplete(true);
-                    setShowingResult(true);
-                } else {
-                    // Avançar para próximo estágio
+        // Verificar se completou o estágio
+        // (O avanço de spot é gerenciado pelo TrainerSimulator via autoAdvance)
+        if (newHandsInStage >= currentStage.handsToPlay) {
+            // Verificar se completou o torneio
+            if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
+                setIsComplete(true);
+                setShowingResult(true);
+            } else {
+                // Avançar para próximo estágio após um pequeno delay
+                setTimeout(() => {
                     setCurrentStageIndex(currentStageIndex + 1);
                     setHandsPlayedInStage(0);
                     setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
-                }
-            } else {
-                // Continuar no mesmo estágio - gerar novo spot
-                setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
+                }, 100);
             }
-        }, 5000);
+        }
+        // else: Continuar no mesmo estágio - o novo spot será gerado automaticamente
+        // pelo TrainerSimulator se autoAdvance estiver ativo
     };
 
     // Tela de resultado final
@@ -183,6 +191,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                         </button>
                         <button
                             onClick={() => {
+                                console.log('🔄 Reiniciando torneio...');
                                 setCurrentStageIndex(0);
                                 setHandsPlayedInStage(0);
                                 setTotalHandsPlayed(0);
@@ -191,6 +200,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                 setIsComplete(false);
                                 setShowingResult(false);
                                 setSpotKey(prev => prev + 1);
+                                console.log('✅ Estados resetados, gerando novo spot...');
                             }}
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all"
                         >

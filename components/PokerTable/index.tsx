@@ -26,7 +26,6 @@ import {
     calculatePlayerBet,
     getTournamentName
 } from '../../utils/pokerTableCalculations';
-import { PayoutPanel } from './PayoutPanel';
 import { PlayerCard, type PlayerBadge } from './PlayerCard';
 import { ChipStack } from './ChipStack';
 import { PotDisplay } from './PotDisplay';
@@ -125,9 +124,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     return (
         <div className="relative w-full h-full flex items-center justify-center">
-            {/* Payouts - Draggable */}
-            <PayoutPanel prizes={settings.eqmodel?.structure?.prizes} />
-            
             {/* Poker table */}
             <div className="relative w-full max-w-3xl aspect-[16/10]">
                 <img 

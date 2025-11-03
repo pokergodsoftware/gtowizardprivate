@@ -1,6 +1,7 @@
 import React from 'react';
 import { PokerTableVisual } from '../../PokerTableVisual';
 import { PlayerHand } from '../../PlayerHand';
+import { TrainerPayoutInfo } from './TrainerPayoutInfo';
 import type { AppData, NodeData } from '../../../types';
 import type { VillainAction } from '../types';
 
@@ -24,6 +25,7 @@ interface TrainerTableProps {
     node: NodeData;
     playerPosition: number;
     playerHand: string;
+    playerHandName: string;
     displayMode: 'bb' | 'chips';
     showBountyInDollars: boolean;
     showFeedback: boolean;
@@ -33,9 +35,11 @@ interface TrainerTableProps {
     raiserPosition?: number;
     shoverPositions?: number[];
     villainActions?: VillainAction[];
+    autoAdvance: boolean;
     onCheckAnswer: (actionName: string) => void;
     onToggleDisplayMode: () => void;
     onToggleBountyDisplay: () => void;
+    onToggleAutoAdvance: () => void;
 }
 
 export const TrainerTable: React.FC<TrainerTableProps> = ({
@@ -43,6 +47,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     node,
     playerPosition,
     playerHand,
+    playerHandName,
     displayMode,
     showBountyInDollars,
     showFeedback,
@@ -52,9 +57,11 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     raiserPosition,
     shoverPositions,
     villainActions,
+    autoAdvance,
     onCheckAnswer,
     onToggleDisplayMode,
-    onToggleBountyDisplay
+    onToggleBountyDisplay,
+    onToggleAutoAdvance
 }) => {
     const { settings } = solution;
     const bigBlind = settings.handdata.blinds.length > 1 
@@ -85,9 +92,11 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     };
 
     return (
-        <div className="relative">
-            {/* Mesa visual */}
-            <div className="relative flex items-center justify-center bg-[#23272f] rounded-lg p-3 min-h-[375px] overflow-hidden">
+        <div className="flex gap-6">
+            {/* Mesa visual - 70% */}
+            <div className="relative w-fit">
+                {/* Mesa visual */}
+                <div className="relative flex items-center justify-center bg-[#23272f] rounded-lg p-3 overflow-hidden">
                 <PokerTableVisual 
                     currentNode={node}
                     settings={settings}
@@ -318,6 +327,72 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                         </div>
                     </div>
                 </div>
+            </div>
+            </div>
+            
+            {/* Toggle controls à direita - 30% */}
+            <div className="w-64 bg-[#23272f] rounded-lg p-4 space-y-3 h-fit">
+                <h3 className="text-white font-bold text-base mb-3">Settings</h3>
+                
+                {/* Show in big blinds */}
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Show in big blinds</span>
+                    <button
+                        onClick={onToggleDisplayMode}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            displayMode === 'bb' ? 'bg-emerald-500' : 'bg-gray-600'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                displayMode === 'bb' ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+                
+                {/* Show bounty as $ */}
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Show bounty as $</span>
+                    <button
+                        onClick={onToggleBountyDisplay}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            showBountyInDollars ? 'bg-emerald-500' : 'bg-gray-600'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                showBountyInDollars ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+                
+                {/* Auto advance next hand */}
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Auto advance next hand</span>
+                    <button
+                        onClick={onToggleAutoAdvance}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            autoAdvance ? 'bg-emerald-500' : 'bg-gray-600'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                autoAdvance ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-700 my-2" />
+                
+                {/* Payouts and Tournament Info */}
+                <TrainerPayoutInfo 
+                    prizes={solution.settings.eqmodel?.structure?.prizes}
+                    solutionFileName={solution.fileName}
+                />
             </div>
         </div>
     );
