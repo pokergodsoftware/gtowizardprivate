@@ -1,13 +1,14 @@
-import React from 'react';
-import type { NodeData, SettingsData, DisplaySettings, TournamentInfo, SpotContext } from '../types.ts';
-import { PokerTable } from './PokerTable/index';
-
 /**
- * PokerTableVisual - Refactored Version 2.0
- * Now using modular component architecture with separated concerns
+ * PokerTableVisual - TRAINER VERSION ONLY
+ * 
+ * ⚠️ WARNING: This is the TRAINER-SPECIFIC poker table wrapper
+ * ⚠️ DO NOT use this in solution viewer (Sidebar.tsx)
+ * ⚠️ Solution viewer uses: components/SolutionPokerTable.tsx
+ * 
+ * Refactored Version 2.0 - Uses modular component architecture
  * 
  * Components:
- * - PokerTable/index.tsx - Main orchestrator
+ * - PokerTable/index.tsx - Main orchestrator (TRAINER VERSION)
  * - PokerTable/PayoutPanel.tsx - Draggable payout display
  * - PokerTable/PlayerCard.tsx - Individual player cards
  * - PokerTable/ChipStack.tsx - Betting chips visualization
@@ -21,6 +22,10 @@ import { PokerTable } from './PokerTable/index';
  * Utils:
  * - utils/pokerTableCalculations.ts - Formatting and calculations
  */
+
+import React from 'react';
+import type { NodeData, SettingsData, DisplaySettings, TournamentInfo, SpotContext } from '../types.ts';
+import { PokerTable } from './PokerTable/index';
 
 interface PokerTableVisualProps {
     currentNode: NodeData;

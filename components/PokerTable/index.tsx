@@ -1,3 +1,20 @@
+/**
+ * PokerTable/index.tsx - TRAINER VERSION ONLY
+ * 
+ * ⚠️ WARNING: This is the TRAINER-SPECIFIC poker table
+ * ⚠️ DO NOT use this in solution viewer (Sidebar.tsx)
+ * ⚠️ Solution viewer uses: components/SolutionPokerTable.tsx
+ * 
+ * This version includes:
+ * - Modular component architecture
+ * - Draggable payout panel
+ * - Advanced player badges (raiser, shover, etc)
+ * - Tournament-specific features
+ * - Enhanced visual effects
+ * 
+ * Used by: PokerTableVisual.tsx → TrainerSimulator.tsx
+ */
+
 import React from 'react';
 import type { NodeData, SettingsData, DisplaySettings, TournamentInfo, SpotContext } from '../../types';
 import { getPlayerPositions } from '../../lib/pokerUtils';

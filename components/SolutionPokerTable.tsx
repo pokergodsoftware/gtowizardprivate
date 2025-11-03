@@ -1,3 +1,20 @@
+/**
+ * SolutionPokerTable - SPECIFIC FOR SOLUTION VIEWER ONLY
+ * 
+ * ⚠️ WARNING: DO NOT MODIFY THIS FOR TRAINER FEATURES
+ * ⚠️ This is the ORIGINAL poker table used in the solution viewer (Sidebar.tsx)
+ * ⚠️ For trainer modifications, use PokerTableVisual.tsx or PokerTable/index.tsx
+ * 
+ * This component maintains the classic solution viewer table layout:
+ * - Simple circular player representation
+ * - Traditional bet display with chips
+ * - Minimal visual styling
+ * - No drag-and-drop features
+ * - No advanced trainer-specific badges
+ * 
+ * History: Restored after being accidentally replaced by trainer version
+ * Date: 2025-11-03
+ */
 
 import React from 'react';
 import type { NodeData, SettingsData, Action } from '../types.ts';
@@ -84,7 +101,19 @@ const DealerButton: React.FC = () => {
 };
 
 
-export const PokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: number; bigBlind: number; currentNode: NodeData; allNodes: Map<number, NodeData>; pathNodeIds: number[]; displayMode: 'bb' | 'chips'; fileName?: string; }> = ({ settings, activePlayerIndex, bigBlind, currentNode, allNodes, pathNodeIds, displayMode, fileName }) => {
+/**
+ * SolutionPokerTable - Main Table Component
+ * 
+ * Displays the poker table for solution viewing with:
+ * - Player positions in circular layout
+ * - Stack sizes (in BB or chips)
+ * - Bounty amounts
+ * - Current pot
+ * - Player bets
+ * - Dealer button
+ * - Folded player indication
+ */
+export const SolutionPokerTable: React.FC<{ settings: SettingsData; activePlayerIndex: number; bigBlind: number; currentNode: NodeData; allNodes: Map<number, NodeData>; pathNodeIds: number[]; displayMode: 'bb' | 'chips'; fileName?: string; }> = ({ settings, activePlayerIndex, bigBlind, currentNode, allNodes, pathNodeIds, displayMode, fileName }) => {
   const { stacks, blinds, bounties } = settings.handdata;
   const numPlayers = stacks.length;
   // Robustly determine SB and BB, regardless of order in the data file.

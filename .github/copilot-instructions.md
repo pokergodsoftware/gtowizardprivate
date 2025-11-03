@@ -76,11 +76,33 @@ App.tsx
 └─ Viewer (selected solution)
    ├─ Header (decision tree navigation)
    ├─ RangeGrid (13x13 hands)
-   ├─ Sidebar (PokerTable, ActionsBar, ComboDetail)
-   └─ PokerTable/ (modular visual components)
+   ├─ Sidebar (SolutionPokerTable, ActionsBar, ComboDetail)
+   └─ PokerTable/ (modular TRAINER-ONLY components)
       ├─ PlayerCard, ChipStack, PotDisplay
       └─ TournamentInfo, PayoutPanel
 ```
+
+### ⚠️ CRITICAL: Poker Table Separation
+
+**TWO SEPARATE implementations that must NEVER be confused:**
+
+1. **Solution Viewer Table**: `components/SolutionPokerTable.tsx`
+   - Used in `Sidebar.tsx` (solution viewer only)
+   - Classic circular players, simple pot display
+   - Original implementation, no trainer features
+   - Props: `settings`, `activePlayerIndex`, `currentNode`, `allNodes`, `pathNodeIds`
+
+2. **Trainer Table**: `components/PokerTable/index.tsx` + `PokerTableVisual.tsx`
+   - Used in `TrainerSimulator.tsx` (trainer only)
+   - Modular architecture, draggable payouts, advanced badges
+   - Props: `node`, `settings`, `display`, `tournament`, `spotContext`
+
+**NEVER:**
+- Import `PokerTable/index` in solution viewer components
+- Import `SolutionPokerTable` in trainer components
+- Modify one thinking it's the other
+
+See `POKER_TABLE_SEPARATION.md` for full details.
 
 ### PokerTable Refactoring (Dec 2024)
 Broke monolithic `PokerTable.tsx` (800 lines) into:

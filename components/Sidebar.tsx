@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import type { AppData, NodeData, DisplaySettings, TournamentInfo, SpotContext } from '../types.ts';
-import { PokerTable } from './PokerTable/index';
+// ⚠️ IMPORTANT: Using SolutionPokerTable (old version) NOT PokerTable/index (trainer version)
+import { SolutionPokerTable } from './SolutionPokerTable.tsx';
 import { ActionsBar } from './ActionsBar.tsx';
 import { ComboDetail } from './ComboDetail.tsx';
 import { DisplayModeToggle } from './DisplayModeToggle.tsx';
@@ -65,20 +66,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ appData, currentNode, bigBlind
         <DisplayModeToggle displayMode={displayMode} onToggle={onDisplayModeToggle} />
       </div>
       
-      <PokerTable 
-        node={currentNode}
+      {/* Solution Poker Table - Classic version without trainer features */}
+      <SolutionPokerTable 
         settings={appData.settings}
-        display={{
-          mode: displayMode,
-          showBountyInDollars: true
-        }}
-        tournament={{
-          phase: appData.tournamentPhase,
-          fileName: appData.fileName
-        }}
-        spotContext={{}}
+        activePlayerIndex={currentNode.player}
         bigBlind={bigBlind}
-        onDisplayChange={onDisplayModeToggle}
+        currentNode={currentNode}
+        allNodes={appData.nodes}
+        pathNodeIds={pathNodeIds}
+        displayMode={displayMode}
+        fileName={appData.fileName}
       />
       <div className="mt-6">
         <ActionsBar currentNode={currentNode} bigBlind={bigBlind} settings={appData.settings} displayMode={displayMode} />
