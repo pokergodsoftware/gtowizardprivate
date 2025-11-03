@@ -33,7 +33,7 @@ const spotTypes = [
     'vs Multiway shove'
 ];
 
-type ViewMode = 'modeSelection' | 'config' | 'training' | 'tournament' | 'profile' | 'leaderboard';
+type ViewMode = 'modeSelection' | 'config' | 'training' | 'tournament' | 'profile' | 'leaderboard' | 'practicedHands' | 'markedHands';
 
 export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, loadNodesForSolution }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -95,6 +95,18 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                         <h1 className="text-2xl font-bold text-white">Trainer</h1>
                         {/* Informações do usuário */}
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setViewMode('practicedHands')}
+                                className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <span className="text-white font-semibold text-sm">Practiced Hands</span>
+                            </button>
+                            <button
+                                onClick={() => setViewMode('markedHands')}
+                                className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <span className="text-white font-semibold text-sm">⭐ Marked Hands</span>
+                            </button>
                             <button
                                 onClick={() => setViewMode('profile')}
                                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
@@ -181,6 +193,28 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                 userId={currentUser.userId}
                 username={currentUser.username}
                 onBack={() => setViewMode('modeSelection')}
+            />
+        );
+    }
+
+    if (viewMode === 'practicedHands' && currentUser) {
+        return (
+            <UserProfile
+                userId={currentUser.userId}
+                username={currentUser.username}
+                onBack={() => setViewMode('modeSelection')}
+                showHistoryOnly={true}
+            />
+        );
+    }
+
+    if (viewMode === 'markedHands' && currentUser) {
+        return (
+            <UserProfile
+                userId={currentUser.userId}
+                username={currentUser.username}
+                onBack={() => setViewMode('modeSelection')}
+                showMarkedHandsOnly={true}
             />
         );
     }
@@ -289,6 +323,18 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                         <h1 className="text-2xl font-bold text-white">Trainer - Configuração</h1>
                         {/* Informações do usuário e logout */}
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setViewMode('practicedHands')}
+                                className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <span className="text-white font-semibold text-sm">Practiced Hands</span>
+                            </button>
+                            <button
+                                onClick={() => setViewMode('markedHands')}
+                                className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <span className="text-white font-semibold text-sm">⭐ Marked Hands</span>
+                            </button>
                             <button
                                 onClick={() => setViewMode('profile')}
                                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors cursor-pointer"

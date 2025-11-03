@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import type { AppData, NodeData } from '../types.ts';
-import { PokerTable } from './PokerTable.tsx';
+import type { AppData, NodeData, DisplaySettings, TournamentInfo, SpotContext } from '../types.ts';
+import { PokerTable } from './PokerTable/index';
 import { ActionsBar } from './ActionsBar.tsx';
 import { ComboDetail } from './ComboDetail.tsx';
 import { DisplayModeToggle } from './DisplayModeToggle.tsx';
@@ -66,14 +66,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ appData, currentNode, bigBlind
       </div>
       
       <PokerTable 
-        settings={appData.settings} 
-        activePlayerIndex={currentNode.player} 
-        bigBlind={bigBlind} 
-        currentNode={currentNode}
-        allNodes={appData.nodes}
-        pathNodeIds={pathNodeIds}
-        displayMode={displayMode}
-        fileName={appData.fileName}
+        node={currentNode}
+        settings={appData.settings}
+        display={{
+          mode: displayMode,
+          showBountyInDollars: true
+        }}
+        tournament={{
+          phase: appData.tournamentPhase,
+          fileName: appData.fileName
+        }}
+        spotContext={{}}
+        bigBlind={bigBlind}
+        onDisplayChange={onDisplayModeToggle}
       />
       <div className="mt-6">
         <ActionsBar currentNode={currentNode} bigBlind={bigBlind} settings={appData.settings} displayMode={displayMode} />

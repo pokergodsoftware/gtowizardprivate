@@ -10,6 +10,13 @@ export interface Action {
   node?: number;
 }
 
+export interface VillainAction {
+  position: number;
+  action: string; // 'Fold', 'Call', 'Raise X', 'Allin'
+  amount?: number; // Bet amount (if applicable)
+  combo?: string; // Hand combo used by villain (e.g., "AhKd")
+}
+
 export interface NodeData {
   player: number;
   street: number;
@@ -69,4 +76,34 @@ export interface AppData {
   equity: EquityData;
   nodes: Map<number, NodeData>;
   path?: string; // Caminho para carregar nodes sob demanda
+}
+
+// ====================================
+// Composed Interface Types for PokerTable
+// ====================================
+
+/**
+ * Display configuration for the poker table
+ */
+export interface DisplaySettings {
+  mode: 'bb' | 'chips';
+  showBountyInDollars: boolean;
+}
+
+/**
+ * Tournament context information
+ */
+export interface TournamentInfo {
+  phase?: string;
+  fileName?: string;
+}
+
+/**
+ * Spot-specific context information for training mode
+ */
+export interface SpotContext {
+  type?: string;
+  raiserPosition?: number;
+  shoverPositions?: number[];
+  villainActions?: VillainAction[];
 }

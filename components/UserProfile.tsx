@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SpotHistory, type SpotHistoryEntry } from './SpotHistory.tsx';
-import { loadSpotHistory } from '../utils/statsUtils.ts';
+import { loadSpotHistory, loadUserStats as loadUserStatsUtil, loadMarkedHands, saveMarkedHand, removeMarkedHand, type MarkedHand } from '../utils/statsUtils.ts';
 
 interface UserStats {
     totalSpots: number;
@@ -22,28 +22,104 @@ interface UserProfileProps {
     userId: string;
     username: string;
     onBack: () => void;
+    showHistoryOnly?: boolean;
+    showMarkedHandsOnly?: boolean;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBack }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBack, showHistoryOnly = false, showMarkedHandsOnly = false }) => {
     const [stats, setStats] = useState<UserStats | null>(null);
     const [history, setHistory] = useState<SpotHistoryEntry[]>([]);
+    const [markedHands, setMarkedHands] = useState<MarkedHand[]>([]);
+    const [markedHandIds, setMarkedHandIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadUserStats();
-        loadHistory();
-    }, [userId]);
+        loadMarkedHandsData();
+        if (showMarkedHandsOnly) {
+            loadMarkedHandsDataAsHistory();
+        } else {
+            loadHistory();
+        }
+    }, [userId, showMarkedHandsOnly]);
 
-    const loadHistory = () => {
-        const userHistory = loadSpotHistory(userId);
+    const loadMarkedHandsData = async () => {
+        const marked = await loadMarkedHands(userId);
+        setMarkedHands(marked);
+        // Criar Set de IDs para lookup rápido
+        const ids = new Set(marked.map(m => m.id));
+        setMarkedHandIds(ids);
+    };
+
+    const loadMarkedHandsDataAsHistory = async () => {
+        const marked = await loadMarkedHands(userId);
+        setMarkedHands(marked);
+        
+        // Converter MarkedHand para SpotHistoryEntry para exibir na mesma tabela
+        const convertedHistory: SpotHistoryEntry[] = marked.map(m => ({
+            id: m.id,
+            hand: m.hand,
+            combo: m.combo,
+            isCorrect: m.isCorrect,
+            timestamp: m.timestamp,
+            phase: m.phase,
+            points: m.isCorrect ? 1 : 0,
+            solutionPath: m.solutionPath,
+            nodeId: m.nodeId,
+            position: m.position,
+            playerAction: m.playerAction,
+            ev: m.ev
+        }));
+        setHistory(convertedHistory);
+    };
+
+    const loadHistory = async () => {
+        const userHistory = await loadSpotHistory(userId);
         setHistory(userHistory);
     };
 
-    const loadUserStats = () => {
-        const userStatsKey = `poker_stats_${userId}`;
-        const storedStats = localStorage.getItem(userStatsKey);
+    const handleToggleMark = async (entry: SpotHistoryEntry) => {
+        const isCurrentlyMarked = markedHandIds.has(entry.id);
         
-        if (storedStats) {
-            setStats(JSON.parse(storedStats));
+        if (isCurrentlyMarked) {
+            // Desmarcar
+            await removeMarkedHand(userId, entry.id);
+            console.log('❌ Hand unmarked:', entry.id);
+            
+            // Se estamos na página de marked hands, remover da lista
+            if (showMarkedHandsOnly) {
+                setHistory(prev => prev.filter(h => h.id !== entry.id));
+                setMarkedHands(prev => prev.filter(h => h.id !== entry.id));
+            }
+        } else {
+            // Marcar - converter SpotHistoryEntry para MarkedHand
+            const markedHand: MarkedHand = {
+                id: entry.id,
+                timestamp: entry.timestamp,
+                solutionPath: entry.solutionPath || '',
+                nodeId: entry.nodeId || 0,
+                hand: entry.hand,
+                combo: entry.combo || '',
+                position: entry.position || 0,
+                playerAction: entry.playerAction || 'N/A',
+                isCorrect: entry.isCorrect,
+                ev: entry.ev,
+                phase: entry.phase
+            };
+            
+            await saveMarkedHand(userId, markedHand);
+            console.log('⭐ Hand marked:', entry.id);
+        }
+        
+        // Recarregar a lista de marked hands para atualizar o Set de IDs
+        await loadMarkedHandsData();
+    };
+
+    const loadUserStats = async () => {
+        // Tentar carregar stats (prioriza Firebase)
+        const loadedStats = await loadUserStatsUtil(userId);
+        
+        if (loadedStats) {
+            setStats(loadedStats);
         } else {
             // Inicializar stats vazias
             const emptyStats: UserStats = {
@@ -84,6 +160,44 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
         return bPoints - aPoints;
     });
 
+    // Se showHistoryOnly ou showMarkedHandsOnly, mostrar apenas o histórico/marked hands
+    if (showHistoryOnly || showMarkedHandsOnly) {
+        const pageTitle = showMarkedHandsOnly ? '⭐ Marked Hands' : 'Practiced Hands History';
+        
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+                <div className="max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-8">
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span className="font-semibold">Voltar</span>
+                        </button>
+                        <h1 className="text-2xl font-bold text-white">{pageTitle}</h1>
+                        <div></div>
+                    </div>
+
+                    {/* Histórico de Spots / Marked Hands */}
+                    <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8">
+                        <h2 className="text-2xl font-bold text-white mb-6">
+                            {showMarkedHandsOnly ? '⭐ Mãos Marcadas' : 'Histórico de Spots'}
+                        </h2>
+                        <SpotHistory 
+                            history={history} 
+                            onToggleMark={handleToggleMark}
+                            markedHandIds={markedHandIds}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
             <div className="max-w-6xl mx-auto">
@@ -97,15 +211,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         <span className="font-semibold">Voltar</span>
-                    </button>
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 bg-[#23263A] hover:bg-[#2C3050] text-white rounded-lg shadow transition-colors border border-[#23263A]"
-                        style={{ fontWeight: 600, fontSize: '1rem' }}
-                        onClick={() => window.location.href = '/practiced-hands'}
-                    >
-                        <span className="inline-block bg-blue-700 text-white rounded px-2 py-1 font-bold text-lg" style={{ letterSpacing: '1px' }}>K</span>
-                        <span className="inline-block bg-blue-700 text-white rounded px-2 py-1 font-bold text-lg" style={{ letterSpacing: '1px' }}>5</span>
-                        <span className="ml-2">Practiced hands</span>
                     </button>
                 </div>
 

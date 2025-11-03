@@ -1,5 +1,11 @@
 import type { SpotHistoryEntry } from '../components/SpotHistory.tsx';
-import { saveStatsToFirebase } from '../src/firebase/firebaseService';
+import { 
+    saveStatsToFirebase, 
+    saveSpotHistoryToFirebase, 
+    loadSpotHistoryFromFirebase,
+    getUserStatsFromFirebase,
+    updateTournamentStatsInFirebase
+} from '../src/firebase/firebaseService';
 
 interface UserStats {
     totalSpots: number;
@@ -24,7 +30,8 @@ export async function saveSpotResult(
     userId: string,
     isCorrect: boolean,
     phase: string,
-    username?: string
+    username?: string,
+    points?: number
 ): Promise<void> {
     try {
         const userStatsKey = `poker_stats_${userId}`;
@@ -48,19 +55,16 @@ export async function saveSpotResult(
         }
 
         // Calcular pontos (1 ponto por acerto)
-        const points = isCorrect ? 1 : 0;
+        const finalPoints = points !== undefined ? points : (isCorrect ? 1 : 0);
 
         // Atualizar estatísticas gerais
         stats.totalSpots++;
         if (isCorrect) {
             stats.correctSpots++;
         }
-        stats.totalPoints += points;
+        stats.totalPoints += finalPoints;
 
         // Estatísticas de torneio
-        // Considera que cada vez que uma fase de torneio é jogada, conta como torneio jogado
-        // "Final table" conta como mesa final alcançada
-        // "completedTournaments" pode ser incrementado ao final do torneio (precisa lógica extra, aqui é exemplo)
         if (phase) {
             // Se for a primeira fase do torneio, conta como torneio jogado
             if (phase === '100~60% left') {
@@ -84,23 +88,23 @@ export async function saveSpotResult(
         if (isCorrect) {
             stats.statsByPhase[phase].correct++;
         }
-        stats.statsByPhase[phase].points += points;
+        stats.statsByPhase[phase].points += finalPoints;
 
-        // Salvar no localStorage
+        // Salvar no localStorage (backup local)
         localStorage.setItem(userStatsKey, JSON.stringify(stats));
 
         console.log(`📊 Stats saved for user ${userId}:`, {
             isCorrect,
             phase,
-            points,
+            points: finalPoints,
             totalPoints: stats.totalPoints,
             accuracy: ((stats.correctSpots / stats.totalSpots) * 100).toFixed(1) + '%'
         });
 
-        // Salvar também no Firebase (se username fornecido)
+        // Salvar também no Firebase
         if (username) {
             try {
-                await saveStatsToFirebase(userId, username, isCorrect);
+                await saveStatsToFirebase(userId, username, isCorrect, phase, finalPoints);
                 console.log('☁️ Stats synced to Firebase');
             } catch (firebaseError) {
                 console.warn('⚠️ Failed to sync to Firebase (offline?):', firebaseError);
@@ -113,10 +117,24 @@ export async function saveSpotResult(
 }
 
 /**
- * Carrega as estatísticas de um usuário
+ * Carrega as estatísticas de um usuário (prioriza Firebase)
  */
-export function loadUserStats(userId: string): UserStats | null {
+export async function loadUserStats(userId: string): Promise<UserStats | null> {
     try {
+        // Tentar carregar do Firebase primeiro
+        try {
+            const firebaseStats = await getUserStatsFromFirebase(userId);
+            if (firebaseStats) {
+                // Salvar no localStorage como cache
+                const userStatsKey = `poker_stats_${userId}`;
+                localStorage.setItem(userStatsKey, JSON.stringify(firebaseStats));
+                return firebaseStats;
+            }
+        } catch (firebaseError) {
+            console.warn('⚠️ Failed to load from Firebase, using localStorage:', firebaseError);
+        }
+        
+        // Fallback para localStorage
         const userStatsKey = `poker_stats_${userId}`;
         const storedStats = localStorage.getItem(userStatsKey);
         
@@ -146,7 +164,7 @@ export function resetUserStats(userId: string): void {
 /**
  * Salva uma entrada no histórico de spots
  */
-export function saveSpotHistory(
+export async function saveSpotHistory(
     userId: string,
     hand: string,
     isCorrect: boolean,
@@ -154,8 +172,11 @@ export function saveSpotHistory(
     points: number,
     combo?: string,
     solutionPath?: string,
-    nodeId?: number
-): void {
+    nodeId?: number,
+    position?: number,
+    playerAction?: string,
+    ev?: number
+): Promise<void> {
     try {
         const historyKey = `poker_history_${userId}`;
         const storedHistory = localStorage.getItem(historyKey);
@@ -172,19 +193,30 @@ export function saveSpotHistory(
             phase,
             points,
             solutionPath,
-            nodeId
+            nodeId,
+            position,
+            playerAction,
+            ev
         };
         
         history.push(newEntry);
         
-        // Manter apenas os últimos 30
-        if (history.length > 30) {
-            history = history.slice(-30);
+        // Manter apenas os últimos 100 no localStorage
+        if (history.length > 100) {
+            history = history.slice(-100);
         }
         
         localStorage.setItem(historyKey, JSON.stringify(history));
         
         console.log(`📝 History saved: ${hand} ${combo || ''} (${isCorrect ? 'correct' : 'wrong'})`);
+        
+        // Salvar também no Firebase
+        try {
+            await saveSpotHistoryToFirebase(userId, newEntry);
+            console.log('☁️ History synced to Firebase');
+        } catch (firebaseError) {
+            console.warn('⚠️ Failed to sync history to Firebase:', firebaseError);
+        }
     } catch (err) {
         console.error('Erro ao salvar histórico:', err);
     }
@@ -193,8 +225,22 @@ export function saveSpotHistory(
 /**
  * Carrega o histórico de spots de um usuário
  */
-export function loadSpotHistory(userId: string): SpotHistoryEntry[] {
+export async function loadSpotHistory(userId: string): Promise<SpotHistoryEntry[]> {
     try {
+        // Tentar carregar do Firebase primeiro
+        try {
+            const firebaseHistory = await loadSpotHistoryFromFirebase(userId);
+            if (firebaseHistory && firebaseHistory.length > 0) {
+                // Salvar no localStorage como cache
+                const historyKey = `poker_history_${userId}`;
+                localStorage.setItem(historyKey, JSON.stringify(firebaseHistory));
+                return firebaseHistory;
+            }
+        } catch (firebaseError) {
+            console.warn('⚠️ Failed to load history from Firebase, using localStorage:', firebaseError);
+        }
+        
+        // Fallback para localStorage
         const historyKey = `poker_history_${userId}`;
         const storedHistory = localStorage.getItem(historyKey);
         
@@ -218,5 +264,104 @@ export function clearSpotHistory(userId: string): void {
         console.log(`🗑️ History cleared for user ${userId}`);
     } catch (err) {
         console.error('Erro ao limpar histórico:', err);
+    }
+}
+
+/**
+ * Interface para mão marcada
+ */
+export interface MarkedHand {
+    id: string;
+    timestamp: number;
+    solutionPath: string;
+    nodeId: number;
+    hand: string;
+    combo: string;
+    position: number;
+    playerAction: string;
+    isCorrect: boolean;
+    ev?: number;
+    phase: string;
+}
+
+/**
+ * Salva uma mão como marcada
+ */
+export async function saveMarkedHand(userId: string, markedHand: MarkedHand): Promise<void> {
+    try {
+        const markedKey = `marked_hands_${userId}`;
+        const stored = localStorage.getItem(markedKey);
+        let markedHands: MarkedHand[] = stored ? JSON.parse(stored) : [];
+        
+        // Verifica se já existe (por id único)
+        const exists = markedHands.find(h => h.id === markedHand.id);
+        if (!exists) {
+            markedHands.push(markedHand);
+            localStorage.setItem(markedKey, JSON.stringify(markedHands));
+            console.log('⭐ Marked hand saved:', markedHand);
+        }
+        
+        // TODO: Salvar também no Firebase quando implementar
+    } catch (err) {
+        console.error('Erro ao salvar mão marcada:', err);
+    }
+}
+
+/**
+ * Remove uma mão marcada
+ */
+export async function removeMarkedHand(userId: string, handId: string): Promise<void> {
+    try {
+        const markedKey = `marked_hands_${userId}`;
+        const stored = localStorage.getItem(markedKey);
+        if (!stored) return;
+        
+        let markedHands: MarkedHand[] = JSON.parse(stored);
+        markedHands = markedHands.filter(h => h.id !== handId);
+        localStorage.setItem(markedKey, JSON.stringify(markedHands));
+        console.log('❌ Marked hand removed:', handId);
+        
+        // TODO: Remover também do Firebase quando implementar
+    } catch (err) {
+        console.error('Erro ao remover mão marcada:', err);
+    }
+}
+
+/**
+ * Carrega todas as mãos marcadas
+ */
+export async function loadMarkedHands(userId: string): Promise<MarkedHand[]> {
+    try {
+        const markedKey = `marked_hands_${userId}`;
+        const stored = localStorage.getItem(markedKey);
+        
+        if (stored) {
+            const markedHands: MarkedHand[] = JSON.parse(stored);
+            console.log(`📖 Loaded ${markedHands.length} marked hands from localStorage`);
+            return markedHands;
+        }
+        
+        // TODO: Tentar carregar do Firebase quando implementar
+        return [];
+    } catch (err) {
+        console.error('Erro ao carregar mãos marcadas:', err);
+        return [];
+    }
+}
+
+/**
+ * Verifica se uma mão está marcada
+ */
+export function isHandMarked(userId: string, handId: string): boolean {
+    try {
+        const markedKey = `marked_hands_${userId}`;
+        const stored = localStorage.getItem(markedKey);
+        if (!stored) return false;
+        
+        const markedHands: MarkedHand[] = JSON.parse(stored);
+        return markedHands.some(h => h.id === handId);
+    } catch (err) {
+        console.error('Erro ao verificar mão marcada:', err);
+        return false;
     }
 }

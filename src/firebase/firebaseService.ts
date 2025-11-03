@@ -8,9 +8,12 @@ import {
   orderBy, 
   limit,
   updateDoc,
-  increment
+  increment,
+  addDoc,
+  where
 } from 'firebase/firestore';
 import { db } from './config';
+import type { SpotHistoryEntry } from '../../components/SpotHistory';
 
 export interface FirebaseUser {
   userId: string;
@@ -24,8 +27,18 @@ export interface FirebaseStats {
   totalSpots: number;
   correctSpots: number;
   totalPoints: number;
+  tournamentsPlayed: number;
+  reachedFinalTable: number;
+  completedTournaments: number;
   accuracy: number;
   lastUpdated: string;
+  statsByPhase: {
+    [phase: string]: {
+      total: number;
+      correct: number;
+      points: number;
+    };
+  };
 }
 
 /**
@@ -53,7 +66,9 @@ export async function saveUserToFirebase(userId: string, username: string): Prom
 export async function saveStatsToFirebase(
   userId: string,
   username: string,
-  isCorrect: boolean
+  isCorrect: boolean,
+  phase?: string,
+  points?: number
 ): Promise<void> {
   try {
     const statsRef = doc(db, 'stats', userId);
@@ -61,31 +76,60 @@ export async function saveStatsToFirebase(
     // Verificar se já existe
     const statsSnap = await getDoc(statsRef);
     
+    const pointsToAdd = points !== undefined ? points : (isCorrect ? 1 : 0);
+    
     if (statsSnap.exists()) {
-      // Atualizar estatísticas existentes
+      const data = statsSnap.data();
+      const statsByPhase = data.statsByPhase || {};
+      
+      // Atualizar estatísticas por fase se fornecida
+      if (phase) {
+        if (!statsByPhase[phase]) {
+          statsByPhase[phase] = { total: 0, correct: 0, points: 0 };
+        }
+        statsByPhase[phase].total += 1;
+        statsByPhase[phase].correct += isCorrect ? 1 : 0;
+        statsByPhase[phase].points += pointsToAdd;
+      }
+      
+      // Atualizar estatísticas gerais
       await updateDoc(statsRef, {
         totalSpots: increment(1),
         correctSpots: increment(isCorrect ? 1 : 0),
-        totalPoints: increment(isCorrect ? 1 : 0),
-        lastUpdated: new Date().toISOString()
+        totalPoints: increment(pointsToAdd),
+        lastUpdated: new Date().toISOString(),
+        statsByPhase
       });
       
       // Recalcular accuracy
       const updatedSnap = await getDoc(statsRef);
-      const data = updatedSnap.data();
-      const accuracy = (data!.correctSpots / data!.totalSpots) * 100;
+      const updatedData = updatedSnap.data();
+      const accuracy = (updatedData!.correctSpots / updatedData!.totalSpots) * 100;
       
       await updateDoc(statsRef, { accuracy });
     } else {
       // Criar novas estatísticas
+      const statsByPhase: any = {};
+      if (phase) {
+        statsByPhase[phase] = {
+          total: 1,
+          correct: isCorrect ? 1 : 0,
+          points: pointsToAdd
+        };
+      }
+      
       await setDoc(statsRef, {
         userId,
         username,
         totalSpots: 1,
         correctSpots: isCorrect ? 1 : 0,
-        totalPoints: isCorrect ? 1 : 0,
+        totalPoints: pointsToAdd,
+        tournamentsPlayed: 0,
+        reachedFinalTable: 0,
+        completedTournaments: 0,
         accuracy: isCorrect ? 100 : 0,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        statsByPhase
       });
     }
     
@@ -155,6 +199,101 @@ export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
     return players;
   } catch (error) {
     console.error('❌ Error loading all players from Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Salvar histórico de mão no Firebase
+ */
+export async function saveSpotHistoryToFirebase(
+  userId: string,
+  historyEntry: SpotHistoryEntry
+): Promise<void> {
+  try {
+    const historyRef = collection(db, 'spotHistory');
+    await addDoc(historyRef, {
+      ...historyEntry,
+      userId,
+      createdAt: new Date().toISOString()
+    });
+    
+    console.log('✅ Spot history saved to Firebase');
+  } catch (error) {
+    console.error('❌ Error saving spot history to Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Carregar histórico de mãos do Firebase
+ */
+export async function loadSpotHistoryFromFirebase(userId: string): Promise<SpotHistoryEntry[]> {
+  try {
+    const historyRef = collection(db, 'spotHistory');
+    const q = query(
+      historyRef, 
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc'),
+      limit(100)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    const history: SpotHistoryEntry[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      history.push({
+        id: data.id,
+        hand: data.hand,
+        combo: data.combo,
+        isCorrect: data.isCorrect,
+        timestamp: data.timestamp,
+        phase: data.phase,
+        points: data.points,
+        solutionPath: data.solutionPath,
+        nodeId: data.nodeId
+      });
+    });
+    
+    console.log('✅ Loaded spot history from Firebase:', history.length, 'entries');
+    return history;
+  } catch (error) {
+    console.error('❌ Error loading spot history from Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Atualizar estatísticas de torneio no Firebase
+ */
+export async function updateTournamentStatsInFirebase(
+  userId: string,
+  updates: {
+    tournamentsPlayed?: number;
+    reachedFinalTable?: number;
+    completedTournaments?: number;
+  }
+): Promise<void> {
+  try {
+    const statsRef = doc(db, 'stats', userId);
+    const updateData: any = {};
+    
+    if (updates.tournamentsPlayed !== undefined) {
+      updateData.tournamentsPlayed = increment(updates.tournamentsPlayed);
+    }
+    if (updates.reachedFinalTable !== undefined) {
+      updateData.reachedFinalTable = increment(updates.reachedFinalTable);
+    }
+    if (updates.completedTournaments !== undefined) {
+      updateData.completedTournaments = increment(updates.completedTournaments);
+    }
+    
+    updateData.lastUpdated = new Date().toISOString();
+    
+    await updateDoc(statsRef, updateData);
+    console.log('✅ Tournament stats updated in Firebase');
+  } catch (error) {
+    console.error('❌ Error updating tournament stats in Firebase:', error);
     throw error;
   }
 }

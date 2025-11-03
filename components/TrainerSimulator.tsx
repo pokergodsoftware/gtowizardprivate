@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { AppData, NodeData } from '../types.ts';
+import type { AppData, NodeData, VillainAction } from '../types.ts';
 import { PokerTableVisual } from './PokerTableVisual.tsx';
 import { PlayerHand } from './PlayerHand.tsx';
 import { randomElement, selectHandFromRange, comboIndexToString } from '../lib/trainerUtils.ts';
 import allCombos from '../combos.json';
 import { generateHandMatrix } from '../lib/pokerUtils.ts';
-import { saveSpotResult, saveSpotHistory } from '../utils/statsUtils.ts';
+import { saveSpotResult, saveSpotHistory, saveMarkedHand, removeMarkedHand, type MarkedHand } from '../utils/statsUtils.ts';
 import { getTrainerAssetUrl } from '../src/config.ts';
 
 interface TrainerSimulatorProps {
@@ -20,13 +20,6 @@ interface TrainerSimulatorProps {
     tournamentMode?: boolean; // Se true, está no modo torneio
     onSpotResult?: (isCorrect: boolean) => void; // Callback para modo torneio
     playerCountFilter?: number; // Filtro opcional por número de jogadores (para Final Table)
-}
-
-interface VillainAction {
-    position: number;
-    action: string; // 'Fold', 'Call', 'Raise X', 'Allin'
-    amount?: number; // Valor da aposta (se aplicável)
-    combo?: string; // Combo usado pelo vilão (ex: "AhKd")
 }
 
 interface SpotSimulation {
@@ -65,19 +58,43 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     onSpotResult,
     playerCountFilter
 }) => {
-    const [currentSpot, setCurrentSpot] = useState<SpotSimulation | null>(null);
-    const [userAction, setUserAction] = useState<string | null>(null);
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
-    const [stats, setStats] = useState({
-        totalQuestions: 0,
-        correctAnswers: 0,
-        score: 0,
-        tournamentsPlayed: 0,
-        reachedFinalTable: 0,
-        completedTournaments: 0
-    });
+        const [currentSpot, setCurrentSpot] = useState<SpotSimulation | null>(null);
+        const [userAction, setUserAction] = useState<string | null>(null);
+        const [showFeedback, setShowFeedback] = useState(false);
+        const [isHandMarked, setIsHandMarked] = useState(false);
+        const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
+        const [showBountyInDollars, setShowBountyInDollars] = useState(() => {
+            // Default: true for first time users
+            const stored = localStorage.getItem('trainer_show_bounty_in_dollars');
+            return stored ? stored === 'true' : true;
+        });
+        const [autoAdvance, setAutoAdvance] = useState(() => {
+            const stored = localStorage.getItem('trainer_auto_advance');
+            return stored ? stored === 'true' : false;
+        });
+        const [stats, setStats] = useState({
+            totalQuestions: 0,
+            correctAnswers: 0,
+            score: 0,
+            tournamentsPlayed: 0,
+            reachedFinalTable: 0,
+            completedTournaments: 0
+        });
+    // Toggle auto advance
+    const toggleAutoAdvance = () => {
+        setAutoAdvance(prev => {
+            localStorage.setItem('trainer_auto_advance', (!prev).toString());
+            return !prev;
+        });
+    };
     
+        // Toggle bounty display mode
+        const toggleShowBountyInDollars = () => {
+            setShowBountyInDollars(prev => {
+                localStorage.setItem('trainer_show_bounty_in_dollars', (!prev).toString());
+                return !prev;
+            });
+        };
     // Timebank (apenas modo torneio)
     const [timeLeft, setTimeLeft] = useState(15); // 15 segundos
     const [hasPlayedTimebank1, setHasPlayedTimebank1] = useState(false);
@@ -189,7 +206,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                 0,
                 currentSpot.playerHand,
                 currentSpot.solution.path || currentSpot.solution.id,
-                currentSpot.nodeId
+                currentSpot.nodeId,
+                currentSpot.playerPosition,
+                'Fold (Timeout)',
+                undefined // EV não disponível pois ação não existe
             );
             
             setStats(prev => ({
@@ -214,6 +234,11 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         const foldFrequency = handData.played[foldActionIndex] || 0;
         const isCorrect = foldFrequency > 0;
         
+        // Pegar o EV do fold
+        const foldEv = handData.evs && handData.evs[foldActionIndex] !== undefined 
+            ? handData.evs[foldActionIndex] 
+            : undefined;
+        
         console.log(`⏰ TIMEOUT - Auto-fold: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} (fold freq: ${(foldFrequency * 100).toFixed(1)}%)`);
         
         // Marca a ação como Fold (Timeout)
@@ -231,7 +256,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             isCorrect ? 1 : 0, // 1 ponto se fold for correto, 0 se for erro
             currentSpot.playerHand,
             currentSpot.solution.path || currentSpot.solution.id,
-            currentSpot.nodeId
+            currentSpot.nodeId,
+            currentSpot.playerPosition,
+            'Fold (Timeout)',
+            foldEv // EV do fold
         );
         
         console.log(`📊 Stats saved: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} - ${isCorrect ? '+1' : '+0'} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
@@ -818,6 +846,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
 
             setUserAction(null);
             setShowFeedback(false);
+            setIsHandMarked(false);
             isGeneratingSpot.current = false;
             retryCount.current = 0;
             console.log('✅✅✅ Any spot generation completed successfully!');
@@ -1461,6 +1490,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
 
         setUserAction(null);
         setShowFeedback(false);
+        setIsHandMarked(false);
         isGeneratingSpot.current = false;
         retryCount.current = 0; // Reset counter on successful spot generation
         console.log('✅✅✅ Spot generation completed successfully!');
@@ -1574,6 +1604,11 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         // Calcular pontos: 1 ponto por acerto
         const points = isCorrect ? 1 : 0;
 
+        // Pegar o EV da ação escolhida
+        const actionEv = handData.evs && handData.evs[actionIndex] !== undefined 
+            ? handData.evs[actionIndex] 
+            : undefined;
+
         // Salvar estatísticas e histórico (usa a fase real do spot, não a prop)
         const actualPhase = currentSpot.solution.tournamentPhase;
         saveSpotResult(userId, isCorrect, actualPhase);
@@ -1585,7 +1620,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             points,
             currentSpot.playerHand, // combo (ex: "AhKd")
             currentSpot.solution.path || currentSpot.solution.id, // solutionPath (usa path ou id como fallback)
-            currentSpot.nodeId // nodeId
+            currentSpot.nodeId, // nodeId
+            currentSpot.playerPosition, // position
+            actionName, // playerAction (ex: "Fold", "Call", "Raise 2")
+            actionEv // ev
         );
 
         console.log(`📊 Stats saved: ${isCorrect ? 'CORRECT' : 'WRONG'} - ${points} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
@@ -1599,9 +1637,12 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         // Callback para modo torneio
         if (tournamentMode && onSpotResult) {
             onSpotResult(isCorrect);
-            
-            // Auto-avançar para próximo spot após 5 segundos
-            // Não gerar novo spot ainda - apenas notificar o componente pai
+        }
+        // Auto advance: se ativado, avança para próximo spot após 2.5s
+        if (autoAdvance) {
+            setTimeout(() => {
+                nextSpot();
+            }, 2500);
         }
     };
 
@@ -1656,15 +1697,15 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const formatBounty = (bounty: number): string => {
         const actualBounty = bounty / 2; // Bounty real em dólar
         
-        if (displayMode === 'bb') {
-            // Modo BB: exibir como multiplicador do bounty inicial
+        if (showBountyInDollars) {
+            // Modo $: exibir em dólar
+            return `$${actualBounty.toFixed(2)}`;
+        } else {
+            // Modo x: exibir como multiplicador do bounty inicial
             const initialBounty = getInitialBounty(currentSpot.solution.fileName);
             const multiplier = actualBounty / initialBounty;
             return `${multiplier.toFixed(1)}x`;
         }
-        
-        // Modo chips: exibir em dólar
-        return `$${actualBounty.toFixed(2)}`;
     };
 
     return (
@@ -1724,23 +1765,27 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             {/* Main content */}
             <main className="flex-1 p-4 overflow-auto">
                 <div className="max-w-[1800px] mx-auto space-y-4">
-                    {/* Mesa visual */}
-                    <div className="relative flex items-center justify-center bg-[#23272f] rounded-lg p-3 min-h-[375px] overflow-hidden">
-                        <PokerTableVisual 
-                            currentNode={node}
-                            settings={settings}
-                            bigBlind={bigBlind}
-                            displayMode={displayMode}
-                            onToggleDisplayMode={toggleDisplayMode}
-                            solutionFileName={currentSpot.solution.fileName}
-                            tournamentPhase={currentSpot.solution.tournamentPhase}
-                            raiserPosition={currentSpot.raiserPosition}
-                            shoverPositions={currentSpot.shoverPositions}
-                            spotType={currentSpot.spotType}
-                            villainActions={currentSpot.villainActions}
-                        />
+                    {/* Container principal com mesa e toggles */}
+                    <div className="relative">
+                        {/* Mesa visual */}
+                        <div className="relative flex items-center justify-center bg-[#23272f] rounded-lg p-3 min-h-[375px] overflow-hidden">
+                            <PokerTableVisual 
+                                currentNode={node}
+                                settings={settings}
+                                bigBlind={bigBlind}
+                                displayMode={displayMode}
+                                onToggleDisplayMode={toggleDisplayMode}
+                                solutionFileName={currentSpot.solution.fileName}
+                                tournamentPhase={currentSpot.solution.tournamentPhase}
+                                raiserPosition={currentSpot.raiserPosition}
+                                shoverPositions={currentSpot.shoverPositions}
+                                spotType={currentSpot.spotType}
+                                villainActions={currentSpot.villainActions}
+                                showBountyInDollars={showBountyInDollars}
+                                onToggleBountyDisplay={toggleShowBountyInDollars}
+                            />
                         
-                        {/* Ações disponíveis - Estilo GGPoker (à direita do hero) */}
+                            {/* Ações disponíveis - Estilo GGPoker (à direita do hero) */}
                         {!showFeedback && (
                             <div className={`absolute bottom-[45px] left-1/2 transform flex z-30 justify-center ${
                                 node.actions.length <= 2 ? 'translate-x-[40%] gap-2' :
@@ -1982,6 +2027,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                     });
                                     
                                     const userActionFreq = userActionIndex >= 0 ? handData.played[userActionIndex] : 0;
+                                    const userActionEv = userActionIndex >= 0 && handData.evs ? handData.evs[userActionIndex] : undefined;
                                     const maxFreq = Math.max(...handData.played);
                                     const gtoActionIndex = handData.played.indexOf(maxFreq);
                                     const isPureStrategy = maxFreq >= 0.90;
@@ -2001,31 +2047,76 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                                 {isTimeout ? '⏰ TIMEOUT' : isCorrect ? 'CORRECT' : 'MISTAKE'}
                                             </div>
                                             
-                                            {/* Botão STUDY */}
-                                            <button
-                                                onClick={() => {
-                                                    // Cria URL para o Solutions Library com o spot atual
-                                                    const baseUrl = window.location.origin + window.location.pathname;
-                                                    const params = new URLSearchParams();
-                                                    params.set('page', 'solutions');
-                                                    
-                                                    // Usa path se disponível, senão usa o id da solução
-                                                    const solutionPath = currentSpot.solution.path || currentSpot.solution.id;
-                                                    console.log('🔗 Study button - solution path:', solutionPath);
-                                                    console.log('🔗 Study button - solution id:', currentSpot.solution.id);
-                                                    
-                                                    params.set('solution', solutionPath);
-                                                    params.set('node', currentSpot.nodeId.toString());
-                                                    params.set('hand', currentSpot.playerHandName);
-                                                    
-                                                    const studyUrl = `${baseUrl}?${params.toString()}`;
-                                                    console.log('🔗 Opening study URL:', studyUrl);
-                                                    window.open(studyUrl, '_blank');
-                                                }}
-                                                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg font-black text-xl tracking-wider transition-all shadow-lg border-2 border-purple-400/50 whitespace-nowrap"
-                                            >
-                                                📚 STUDY
-                                            </button>
+                                            {/* Botões MARK HAND e STUDY */}
+                                            <div className="flex gap-3">
+                                                {/* Botão MARK HAND */}
+                                                <button
+                                                    onClick={async () => {
+                                                        const newMarkedState = !isHandMarked;
+                                                        setIsHandMarked(newMarkedState);
+                                                        
+                                                        // Gerar ID único para a mão marcada (baseado em timestamp + nodeId)
+                                                        const handId = `${currentSpot.solution.id}_${currentSpot.nodeId}_${currentSpot.playerHand}_${Date.now()}`;
+                                                        
+                                                        if (newMarkedState) {
+                                                            // Marcar a mão
+                                                            const markedHand: MarkedHand = {
+                                                                id: handId,
+                                                                timestamp: Date.now(),
+                                                                solutionPath: currentSpot.solution.path || currentSpot.solution.id,
+                                                                nodeId: currentSpot.nodeId,
+                                                                hand: currentSpot.playerHandName,
+                                                                combo: currentSpot.playerHand,
+                                                                position: currentSpot.playerPosition,
+                                                                playerAction: userAction || 'N/A',
+                                                                isCorrect: isCorrect,
+                                                                ev: userActionEv,
+                                                                phase: currentSpot.solution.tournamentPhase
+                                                            };
+                                                            
+                                                            await saveMarkedHand(userId, markedHand);
+                                                            console.log('⭐ Hand marked:', markedHand);
+                                                        } else {
+                                                            // Desmarcar (precisaria buscar o ID correto, por enquanto só atualiza o estado)
+                                                            console.log('❌ Hand unmarked');
+                                                            // TODO: Implementar lógica de desmarcar baseado em critérios de busca
+                                                        }
+                                                    }}
+                                                    className={`${
+                                                        isHandMarked 
+                                                            ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 border-yellow-400/50' 
+                                                            : 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 border-gray-400/50'
+                                                    } text-white px-4 py-2 rounded-lg font-black text-xl tracking-wider transition-all shadow-lg border-2 whitespace-nowrap`}
+                                                >
+                                                    {isHandMarked ? '⭐ MARKED' : '☆ MARK HAND'}
+                                                </button>
+                                                
+                                                {/* Botão STUDY */}
+                                                <button
+                                                    onClick={() => {
+                                                        // Cria URL para o Solutions Library com o spot atual
+                                                        const baseUrl = window.location.origin + window.location.pathname;
+                                                        const params = new URLSearchParams();
+                                                        params.set('page', 'solutions');
+                                                        
+                                                        // Usa path se disponível, senão usa o id da solução
+                                                        const solutionPath = currentSpot.solution.path || currentSpot.solution.id;
+                                                        console.log('🔗 Study button - solution path:', solutionPath);
+                                                        console.log('🔗 Study button - solution id:', currentSpot.solution.id);
+                                                        
+                                                        params.set('solution', solutionPath);
+                                                        params.set('node', currentSpot.nodeId.toString());
+                                                        params.set('hand', currentSpot.playerHandName);
+                                                        
+                                                        const studyUrl = `${baseUrl}?${params.toString()}`;
+                                                        console.log('🔗 Opening study URL:', studyUrl);
+                                                        window.open(studyUrl, '_blank');
+                                                    }}
+                                                    className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg font-black text-xl tracking-wider transition-all shadow-lg border-2 border-purple-400/50 whitespace-nowrap"
+                                                >
+                                                    📚 STUDY
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })()}
@@ -2188,6 +2279,23 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                             </div>
                         </div>
                     )}
+                        
+                        {/* Toggle switches à direita da mesa */}
+                        <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-50 flex flex-col gap-4 bg-[#23272f] p-4 rounded-xl border-2 border-gray-600 shadow-xl min-w-[200px]">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={displayMode === 'bb'} onChange={toggleDisplayMode} className="w-5 h-5 accent-blue-500" />
+                                <span className="text-white font-medium text-sm">Show in big blinds</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={showBountyInDollars} onChange={toggleShowBountyInDollars} className="w-5 h-5 accent-yellow-500" />
+                                <span className="text-white font-medium text-sm">Show bounty in $</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={autoAdvance} onChange={toggleAutoAdvance} className="w-5 h-5 accent-green-500" />
+                                <span className="text-white font-medium text-sm">Auto advance</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
