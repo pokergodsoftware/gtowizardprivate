@@ -65,7 +65,46 @@ components/TrainerSimulator/
 
 ## 📝 Step-by-Step Refactoring Plan
 
-### Phase 1: Setup & Preparation (Low Risk)
+### Phase 1: Setup & Preparation (Low Risk) - ✅ COMPLETED
+**Goal:** Create structure without breaking existing code
+
+#### Step 1.1: Create folder structure ✅
+```bash
+mkdir components/TrainerSimulator
+mkdir components/TrainerSimulator/hooks
+mkdir components/TrainerSimulator/utils
+mkdir components/TrainerSimulator/utils/spotGenerators
+mkdir components/TrainerSimulator/components
+```
+
+#### Step 1.2: Create types file ✅
+- ✅ Extract `SpotSimulation` interface
+- ✅ Extract `VillainAction` interface (imported from types.ts)
+- ✅ Add utility types (SpotType, etc)
+- ✅ Add TOURNAMENT_PHASES constant
+- **File:** `components/TrainerSimulator/types.ts`
+
+#### Step 1.3: Create helper utils (no dependencies) ✅
+- ✅ Extract `getInitialBounty()`
+- ✅ Extract `formatBounty()`
+- ✅ Extract `getAverageStackBB()`
+- **File:** `components/TrainerSimulator/utils/trainerHelpers.ts`
+
+#### Step 1.4: Create index files ✅
+- ✅ `utils/index.ts`
+- ✅ `utils/spotGenerators/index.ts`
+- ✅ `hooks/index.ts`
+- ✅ `components/index.ts`
+
+**Phase 1 Status:** ✅ Complete (November 3, 2025)
+- 7 files created
+- Zero compilation errors
+- Original TrainerSimulator.tsx unchanged
+- See `components/TrainerSimulator/README.md` for details
+
+---
+
+### Phase 2: Extract Hooks (Medium Risk) - 🔄 READY TO START
 **Goal:** Create structure without breaking existing code
 
 #### Step 1.1: Create folder structure

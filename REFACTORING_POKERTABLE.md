@@ -1,7 +1,57 @@
 # PokerTableVisual Refactoring - Complete ✅
 
+## ⚠️ IMPORTANT: This Refactoring is TRAINER-ONLY
+
+**This document describes the refactoring of the TRAINER poker table components.**
+
+### Two Separate Poker Tables Exist:
+
+1. **SolutionPokerTable.tsx** (NOT refactored)
+   - Used in solution viewer (`Sidebar.tsx`)
+   - Classic monolithic component
+   - Simple, stable, no trainer features
+   - **DO NOT refactor this one**
+
+2. **PokerTableVisual.tsx + PokerTable/** (This refactoring)
+   - Used in trainer (`TrainerSimulator.tsx`)
+   - Modular architecture described below
+   - Advanced features (draggable payouts, badges)
+
+**See `POKER_TABLE_SEPARATION.md` for critical separation details.**
+
+---
+
 ## Overview
 Successfully refactored the monolithic `PokerTableVisual.tsx` component (748 lines) into a modular, maintainable architecture with separated concerns.
+
+**Target:** Trainer poker table only. Solution viewer uses separate component.
+
+## Refactoring Scope
+
+### ✅ Included in This Refactoring
+- `components/PokerTableVisual.tsx` → Wrapper for trainer
+- `components/PokerTable/index.tsx` → Main trainer orchestrator
+- `components/PokerTable/PayoutPanel.tsx` → Draggable payouts
+- `components/PokerTable/PlayerCard.tsx` → Player cards with badges
+- `components/PokerTable/ChipStack.tsx` → Bet visualization
+- `components/PokerTable/PotDisplay.tsx` → Center pot display
+- `components/PokerTable/TournamentInfo.tsx` → Tournament badges
+- `hooks/useDraggable.ts` → Draggable logic
+- `hooks/usePlayerPositions.ts` → Position calculations
+- `utils/pokerTableCalculations.ts` → Pure calculation functions
+
+### ❌ NOT Included (Separate Component)
+- `components/SolutionPokerTable.tsx` → Solution viewer table
+  - Used by: `Sidebar.tsx`
+  - Status: Monolithic, stable, unchanged
+  - Purpose: Display solutions with classic layout
+  - **Do not refactor or modify for trainer features**
+
+### Why Two Separate Tables?
+1. **Different Requirements**: Solutions need simple, stable display; Trainer needs advanced features
+2. **Independent Evolution**: Changes to trainer don't break solution viewer
+3. **Code Safety**: Prevents accidental mixing of concerns
+4. **Maintainability**: Clear separation of responsibilities
 
 ## New Architecture
 
@@ -9,14 +59,35 @@ Successfully refactored the monolithic `PokerTableVisual.tsx` component (748 lin
 
 ```
 components/
-├── PokerTableVisual.tsx (Entry point - 52 lines)
-└── PokerTable/
+├── SolutionPokerTable.tsx ❌ NOT PART OF THIS REFACTORING
+│   └── (Classic monolithic - used by Sidebar.tsx)
+│
+├── PokerTableVisual.tsx ✅ REFACTORED (Entry point - 52 lines)
+└── PokerTable/ ✅ REFACTORED (Trainer only)
     ├── index.tsx (Main orchestrator - 240 lines)
     ├── PayoutPanel.tsx (Draggable payout display - 92 lines)
     ├── PlayerCard.tsx (Individual player cards - 215 lines)
     ├── ChipStack.tsx (Betting chips visualization - 126 lines)
     ├── PotDisplay.tsx (Center pot display - 58 lines)
     └── TournamentInfo.tsx (Tournament info badges - 33 lines)
+```
+
+**Visual Separation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      App.tsx                                │
+├──────────────────────────┬──────────────────────────────────┤
+│   Solution Viewer        │         Trainer                  │
+│                          │                                  │
+│   Sidebar.tsx            │   TrainerSimulator.tsx           │
+│       ↓                  │         ↓                        │
+│   SolutionPokerTable.tsx │   PokerTableVisual.tsx           │
+│   (Classic/Monolithic)   │         ↓                        │
+│                          │   PokerTable/index.tsx           │
+│   ❌ NOT REFACTORED      │   (Modular/Modern)               │
+│                          │                                  │
+│                          │   ✅ THIS REFACTORING            │
+└──────────────────────────┴──────────────────────────────────┘
 ```
 
 ### 🎣 Custom Hooks
@@ -58,7 +129,10 @@ utils/
 
 ## Component Responsibilities
 
-### 1. **PokerTableVisual.tsx** (Entry Point)
+> **📋 Note:** All components below are part of the TRAINER architecture.  
+> The solution viewer uses a separate, non-refactored component: `SolutionPokerTable.tsx`
+
+### 1. **PokerTableVisual.tsx** (Entry Point - Trainer Only)
 - Acts as a simple wrapper
 - Delegates all logic to `PokerTable`
 - Maintains backward compatibility
@@ -138,12 +212,19 @@ Centralized pure functions for:
 
 ## Migration Notes
 
+### ⚠️ CRITICAL: Only for Trainer Components
+**This refactored architecture is ONLY for trainer mode.**
+- ✅ Use in `TrainerSimulator.tsx`
+- ❌ DO NOT use in `Sidebar.tsx` (solution viewer)
+- ❌ DO NOT refactor `SolutionPokerTable.tsx`
+
 ### ✅ No Breaking Changes
 - Original `PokerTableVisual` component maintains same interface
 - All props pass through unchanged
 - Existing code using `PokerTableVisual` continues to work
+- Solution viewer (`SolutionPokerTable.tsx`) remains unchanged and independent
 
-### 🔧 How to Use New Components Directly
+### 🔧 How to Use New Components Directly (Trainer Only)
 ```typescript
 // Option 1: Use the wrapper (backwards compatible)
 import { PokerTableVisual } from './components/PokerTableVisual';
@@ -232,14 +313,28 @@ While the total lines increased by ~57%, the code is now:
 
 ✅ Successfully refactored monolithic component into modular architecture
 ✅ All original functionality preserved
-✅ Zero breaking changes
+✅ Zero breaking changes (in trainer components)
+✅ Solution viewer remains independent with `SolutionPokerTable.tsx`
 ✅ Improved maintainability, testability, and reusability
 ✅ All files pass TypeScript compilation with no errors
 ✅ Ready for production use
 
 ---
 
+## Related Documentation
+
+- **`POKER_TABLE_SEPARATION.md`** - Critical information about table separation
+- **`RESTAURACAO_MESA_SOLUTIONS.md`** - History of solution table restoration
+- **`LEIA_ANTES_DE_MODIFICAR_MESAS.md`** - Quick warning guide
+
+**⚠️ Always check these documents before modifying any poker table component!**
+
+---
+
 **Refactoring completed on**: November 3, 2025
+**Scope**: Trainer components only (PokerTableVisual + PokerTable/*)
+**Solution viewer**: Separate, unchanged (`SolutionPokerTable.tsx`)
 **Files created**: 10 new files
 **Lines reduced in main component**: 693 lines (-92.6%)
 **Compilation errors**: 0
+**Table separation**: ✅ Documented and protected
