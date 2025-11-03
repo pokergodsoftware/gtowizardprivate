@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getTop10FromFirebase, getAllPlayersFromFirebase, type FirebaseStats } from '../src/firebase/firebaseService';
 
 interface LeaderboardEntry {
     userId: string;
@@ -22,42 +23,71 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
         loadLeaderboard();
     }, []);
 
-    const loadLeaderboard = () => {
+    const loadLeaderboard = async () => {
         try {
+            console.log('🏆 Loading leaderboard from Firebase...');
+            
+            // Tentar carregar do Firebase primeiro
+            try {
+                const firebaseStats = await getTop10FromFirebase();
+                
+                if (firebaseStats.length > 0) {
+                    console.log('☁️ Loaded from Firebase:', firebaseStats.length, 'players');
+                    
+                    // Converter FirebaseStats para LeaderboardEntry
+                    const entries: LeaderboardEntry[] = firebaseStats.map(stat => ({
+                        userId: stat.userId,
+                        username: stat.username,
+                        totalPoints: stat.totalPoints,
+                        totalSpots: stat.totalSpots,
+                        correctSpots: stat.correctSpots,
+                        accuracy: stat.accuracy
+                    }));
+                    
+                    // Verificar se usuário atual está no top 10
+                    const currentUserInTop10 = entries.some(e => e.userId === currentUserId);
+                    
+                    // Se não estiver, buscar todos e adicionar
+                    if (!currentUserInTop10) {
+                        const allPlayers = await getAllPlayersFromFirebase();
+                        const currentUserEntry = allPlayers.find(p => p.userId === currentUserId);
+                        
+                        if (currentUserEntry) {
+                            entries.push({
+                                userId: currentUserEntry.userId,
+                                username: currentUserEntry.username,
+                                totalPoints: currentUserEntry.totalPoints,
+                                totalSpots: currentUserEntry.totalSpots,
+                                correctSpots: currentUserEntry.correctSpots,
+                                accuracy: currentUserEntry.accuracy
+                            });
+                            console.log('➕ Added current user from Firebase');
+                        }
+                    }
+                    
+                    setLeaderboard(entries);
+                    setLoading(false);
+                    return;
+                }
+            } catch (firebaseError) {
+                console.warn('⚠️ Firebase unavailable, falling back to localStorage:', firebaseError);
+            }
+            
+            // Fallback: carregar do localStorage
+            console.log('💾 Loading from localStorage...');
             const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
             const entries: LeaderboardEntry[] = [];
-
-            console.log('🏆 Loading leaderboard...');
-            console.log('📊 Total users registered:', Object.keys(users).length);
-            console.log('📋 All users:', users);
-
-            // Listar TODAS as chaves do localStorage que começam com poker_stats_
-            const allKeys = Object.keys(localStorage);
-            const statsKeys = allKeys.filter(key => key.startsWith('poker_stats_'));
-            console.log('🔑 All poker_stats_ keys in localStorage:', statsKeys);
 
             Object.entries(users).forEach(([username, userData]: [string, any]) => {
                 const userId = userData.id;
                 const userStatsKey = `poker_stats_${userId}`;
                 const statsData = localStorage.getItem(userStatsKey);
 
-                console.log(`👤 Checking user: ${username}`);
-                console.log(`   User ID: ${userId}`);
-                console.log(`   Stats key: ${userStatsKey}`);
-                console.log(`   Has stats: ${!!statsData}`);
-
                 if (statsData) {
                     const stats = JSON.parse(statsData);
                     const accuracy = stats.totalSpots > 0 
                         ? (stats.correctSpots / stats.totalSpots) * 100 
                         : 0;
-
-                    console.log(`   ✅ Stats found:`, {
-                        totalPoints: stats.totalPoints,
-                        totalSpots: stats.totalSpots,
-                        correctSpots: stats.correctSpots,
-                        accuracy: accuracy.toFixed(1) + '%'
-                    });
 
                     entries.push({
                         userId,
@@ -67,20 +97,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                         correctSpots: stats.correctSpots || 0,
                         accuracy
                     });
-                } else {
-                    console.log(`   ❌ No stats found for ${username}`);
                 }
             });
-
-            console.log(`📈 Total entries with stats: ${entries.length}`);
 
             // Ordenar por pontos (decrescente) e pegar apenas top 10
             entries.sort((a, b) => b.totalPoints - a.totalPoints);
             
-            const topPlayersLog = entries.slice(0, 10).map((e, i) => `${i+1}. ${e.username} (${e.totalPoints} pts)`).join(', ');
-            console.log('🏅 Top players:', topPlayersLog);
-            
-            // Limitar a 10 jogadores, mas sempre incluir o usuário atual se ele não estiver no top 10
             let top10 = entries.slice(0, 10);
             
             // Se o usuário atual não está no top 10, adiciona ele no final
@@ -88,12 +110,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
             if (!currentUserInTop10) {
                 const currentUserEntry = entries.find(e => e.userId === currentUserId);
                 if (currentUserEntry) {
-                    console.log(`➕ Adding current user outside top 10: ${currentUserEntry.username}`);
                     top10.push(currentUserEntry);
                 }
             }
             
-            console.log(`✅ Final leaderboard size: ${top10.length}`);
+            console.log(`✅ Loaded ${top10.length} players from localStorage`);
             setLeaderboard(top10);
         } catch (err) {
             console.error('❌ Erro ao carregar leaderboard:', err);

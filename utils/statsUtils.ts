@@ -1,4 +1,5 @@
 import type { SpotHistoryEntry } from '../components/SpotHistory.tsx';
+import { saveStatsToFirebase } from '../src/firebase/firebaseService';
 
 interface UserStats {
     totalSpots: number;
@@ -16,11 +17,12 @@ interface UserStats {
 /**
  * Salva o resultado de um spot jogado
  */
-export function saveSpotResult(
+export async function saveSpotResult(
     userId: string,
     isCorrect: boolean,
-    phase: string
-): void {
+    phase: string,
+    username?: string
+): Promise<void> {
     try {
         const userStatsKey = `poker_stats_${userId}`;
         const storedStats = localStorage.getItem(userStatsKey);
@@ -69,6 +71,17 @@ export function saveSpotResult(
             totalPoints: stats.totalPoints,
             accuracy: ((stats.correctSpots / stats.totalSpots) * 100).toFixed(1) + '%'
         });
+
+        // Salvar também no Firebase (se username fornecido)
+        if (username) {
+            try {
+                await saveStatsToFirebase(userId, username, isCorrect);
+                console.log('☁️ Stats synced to Firebase');
+            } catch (firebaseError) {
+                console.warn('⚠️ Failed to sync to Firebase (offline?):', firebaseError);
+                // Não falha se Firebase estiver offline
+            }
+        }
     } catch (err) {
         console.error('Erro ao salvar estatísticas:', err);
     }

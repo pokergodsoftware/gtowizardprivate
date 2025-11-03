@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { saveUserToFirebase } from '../src/firebase/firebaseService';
 
 interface AuthPageProps {
     onAuthSuccess: (userId: string, username: string) => void;
@@ -89,6 +90,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                     userId: userId,
                     username: username
                 }));
+
+                // Salvar usuário no Firebase
+                try {
+                    await saveUserToFirebase(userId, username);
+                    console.log('☁️ User saved to Firebase');
+                } catch (firebaseError) {
+                    console.warn('⚠️ Failed to save user to Firebase:', firebaseError);
+                    // Continua mesmo se Firebase falhar
+                }
 
                 onAuthSuccess(userId, username);
             }
