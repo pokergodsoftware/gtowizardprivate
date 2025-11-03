@@ -124,11 +124,12 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         const totalStack = stacks.reduce((sum, stack) => sum + stack, 0);
         const avgStack = totalStack / stacks.length;
         const avgStackBB = bigBlind > 0 ? (avgStack / bigBlind).toFixed(0) : '0';
-        const type = settings.eqmodel.structure.bountyType ? "PKO" : "MTT"; // Simple heuristic
-        const situation = settings.eqmodel.structure.name || "ICM"; // Fallback name
-
-        return `${type} Avg. ${avgStackBB}bb • ${situation}`;
-
+        const numPlayers = stacks.length;
+        
+        return {
+            avgStackBB,
+            numPlayers
+        };
     }, [settings, bigBlind]);
 
     useEffect(() => {
@@ -302,22 +303,30 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
 
     return (
         <header className="bg-[#282c33] border-b border-gray-700">
-            <div className="p-2 flex items-center gap-4">
-                 <div className="flex-shrink-0">
-                    <div className="font-bold text-gray-200">{solutionSummary}</div>
-                    <ul className="flex items-center text-xs text-gray-400 list-disc list-inside">
-                        <li className="ml-2">{tournamentPhase}</li>
-                    </ul>
-                </div>
+            <div className="p-4 flex items-center justify-between">
+                {/* Botão Voltar */}
                 <button 
                     onClick={onChangeSolution}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-[#3c414b] text-gray-200 rounded-md hover:bg-[#4a505c] transition-colors"
+                    className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors font-semibold"
                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.895.87l1.54-.653a1 1 0 0 1 1.21.363l1.18 2.045a1 1 0 0 1-.364 1.21l-1.323.882a7.04 7.04 0 0 1 0 1.648l1.323.882a1 1 0 0 1 .364 1.21l-1.18 2.045a1 1 0 0 1-1.21.363l-1.54-.653a6.993 6.993 0 0 1-1.895.87l-.331 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.895-.87l-1.54.653a1 1 0 0 1-1.21-.363L1.705 12.8a1 1 0 0 1 .364-1.21l1.323-.882a7.04 7.04 0 0 1 0-1.648L2.069 8.178a1 1 0 0 1-.364-1.21L2.885 4.923a1 1 0 0 1 1.21-.363l1.54.653a6.993 6.993 0 0 1 1.895-.87l.331-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-                    </svg>
-                    <span>Change</span>
+                    ← Voltar
                 </button>
+                
+                {/* Informações do Spot - Todas alinhadas horizontalmente */}
+                <div className="flex items-center gap-6 text-gray-200">
+                    <div className="font-semibold text-base">
+                        Avg stack {solutionSummary.avgStackBB}bb
+                    </div>
+                    <div className="font-semibold text-base">
+                        {solutionSummary.numPlayers} Handed Table
+                    </div>
+                    <div className="font-semibold text-base">
+                        {tournamentPhase}
+                    </div>
+                </div>
+                
+                {/* Espaço vazio para balancear o layout */}
+                <div className="w-[100px]"></div>
             </div>
             <div ref={scrollContainerRef} className="p-2 flex items-center space-x-2 overflow-x-auto border-t border-black/20">
                  {allPlayerCards.map(({ playerIndex, nodeId, showAllActions }) => {

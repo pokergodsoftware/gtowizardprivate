@@ -39,8 +39,6 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
     spotType,
     villainActions
 }) => {
-    const [showPayouts, setShowPayouts] = React.useState(false);
-    
     // DEBUG: Log props
     console.log('🎨 PokerTableVisual - spotType:', spotType);
     console.log('🎨 PokerTableVisual - raiserPosition:', raiserPosition);
@@ -210,6 +208,35 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
 
     return (
         <div className="relative w-full h-full flex items-center justify-center">
+            {/* Payouts à ESQUERDA da mesa - centralizado no espaço vazio */}
+            <div className="absolute left-[8%] top-1/2 transform -translate-y-1/2 z-40 bg-[#23272f] border border-purple-400 rounded-lg p-3.5 shadow-xl min-w-[212px] max-w-[300px]">
+                <h3 className="text-white font-bold text-sm mb-2">💰 Payouts</h3>
+                
+                <div className="space-y-1.5 max-h-[225px] overflow-y-auto">
+                    {settings.eqmodel?.structure?.prizes ? (
+                        Object.entries(settings.eqmodel.structure.prizes)
+                            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                            .map(([position, prize], index) => (
+                                <div 
+                                    key={position}
+                                    className="flex items-center justify-between bg-[#2d3238] px-2.5 py-1.5 rounded"
+                                >
+                                    <span className="text-gray-300 font-semibold text-sm">
+                                        {index === 0 ? '1º-2º' : `${position}º`}
+                                    </span>
+                                    <span className="text-green-400 font-bold text-sm">
+                                        ${(prize as number).toFixed(2)}
+                                    </span>
+                                </div>
+                            ))
+                    ) : (
+                        <div className="text-gray-400 text-sm text-center py-1.5">
+                            Payouts N/A
+                        </div>
+                    )}
+                </div>
+            </div>
+            
             {/* Mesa de poker */}
             <div className="relative w-full max-w-3xl aspect-[16/10]">
                 <img 
@@ -218,99 +245,22 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
                     className="w-full h-full object-contain"
                 />
                 
-                {/* Botão Payouts, nome do torneio e estágio do torneio no canto superior esquerdo */}
-                <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-40">
-                    {/* Linha horizontal: Payouts + Nome do Torneio */}
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            onClick={() => setShowPayouts(!showPayouts)}
-                            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg border-2 border-purple-400/50"
-                        >
-                            💰 Payouts
-                        </button>
-                        
-                        {/* Nome do Torneio */}
-                        {getTournamentName() && (
-                            <div className="bg-[#23272f] border-2 border-yellow-400 rounded-lg px-2.5 py-1 shadow-lg">
-                                <div className="text-yellow-400 font-bold text-[10px] whitespace-nowrap">
-                                    {getTournamentName()}
-                                </div>
-                            </div>
-                        )}
+                {/* Nome do Torneio - Canto superior ESQUERDO da mesa */}
+                {getTournamentName() && (
+                    <div className="absolute top-3 left-3 z-40 bg-[#23272f] border-2 border-yellow-400 rounded-lg px-4 py-2 shadow-lg">
+                        <div className="text-yellow-400 font-bold text-[15px] whitespace-nowrap">
+                            {getTournamentName()}
+                        </div>
                     </div>
-                    
-                    {/* Estágio do torneio */}
-                    {tournamentPhase && (
-                        <div className="bg-[#23272f] border-2 border-teal-400 rounded-lg px-3 py-1 shadow-lg w-fit">
-                            <div className="text-[13px] text-gray-400 font-semibold">Stage</div>
-                            <div className="text-white font-bold text-[15px]">{tournamentPhase}</div>
-                        </div>
-                    )}
-                </div>
+                )}
                 
-                {/* Modal de Payouts */}
-                {showPayouts && (
-                    <>
-                        {/* Backdrop invisível para fechar ao clicar fora */}
-                        <div 
-                            className="fixed inset-0 z-40"
-                            onClick={() => setShowPayouts(false)}
-                        />
-                        
-                        <div className={`absolute left-3 bg-[#23272f] border border-purple-400 rounded-lg p-2.5 shadow-xl z-50 min-w-[170px] max-w-[240px] ${
-                            tournamentPhase ? 'top-[105px]' : 'top-12'
-                        }`}>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <h3 className="text-white font-bold text-xs">💰 Payouts</h3>
-                            <button
-                                onClick={() => setShowPayouts(false)}
-                                className="text-gray-400 hover:text-white transition-colors text-sm"
-                            >
-                                ✕
-                            </button>
+                {/* Stage - Canto superior DIREITO da mesa */}
+                {tournamentPhase && (
+                    <div className="absolute top-3 right-3 z-40 bg-[#23272f] border-2 border-teal-400 rounded-lg px-4 py-2 shadow-lg">
+                        <div className="text-teal-400 font-bold text-[15px] whitespace-nowrap">
+                            Stage: {tournamentPhase}
                         </div>
-                        
-                        <div className="space-y-1 max-h-[180px] overflow-y-auto">
-                            {settings.eqmodel?.structure?.prizes ? (
-                                Object.entries(settings.eqmodel.structure.prizes)
-                                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                                    .map(([position, prize]) => (
-                                        <div 
-                                            key={position}
-                                            className="flex items-center justify-between bg-[#2d3238] px-2 py-1 rounded"
-                                        >
-                                            <span className="text-gray-300 font-semibold text-xs">
-                                                {position}º lugar
-                                            </span>
-                                            <span className="text-green-400 font-bold text-xs">
-                                                ${(prize as number).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    ))
-                            ) : (
-                                <div className="text-gray-400 text-xs text-center py-1">
-                                    Payouts não disponíveis
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Informações adicionais */}
-                        {settings.eqmodel?.structure && (
-                            <div className="mt-1.5 pt-1.5 border-t border-gray-700 space-y-0.5">
-                                {settings.eqmodel.structure.name && (
-                                    <div className="text-[10px] text-gray-400">
-                                        <span className="font-semibold">Torneio:</span> {settings.eqmodel.structure.name}
-                                    </div>
-                                )}
-                                {settings.eqmodel.structure.chips && (
-                                    <div className="text-[10px] text-gray-400">
-                                        <span className="font-semibold">Chips iniciais:</span> {settings.eqmodel.structure.chips.toLocaleString()}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        </div>
-                    </>
+                    </div>
                 )}
                 
                 {/* Players ao redor da mesa */}
@@ -399,11 +349,14 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
                                 const betY = centerY + betRadiusY * Math.sin(playerAngle);
                                 
                                 const hasFolded = hasPlayerFolded(index);
-                                // Raiser, shovers, auto all-ins e vilões com ações (tipo Any) não têm transparência nas fichas
+                                // SB e BB SEMPRE têm fichas visíveis (opacity 100%)
+                                const isSB = index === sbPosition;
+                                const isBB = index === bbPosition;
+                                // Raiser, shovers, auto all-ins, SB, BB e vilões com ações (tipo Any) não têm transparência nas fichas
                                 // Exceto se a ação for Fold
                                 const hasVillainFolded = villainAction && villainAction.action === 'Fold';
                                 const hasVillainAction = villainAction && villainAction.action !== 'Fold';
-                                const shouldShowChipsTransparent = (hasFolded || hasVillainFolded) && !isRaiser && !isShover && !isMultiwayShover && !isAutoAllin && !hasVillainAction;
+                                const shouldShowChipsTransparent = (hasFolded || hasVillainFolded) && !isRaiser && !isShover && !isMultiwayShover && !isAutoAllin && !hasVillainAction && !isSB && !isBB;
                                 
                                 return (
                                     <div 
@@ -481,11 +434,14 @@ export const PokerTableVisual: React.FC<PokerTableVisualProps> = ({
                             {/* NÃO mostrar card para o hero (jogador atual) */}
                             {!isCurrentPlayer && (() => {
                                 const hasFolded = hasPlayerFolded(index);
-                                // Raiser, shovers, auto all-ins e vilões com ações (tipo Any) não têm transparência
+                                // SB e BB SEMPRE são visíveis (opacity 100%)
+                                const isSB = index === sbPosition;
+                                const isBB = index === bbPosition;
+                                // Raiser, shovers, auto all-ins, SB, BB e vilões com ações (tipo Any) não têm transparência
                                 // Exceto se a ação for Fold
                                 const hasVillainFolded = villainAction && villainAction.action === 'Fold';
                                 const hasVillainAction = villainAction && villainAction.action !== 'Fold';
-                                const shouldShowTransparent = (hasFolded || hasVillainFolded) && !isRaiser && !isShover && !isMultiwayShover && !isAutoAllin && !hasVillainAction;
+                                const shouldShowTransparent = (hasFolded || hasVillainFolded) && !isRaiser && !isShover && !isMultiwayShover && !isAutoAllin && !hasVillainAction && !isSB && !isBB;
                                 
                                 return (
                                 <div className={`relative flex flex-col items-center transition-opacity duration-300 ${

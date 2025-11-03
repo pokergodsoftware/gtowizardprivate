@@ -5,6 +5,9 @@ interface UserStats {
     totalSpots: number;
     correctSpots: number;
     totalPoints: number;
+    tournamentsPlayed: number;
+    reachedFinalTable: number;
+    completedTournaments: number;
     statsByPhase: {
         [phase: string]: {
             total: number;
@@ -37,6 +40,9 @@ export async function saveSpotResult(
                 totalSpots: 0,
                 correctSpots: 0,
                 totalPoints: 0,
+                tournamentsPlayed: 0,
+                reachedFinalTable: 0,
+                completedTournaments: 0,
                 statsByPhase: {}
             };
         }
@@ -50,6 +56,25 @@ export async function saveSpotResult(
             stats.correctSpots++;
         }
         stats.totalPoints += points;
+
+        // Estatísticas de torneio
+        // Considera que cada vez que uma fase de torneio é jogada, conta como torneio jogado
+        // "Final table" conta como mesa final alcançada
+        // "completedTournaments" pode ser incrementado ao final do torneio (precisa lógica extra, aqui é exemplo)
+        if (phase) {
+            // Se for a primeira fase do torneio, conta como torneio jogado
+            if (phase === '100~60% left') {
+                stats.tournamentsPlayed++;
+            }
+            // Se for mesa final, conta como mesa final alcançada
+            if (phase === 'Final table') {
+                stats.reachedFinalTable++;
+            }
+            // Se for última fase (exemplo: mesa final e acerto), conta como torneio completo
+            if (phase === 'Final table' && isCorrect) {
+                stats.completedTournaments++;
+            }
+        }
 
         // Atualizar estatísticas por fase
         if (!stats.statsByPhase[phase]) {

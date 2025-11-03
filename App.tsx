@@ -11,7 +11,20 @@ import { LoadingOverlay } from './components/LoadingOverlay.tsx';
 import { VersionBadge } from './components/VersionBadge.tsx';
 import { getResourceUrl } from './config.ts';
 import { decodeUrlState, updateUrl, createUrlStateFromSolution, findSolutionByPath } from './lib/urlUtils.ts';
+import { ERROR_MESSAGES, AppError, ErrorType, getUserMessage, retryFetch } from './lib/errorMessages.ts';
+import { appCache, CACHE_KEYS, CACHE_DURATION } from './lib/cache.ts';
 import type { AppData, NodeData, EquityData, SettingsData, SolutionMetadata } from './types.ts';
+
+/**
+ * Gera um ID determinístico baseado no path
+ * Isso garante que a mesma solução sempre tenha o mesmo ID
+ */
+function generateDeterministicId(path: string): string {
+    // Usar o path como base para o ID
+    // Remove caracteres especiais e mantém apenas alphanumericos
+    const cleanPath = path.replace(/[^a-zA-Z0-9]/g, '-');
+    return `solution-${cleanPath}`;
+}
 
 
 // Main Application Component
@@ -19,19 +32,49 @@ const App: React.FC = () => {
     // --- State Management ---
     const [currentPage, setCurrentPage] = useState<'home' | 'solutions' | 'trainer'>('home');
     const [solutions, setSolutions] = useState<AppData[]>([]);
-    const solutionsRef = useRef<AppData[]>([]);
+    const solutionsRef = useRef<AppData[]>([]); // Ref para acesso síncrono ao estado mais recente
     const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingNode, setIsLoadingNode] = useState(false);
+    const [isRestoringFromUrl, setIsRestoringFromUrl] = useState(false); // Flag para restauração de URL
     const [error, setError] = useState<string | null>(null);
+    
+    // Manter ref sincronizado com state
+    useEffect(() => {
+        solutionsRef.current = solutions;
+    }, [solutions]);
 
-    // Viewer-specific state
-    const [currentNodeId, setCurrentNodeId] = useState<number>(0);
-    const [selectedHand, setSelectedHand] = useState<string | null>(null);
-    const [displayMode, setDisplayMode] = useState<'bb' | 'chips'>('bb');
+    // Viewer-specific state - consolidado para reduzir re-renders
+    const [viewerState, setViewerState] = useState({
+        currentNodeId: 0,
+        selectedHand: null as string | null,
+        displayMode: 'bb' as 'bb' | 'chips',
+    });
     
     // Flag para controlar se já restauramos o estado da URL
     const [hasRestoredFromUrl, setHasRestoredFromUrl] = useState(false);
+    
+    // Verificar se há parâmetros na URL no carregamento inicial
+    const hasUrlParams = useMemo(() => {
+        const urlState = decodeUrlState();
+        return !!(urlState.solutionPath || urlState.page === 'trainer');
+    }, []); // Executar apenas uma vez
+    
+    // Helpers para atualizar viewerState
+    const setCurrentNodeId = useCallback((nodeId: number) => {
+        setViewerState(prev => ({ ...prev, currentNodeId: nodeId }));
+    }, []);
+    
+    const setSelectedHand = useCallback((hand: string | null) => {
+        setViewerState(prev => ({ ...prev, selectedHand: hand }));
+    }, []);
+    
+    const setDisplayMode = useCallback((mode: 'bb' | 'chips') => {
+        setViewerState(prev => ({ ...prev, displayMode: mode }));
+    }, []);
+
+    // Extrair valores para compatibilidade
+    const { currentNodeId, selectedHand, displayMode } = viewerState;
 
     // --- Data Parsing and Loading ---
 
@@ -42,28 +85,42 @@ const App: React.FC = () => {
         const equityFile = fileArray.find(f => f.name.endsWith('equity.json') || f.webkitRelativePath.endsWith('equity.json'));
         const nodeFiles = fileArray.filter(f => (f.name.includes('nodes/') || f.webkitRelativePath.includes('nodes/')) && f.name.endsWith('.json'));
 
-        if (!settingsFile || !equityFile || nodeFiles.length === 0) {
-            throw new Error('Pasta de solução inválida. Faltando settings.json, equity.json ou a pasta de nós.');
+        // Specific error messages for each missing file
+        if (!settingsFile) {
+            throw new AppError(ERROR_MESSAGES.MISSING_SETTINGS, ErrorType.FILE);
+        }
+        if (!equityFile) {
+            throw new AppError(ERROR_MESSAGES.MISSING_EQUITY, ErrorType.FILE);
+        }
+        if (nodeFiles.length === 0) {
+            throw new AppError(ERROR_MESSAGES.MISSING_NODES, ErrorType.FILE);
         }
 
-        const settings: SettingsData = JSON.parse(await settingsFile.text());
-        const equity: EquityData = JSON.parse(await equityFile.text());
+        try {
+            const settings: SettingsData = JSON.parse(await settingsFile.text());
+            const equity: EquityData = JSON.parse(await equityFile.text());
 
-        const nodes = new Map<number, NodeData>();
-        for (const file of nodeFiles) {
-            const nodeId = parseInt(file.name.replace('.json', '').split('/').pop() || '0', 10);
-            const nodeData: NodeData = JSON.parse(await file.text());
-            nodes.set(nodeId, nodeData);
+            const nodes = new Map<number, NodeData>();
+            for (const file of nodeFiles) {
+                const nodeId = parseInt(file.name.replace('.json', '').split('/').pop() || '0', 10);
+                const nodeData: NodeData = JSON.parse(await file.text());
+                nodes.set(nodeId, nodeData);
+            }
+
+            return {
+                id: uuidv4(),
+                fileName,
+                tournamentPhase,
+                settings,
+                equity,
+                nodes
+            };
+        } catch (err) {
+            if (err instanceof SyntaxError) {
+                throw new AppError(ERROR_MESSAGES.INVALID_JSON('arquivo de solução'), ErrorType.PARSE, err);
+            }
+            throw err;
         }
-
-        return {
-            id: uuidv4(),
-            fileName,
-            tournamentPhase,
-            settings,
-            equity,
-            nodes
-        };
     };
 
     const handleFileChange = useCallback(async (files: FileList, tournamentPhase: string) => {
@@ -76,14 +133,15 @@ const App: React.FC = () => {
             const folderName = firstPath.substring(0, firstPath.indexOf('/'));
 
             const newSolution = await parseHrcFolder(files, folderName, tournamentPhase);
-            setSolutions(prev => {
-                const updated = [...prev, newSolution];
-                solutionsRef.current = updated;
-                return updated;
-            });
+            setSolutions(prev => [...prev, newSolution]);
         } catch (err) {
-            console.error("Error processing uploaded files:", err);
-            setError(err instanceof Error ? err.message : "Ocorreu um erro desconhecido ao processar o arquivo.");
+            const userMessage = getUserMessage(err);
+            setError(userMessage);
+            
+            // Log only in dev
+            if ((import.meta as any).env?.DEV) {
+                console.error("Error processing uploaded files:", err);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -93,22 +151,36 @@ const App: React.FC = () => {
     const loadSolutionsMetadata = useCallback(async () => {
         setIsLoading(true);
         setError(null);
+        
+        // AbortController para cancelar requisições se o componente desmontar
+        const abortController = new AbortController();
+        
         try {
-            const metadataRes = await fetch(getResourceUrl('solutions-metadata.json'));
+            const metadataRes = await retryFetch(
+                getResourceUrl('solutions-metadata.json'),
+                { signal: abortController.signal }
+            );
+            
             if (!metadataRes.ok) {
-                 if (metadataRes.status === 404) {
-                    console.log("solutions-metadata.json not found, starting with empty library.");
+                if (metadataRes.status === 404) {
+                    // Not an error - just no solutions yet
                     setSolutions([]);
-                    solutionsRef.current = [];
                     setIsLoading(false);
-                    return; 
-                 }
-                 throw new Error(`Failed to load solutions metadata: ${metadataRes.statusText}`);
+                    return;
+                }
+                throw new AppError(
+                    ERROR_MESSAGES.METADATA_LOAD_FAILED,
+                    ErrorType.NETWORK
+                );
             }
+            
             const metadata: SolutionMetadata[] = await metadataRes.json();
 
             if (!Array.isArray(metadata)) {
-                throw new Error('solutions-metadata.json is not a valid array.');
+                throw new AppError(
+                    ERROR_MESSAGES.METADATA_INVALID,
+                    ErrorType.PARSE
+                );
             }
 
             // Carregar apenas settings e equity (não os nodes)
@@ -116,22 +188,47 @@ const App: React.FC = () => {
                 const { path: basePath, fileName, tournamentPhase } = meta;
 
                 if (!basePath || !fileName || !tournamentPhase) {
-                    console.warn("Skipping invalid solution entry in metadata:", meta);
+                    if ((import.meta as any).env?.DEV) {
+                        console.warn("Skipping invalid solution entry in metadata:", meta);
+                    }
                     return null;
                 }
 
                 try {
-                    const settingsRes = await fetch(getResourceUrl(`${basePath}/settings.json`));
-                    if (!settingsRes.ok) throw new Error(`Failed to load settings.json for ${fileName}`);
+                    const settingsRes = await retryFetch(
+                        getResourceUrl(`${basePath}/settings.json`),
+                        { signal: abortController.signal }
+                    );
+                    if (!settingsRes.ok) {
+                        throw new AppError(
+                            ERROR_MESSAGES.INVALID_JSON(`settings.json for ${fileName}`),
+                            ErrorType.NOT_FOUND
+                        );
+                    }
                     const settings: SettingsData = await settingsRes.json();
 
-                    const equityRes = await fetch(getResourceUrl(`${basePath}/equity.json`));
-                    if (!equityRes.ok) throw new Error(`Failed to load equity.json for ${fileName}`);
+                    const equityRes = await retryFetch(
+                        getResourceUrl(`${basePath}/equity.json`),
+                        { signal: abortController.signal }
+                    );
+                    if (!equityRes.ok) {
+                        throw new AppError(
+                            ERROR_MESSAGES.INVALID_JSON(`equity.json for ${fileName}`),
+                            ErrorType.NOT_FOUND
+                        );
+                    }
                     const equity: EquityData = await equityRes.json();
                     
                     // Criar solução SEM nodes (serão carregados sob demanda)
+                    // IMPORTANTE: Usar ID determinístico baseado no path
+                    const solutionId = generateDeterministicId(basePath);
+                    
+                    if ((import.meta as any).env?.DEV) {
+                        console.log(`✅ Loaded solution: ${fileName} with ID: ${solutionId}`);
+                    }
+                    
                     return {
-                        id: uuidv4(),
+                        id: solutionId,
                         fileName,
                         tournamentPhase,
                         settings,
@@ -140,7 +237,14 @@ const App: React.FC = () => {
                         path: basePath, // Guardar caminho para lazy loading
                     };
                 } catch (e) {
-                    console.error(`Error loading solution "${fileName}":`, e);
+                    // Ignorar erros de abort
+                    if (e instanceof Error && e.name === 'AbortError') {
+                        return null;
+                    }
+                    
+                    if ((import.meta as any).env?.DEV) {
+                        console.error(`Error loading solution "${fileName}":`, e);
+                    }
                     return null;
                 }
             });
@@ -148,12 +252,19 @@ const App: React.FC = () => {
             const loadedSolutions = (await Promise.all(solutionPromises)).filter(s => s !== null) as AppData[];
 
             setSolutions(loadedSolutions);
-            solutionsRef.current = loadedSolutions;
-            console.log(`✅ Loaded ${loadedSolutions.length} solutions (nodes will load on-demand)`);
 
         } catch (err) {
-            console.error("Error loading solutions metadata:", err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred while loading solutions.");
+            // Ignorar erros de abort
+            if (err instanceof Error && err.name === 'AbortError') {
+                return;
+            }
+            
+            const userMessage = getUserMessage(err);
+            setError(userMessage);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error("Error loading solutions metadata:", err);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -164,22 +275,39 @@ const App: React.FC = () => {
     }, [loadSolutionsMetadata]);
 
     // Carregar nodes sob demanda quando uma solução é selecionada
-    const loadNodesForSolution = useCallback(async (solutionId: string, nodeIdsToLoad?: number[]): Promise<AppData | null> => {
-        console.log(`⏳ Loading nodes for solution ID: ${solutionId}`);
-        
-        // Acessar solutions via ref (sempre atualizado)
-        const currentSolutions = solutionsRef.current;
-        const solutionToLoad = currentSolutions.find(s => s.id === solutionId);
-
-        if (!solutionToLoad) {
-            console.error(`❌ Solution not found: ${solutionId}`);
-            return null;
+    const loadNodesForSolution = useCallback(async (
+        solutionId: string, 
+        nodeIdsToLoad?: number[],
+        signal?: AbortSignal
+    ): Promise<AppData | null> => {
+        if ((import.meta as any).env?.DEV) {
+            console.log('🔍 loadNodesForSolution called with:', { solutionId, nodeIdsToLoad });
+            console.log('📦 Available solutions from ref:', solutionsRef.current.map(s => ({ id: s.id, fileName: s.fileName })));
         }
         
-        console.log(`✅ Found solution: ${solutionToLoad.fileName}`);
+        // Usar ref para acesso síncrono ao estado mais recente
+        const solutionToLoad = solutionsRef.current.find(s => s.id === solutionId);
+        
+        if ((import.meta as any).env?.DEV) {
+            console.log('🎯 Found solution:', solutionToLoad ? solutionToLoad.fileName : 'NOT FOUND');
+        }
+
+        if (!solutionToLoad) {
+            const errorMsg = ERROR_MESSAGES.SOLUTION_NOT_FOUND(solutionId);
+            setError(errorMsg);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error(`❌ ${errorMsg}`, { requestedId: solutionId });
+            }
+            return null;
+        }
 
         if (!solutionToLoad.path) {
-            console.error('Solution has no path');
+            setError(ERROR_MESSAGES.SOLUTION_NO_PATH);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error('Solution has no path');
+            }
             return null;
         }
 
@@ -190,56 +318,88 @@ const App: React.FC = () => {
         const missingNodes = nodesToLoad.filter(id => !solutionToLoad!.nodes.has(id));
         
         if (missingNodes.length === 0) {
-            console.log(`✅ All requested nodes already loaded for "${solutionToLoad.fileName}"`);
             return solutionToLoad;
         }
-
-        console.log(`⏳ Loading ${missingNodes.length} nodes for "${solutionToLoad.fileName}": [${missingNodes.join(', ')}]`);
 
         try {
             // Cria um novo Map com os nodes existentes
             const nodes = new Map(solutionToLoad.nodes);
             
-            // Carrega os nodes faltantes
+            // Carrega os nodes faltantes com retry e cache
             await Promise.all(missingNodes.map(async (id: number) => {
                 try {
-                    const nodeRes = await fetch(getResourceUrl(`${solutionToLoad!.path}/nodes/${id}.json`));
-                    if (!nodeRes.ok) throw new Error(`Failed to load node ${id}.json`);
+                    // Verificar cache primeiro
+                    const cacheKey = CACHE_KEYS.NODE(solutionId, id);
+                    const cachedNode = appCache.get<NodeData>(cacheKey);
+                    
+                    if (cachedNode) {
+                        nodes.set(id, cachedNode);
+                        return;
+                    }
+                    
+                    // Se não está em cache, buscar
+                    const nodeRes = await retryFetch(
+                        getResourceUrl(`${solutionToLoad!.path}/nodes/${id}.json`),
+                        { signal }
+                    );
+                    if (!nodeRes.ok) {
+                        throw new AppError(
+                            ERROR_MESSAGES.NODE_NOT_FOUND(id),
+                            ErrorType.NOT_FOUND
+                        );
+                    }
                     const nodeData: NodeData = await nodeRes.json();
+                    
+                    // Salvar em cache
+                    appCache.set(cacheKey, nodeData, CACHE_DURATION.LONG);
                     nodes.set(id, nodeData);
-                    console.log(`✅ Successfully loaded node ${id}`);
                 } catch (e) {
-                    console.error(`Error loading node ${id}:`, e);
+                    // Ignorar erros de abort
+                    if (e instanceof Error && e.name === 'AbortError') {
+                        return;
+                    }
+                    
+                    if ((import.meta as any).env?.DEV) {
+                        console.error(`Error loading node ${id}:`, e);
+                    }
+                    throw e;
                 }
             }));
 
             if (nodes.size === solutionToLoad.nodes.size) {
-                throw new Error('No new nodes were loaded');
+                throw new AppError(
+                    ERROR_MESSAGES.NO_NODES_LOADED,
+                    ErrorType.UNKNOWN
+                );
             }
 
             // Criar solução atualizada
             const updatedSolution = { ...solutionToLoad, nodes };
 
             // Atualizar solução com nodes carregados
-            setSolutions(prev => {
-                const updated = prev.map(s => 
+            setSolutions(prev => 
+                prev.map(s => 
                     s.id === solutionId 
                         ? updatedSolution
                         : s
-                );
-                solutionsRef.current = updated;
-                console.log(`✅ Updated solutions array with ${nodes.size} total nodes for "${solutionToLoad!.fileName}"`);
-                return updated;
-            });
-
-            console.log(`✅ Loaded ${missingNodes.length} new nodes for "${solutionToLoad.fileName}"`);
+                )
+            );
             
             // Retorna a solução atualizada diretamente
             return updatedSolution;
 
         } catch (err) {
-            console.error("Error loading nodes:", err);
-            setError(err instanceof Error ? err.message : "Failed to load nodes");
+            // Ignorar erros de abort
+            if (err instanceof Error && err.name === 'AbortError') {
+                return null;
+            }
+            
+            const userMessage = getUserMessage(err);
+            setError(userMessage);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error("Error loading nodes:", err);
+            }
             return null;
         }
     }, []);
@@ -249,56 +409,56 @@ const App: React.FC = () => {
         if (!hasRestoredFromUrl && !isLoading && solutions.length > 0) {
             const urlState = decodeUrlState();
             
-            console.log('🔗 Restaurando estado da URL:', urlState);
-            
             // Se tem solução na URL, restaurar
             if (urlState.solutionPath) {
                 const solution = findSolutionByPath(solutions, urlState.solutionPath);
                 
                 if (solution) {
-                    console.log(`✅ Solução encontrada na URL: ${solution.fileName}`);
-                    
                     // Carregar solução e node primeiro (async)
                     const nodeToLoad = urlState.nodeId || 0;
                     
                     (async () => {
                         try {
-                            // Mostrar loading
+                            // Mostrar loading para restauração de URL
+                            setIsRestoringFromUrl(true);
                             setIsLoadingNode(true);
                             
                             // Carregar todos os nodes de 0 até o node desejado para garantir o caminho completo
                             const nodesToLoad = Array.from({ length: nodeToLoad + 1 }, (_, i) => i);
-                            console.log(`📦 Carregando nodes do caminho: [0...${nodeToLoad}]`);
                             
                             await loadNodesForSolution(solution.id, nodesToLoad);
                             
-                            // Só depois de carregar, definir o estado
-                            setSelectedSolutionId(solution.id);
-                            setCurrentNodeId(nodeToLoad);
-                            
-                            if (urlState.hand) {
-                                setSelectedHand(urlState.hand);
-                            }
-                            
-                            // Definir página
-                            if (urlState.page) {
-                                setCurrentPage(urlState.page);
-                            } else {
-                                setCurrentPage('solutions');
-                            }
-                            
-                            setHasRestoredFromUrl(true);
+                            // Batch state updates para reduzir re-renders
+                            React.startTransition(() => {
+                                setSelectedSolutionId(solution.id);
+                                setViewerState({
+                                    currentNodeId: nodeToLoad,
+                                    selectedHand: urlState.hand || null,
+                                    displayMode: 'bb',
+                                });
+                                setCurrentPage(urlState.page || 'solutions');
+                                setHasRestoredFromUrl(true);
+                            });
+
                         } catch (error) {
-                            console.error('❌ Erro ao carregar spot:', error);
+                            const userMessage = getUserMessage(error);
+                            setError(userMessage);
+                            
+                            if ((import.meta as any).env?.DEV) {
+                                console.error('❌ Erro ao carregar spot:', error);
+                            }
                             setHasRestoredFromUrl(true);
                         } finally {
                             // Esconder loading
                             setIsLoadingNode(false);
+                            setIsRestoringFromUrl(false);
                         }
                     })();
                     
                 } else {
-                    console.warn(`⚠️ Solução não encontrada: ${urlState.solutionPath}`);
+                    if ((import.meta as any).env?.DEV) {
+                        console.warn(`⚠️ Solução não encontrada: ${urlState.solutionPath}`);
+                    }
                     setHasRestoredFromUrl(true);
                 }
             } else if (urlState.page) {
@@ -323,28 +483,34 @@ const App: React.FC = () => {
 
         setIsLoadingNode(true);
         try {
-            const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
-            if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
+            const nodeRes = await retryFetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
+            if (!nodeRes.ok) {
+                throw new AppError(
+                    ERROR_MESSAGES.NODE_LOAD_FAILED(nodeId),
+                    ErrorType.NOT_FOUND
+                );
+            }
             const nodeData: NodeData = await nodeRes.json();
 
             // Atualizar solução com o novo node
-            setSolutions(prev => {
-                const updated = prev.map(s => {
+            setSolutions(prev => 
+                prev.map(s => {
                     if (s.id === selectedSolutionId) {
                         const newNodes = new Map(s.nodes);
                         newNodes.set(nodeId, nodeData);
                         return { ...s, nodes: newNodes };
                     }
                     return s;
-                });
-                solutionsRef.current = updated;
-                return updated;
-            });
-
-            console.log(`✅ Loaded node ${nodeId}`);
+                })
+            );
 
         } catch (err) {
-            console.error(`Error loading node ${nodeId}:`, err);
+            const userMessage = getUserMessage(err);
+            setError(userMessage);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error(`Error loading node ${nodeId}:`, err);
+            }
         } finally {
             setIsLoadingNode(false);
         }
@@ -364,20 +530,27 @@ const App: React.FC = () => {
             const loadedNodes = await Promise.all(
                 nodesToLoad.map(async (nodeId) => {
                     try {
-                        const nodeRes = await fetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
-                        if (!nodeRes.ok) throw new Error(`Failed to load node ${nodeId}.json`);
+                        const nodeRes = await retryFetch(getResourceUrl(`${solution.path}/nodes/${nodeId}.json`));
+                        if (!nodeRes.ok) {
+                            throw new AppError(
+                                ERROR_MESSAGES.NODE_LOAD_FAILED(nodeId),
+                                ErrorType.NOT_FOUND
+                            );
+                        }
                         const nodeData: NodeData = await nodeRes.json();
                         return { nodeId, nodeData };
                     } catch (err) {
-                        console.error(`Error loading node ${nodeId}:`, err);
+                        if ((import.meta as any).env?.DEV) {
+                            console.error(`Error loading node ${nodeId}:`, err);
+                        }
                         return null;
                     }
                 })
             );
 
             // Atualizar solução com os novos nodes
-            setSolutions(prev => {
-                const updated = prev.map(s => {
+            setSolutions(prev => 
+                prev.map(s => {
                     if (s.id === selectedSolutionId) {
                         const newNodes = new Map(s.nodes);
                         loadedNodes.forEach(result => {
@@ -388,15 +561,16 @@ const App: React.FC = () => {
                         return { ...s, nodes: newNodes };
                     }
                     return s;
-                });
-                solutionsRef.current = updated;
-                return updated;
-            });
-
-            console.log(`✅ Loaded ${loadedNodes.filter(r => r !== null).length} nodes`);
+                })
+            );
 
         } catch (err) {
-            console.error(`Error loading multiple nodes:`, err);
+            const userMessage = getUserMessage(err);
+            setError(userMessage);
+            
+            if ((import.meta as any).env?.DEV) {
+                console.error(`Error loading multiple nodes:`, err);
+            }
         } finally {
             setIsLoadingNode(false);
         }
@@ -415,10 +589,13 @@ const App: React.FC = () => {
         return blinds.length > 1 ? Math.max(blinds[0], blinds[1]) : (blinds[0] || 0);
     }, [selectedSolution]);
 
+    // Otimizado: só recalcula se os nodes mudarem
     const parentMap = useMemo(() => {
         const map = new Map<number, number>();
-        if (!selectedSolution) return map;
-        for (const [nodeId, nodeData] of selectedSolution.nodes.entries()) {
+        if (!selectedSolution || selectedSolution.nodes.size === 0) return map;
+        
+        // Iterar diretamente sobre o Map
+        for (const [nodeId, nodeData] of selectedSolution.nodes) {
             for (const action of nodeData.actions) {
                 if (typeof action.node === 'number') {
                     map.set(action.node, nodeId);
@@ -426,15 +603,21 @@ const App: React.FC = () => {
             }
         }
         return map;
-    }, [selectedSolution]);
+    }, [selectedSolution?.nodes.size, selectedSolution?.id]); // Otimização: só quando muda o tamanho ou ID
 
     const pathNodeIds = useMemo(() => {
         if (!parentMap.size) return [0];
         const path: number[] = [];
         let currentId: number | undefined = currentNodeId;
-        while (typeof currentId === 'number') {
+        
+        // Prevenção de loops infinitos
+        const maxDepth = 100;
+        let depth = 0;
+        
+        while (typeof currentId === 'number' && depth < maxDepth) {
             path.unshift(currentId);
             currentId = parentMap.get(currentId);
+            depth++;
         }
         return path;
     }, [currentNodeId, parentMap]);
@@ -447,13 +630,25 @@ const App: React.FC = () => {
     // --- Event Handlers ---
 
     const handleSelectSolution = async (id: string) => {
+        if ((import.meta as any).env?.DEV) {
+            console.log('🎯 handleSelectSolution called with ID:', id);
+        }
+        
         setSelectedSolutionId(id);
         setCurrentNodeId(0); // Reset to root node
         setSelectedHand(null);
         setIsLoadingNode(true);
+        
         // Carregar nodes para esta solução e esperar
-        await loadNodesForSolution(id);
-        setIsLoadingNode(false);
+        try {
+            await loadNodesForSolution(id);
+        } catch (error) {
+            if ((import.meta as any).env?.DEV) {
+                console.error('Error in handleSelectSolution:', error);
+            }
+        } finally {
+            setIsLoadingNode(false);
+        }
     };
 
     const handleChangeSolution = () => {
@@ -493,6 +688,16 @@ const App: React.FC = () => {
     }, [hasRestoredFromUrl, currentPage, selectedSolution, currentNodeId, selectedHand]);
 
     // --- Render Logic ---
+
+    // Mostrar loading se:
+    // 1. Ainda está carregando metadados (isLoading)
+    // 2. Está restaurando estado da URL (isRestoringFromUrl)
+    // 3. Tem parâmetros de URL mas ainda não restaurou (hasUrlParams && !hasRestoredFromUrl)
+    const shouldShowLoading = isLoading || isRestoringFromUrl || (hasUrlParams && !hasRestoredFromUrl);
+    
+    if (shouldShowLoading) {
+        return <LoadingOverlay isLoading={true} message="Loading..." />;
+    }
 
     // Home page
     if (currentPage === 'home') {
@@ -579,7 +784,7 @@ const App: React.FC = () => {
                         selectedHand={selectedHand}
                         pathNodeIds={pathNodeIds}
                         displayMode={displayMode}
-                        onDisplayModeToggle={() => setDisplayMode(m => m === 'bb' ? 'chips' : 'bb')}
+                        onDisplayModeToggle={() => setDisplayMode(displayMode === 'bb' ? 'chips' : 'bb')}
                     />
                 </main>
             </div>

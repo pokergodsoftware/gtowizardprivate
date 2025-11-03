@@ -6,6 +6,9 @@ interface UserStats {
     totalSpots: number;
     correctSpots: number;
     totalPoints: number;
+    tournamentsPlayed?: number;
+    reachedFinalTable?: number;
+    completedTournaments?: number;
     statsByPhase: {
         [phase: string]: {
             total: number;
@@ -95,6 +98,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                         </svg>
                         <span className="font-semibold">Voltar</span>
                     </button>
+                    <button
+                        className="flex items-center gap-2 px-4 py-2 bg-[#23263A] hover:bg-[#2C3050] text-white rounded-lg shadow transition-colors border border-[#23263A]"
+                        style={{ fontWeight: 600, fontSize: '1rem' }}
+                        onClick={() => window.location.href = '/practiced-hands'}
+                    >
+                        <span className="inline-block bg-blue-700 text-white rounded px-2 py-1 font-bold text-lg" style={{ letterSpacing: '1px' }}>K</span>
+                        <span className="inline-block bg-blue-700 text-white rounded px-2 py-1 font-bold text-lg" style={{ letterSpacing: '1px' }}>5</span>
+                        <span className="ml-2">Practiced hands</span>
+                    </button>
                 </div>
 
                 {/* Perfil do Usuário */}
@@ -122,6 +134,42 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                 <span className="text-yellow-400 font-bold text-sm">PONTOS</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.totalPoints.toFixed(1)}</div>
+                        </div>
+
+                        {/* Tournaments Played */}
+                        <div className="bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 border border-yellow-400/50 rounded-xl p-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12l2 2 4-4" />
+                                </svg>
+                                <span className="text-yellow-400 font-bold text-sm">TORNEIOS JOGADOS</span>
+                            </div>
+                            <div className="text-4xl font-bold text-white">{stats.tournamentsPlayed ?? 0}</div>
+                        </div>
+
+                        {/* Reached Final Table */}
+                        <div className="bg-gradient-to-br from-orange-400/20 to-orange-600/20 border border-orange-400/50 rounded-xl p-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="2" fill="none" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+                                </svg>
+                                <span className="text-orange-400 font-bold text-sm">MESA FINAL</span>
+                            </div>
+                            <div className="text-4xl font-bold text-white">{stats.reachedFinalTable ?? 0}</div>
+                        </div>
+
+                        {/* Completed Tournaments */}
+                        <div className="bg-gradient-to-br from-lime-400/20 to-lime-600/20 border border-lime-400/50 rounded-xl p-6">
+                            <div className="flex items-center gap-3 mb-2">
+                                <svg className="w-8 h-8 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <polygon points="12,2 22,22 2,22" stroke="currentColor" strokeWidth="2" fill="none" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                                </svg>
+                                <span className="text-lime-400 font-bold text-sm">TORNEIOS COMPLETOS</span>
+                            </div>
+                            <div className="text-4xl font-bold text-white">{stats.completedTournaments ?? 0}</div>
                         </div>
 
                         {/* Taxa de Acerto */}
@@ -160,11 +208,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                     </div>
                 </div>
 
-                {/* Histórico de Spots */}
-                <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8 mb-6">
-                    <h2 className="text-2xl font-bold text-white mb-6">Histórico de Spots</h2>
-                    <SpotHistory history={history} />
-                </div>
 
                 {/* Estatísticas por Fase */}
                 <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8">

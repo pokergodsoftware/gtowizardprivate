@@ -72,7 +72,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const [stats, setStats] = useState({
         totalQuestions: 0,
         correctAnswers: 0,
-        score: 0
+        score: 0,
+        tournamentsPlayed: 0,
+        reachedFinalTable: 0,
+        completedTournaments: 0
     });
     
     // Timebank (apenas modo torneio)
@@ -166,13 +169,14 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         const handData = node.hands[currentSpot.playerHandName];
         if (!handData) return;
         
+        // TIMEOUT: Ação automática é sempre FOLD
         // Procura a ação de Fold
         const foldActionIndex = node.actions.findIndex(a => a.type === 'F');
         
         if (foldActionIndex === -1) {
             // Não tem Fold disponível - marca como erro
-            console.log('⚠️ No Fold action available - counting as mistake');
-            setUserAction('TIMEOUT (No Fold)');
+            console.log('⚠️ TIMEOUT: No Fold action available - counting as mistake');
+            setUserAction('Fold (TIMEOUT)');
             setShowFeedback(true);
             
             const actualPhase = currentSpot.solution.tournamentPhase;
@@ -191,7 +195,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             setStats(prev => ({
                 totalQuestions: prev.totalQuestions + 1,
                 correctAnswers: prev.correctAnswers,
-                score: prev.score
+                score: prev.score,
+                tournamentsPlayed: actualPhase === '100~60% left' ? prev.tournamentsPlayed + 1 : prev.tournamentsPlayed,
+                reachedFinalTable: actualPhase === 'Final table' ? prev.reachedFinalTable + 1 : prev.reachedFinalTable,
+                completedTournaments: (actualPhase === 'Final table' && isCorrect) ? prev.completedTournaments + 1 : prev.completedTournaments
             }));
             
             if (onSpotResult) {
@@ -201,14 +208,16 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             return;
         }
         
-        // Verifica se Fold é a ação correta (tem frequência > 0)
+        // REGRA: Quando timebank expira, herói sempre folda automaticamente
+        // - Se Fold for a ação correta (freq > 0), conta como ACERTO e ganha 1 ponto
+        // - Se Fold NÃO for a ação correta (freq = 0), conta como ERRO e ganha 0 pontos
         const foldFrequency = handData.played[foldActionIndex] || 0;
         const isCorrect = foldFrequency > 0;
         
-        console.log(`⏰ Auto-fold: ${isCorrect ? 'CORRECT' : 'WRONG'} (fold freq: ${(foldFrequency * 100).toFixed(1)}%)`);
+        console.log(`⏰ TIMEOUT - Auto-fold: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} (fold freq: ${(foldFrequency * 100).toFixed(1)}%)`);
         
-        // Marca a ação como Fold
-        setUserAction('Fold (Timeout)');
+        // Marca a ação como Fold (Timeout)
+        setUserAction('Fold (TIMEOUT)');
         setShowFeedback(true);
         
         // Salvar resultado
@@ -219,18 +228,21 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             currentSpot.playerHandName, 
             isCorrect, 
             actualPhase, 
-            isCorrect ? 1 : 0, // 1 ponto se correto, 0 se errado
+            isCorrect ? 1 : 0, // 1 ponto se fold for correto, 0 se for erro
             currentSpot.playerHand,
             currentSpot.solution.path || currentSpot.solution.id,
             currentSpot.nodeId
         );
         
-        console.log(`📊 Stats saved: ${isCorrect ? 'CORRECT' : 'WRONG'} - ${isCorrect ? 1 : 0} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
+        console.log(`📊 Stats saved: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} - ${isCorrect ? '+1' : '+0'} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
         
         setStats(prev => ({
             totalQuestions: prev.totalQuestions + 1,
             correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
-            score: isCorrect ? prev.score + 1 : prev.score
+            score: isCorrect ? prev.score + 1 : prev.score,
+            tournamentsPlayed: actualPhase === '100~60% left' ? prev.tournamentsPlayed + 1 : prev.tournamentsPlayed,
+            reachedFinalTable: actualPhase === 'Final table' ? prev.reachedFinalTable + 1 : prev.reachedFinalTable,
+            completedTournaments: (actualPhase === 'Final table' && isCorrect) ? prev.completedTournaments + 1 : prev.completedTournaments
         }));
         
         // Callback para modo torneio
@@ -238,9 +250,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             onSpotResult(isCorrect);
             
             // Auto-avançar após 5 segundos
-            setTimeout(() => {
-                generateNewSpot();
-            }, 5000);
+            // Não gerar novo spot ainda - apenas notificar o componente pai
         }
     };
 
@@ -249,6 +259,14 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const hasInitialized = useRef(false);
     const retryCount = useRef(0);
     const maxRetries = 5;
+
+    // Resetar feedback quando componente é montado/remontado (no modo torneio)
+    useEffect(() => {
+        if (tournamentMode) {
+            setShowFeedback(false);
+            setUserAction(null);
+        }
+    }, []); // Executa apenas na montagem
 
     // Função para calcular average stack em BB
     const getAverageStackBB = (solution: AppData): number => {
@@ -1583,9 +1601,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             onSpotResult(isCorrect);
             
             // Auto-avançar para próximo spot após 5 segundos
-            setTimeout(() => {
-                generateNewSpot();
-            }, 5000);
+            // Não gerar novo spot ainda - apenas notificar o componente pai
         }
     };
 
@@ -1687,6 +1703,18 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                     {stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) : 0}%
                                 </div>
                                 <div className="text-xs text-gray-400">Precisão</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-yellow-400">{stats.tournamentsPlayed}</div>
+                                <div className="text-xs text-gray-400">Tournaments Played</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-orange-400">{stats.reachedFinalTable}</div>
+                                <div className="text-xs text-gray-400">Reached Final Table</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-lime-400">{stats.completedTournaments}</div>
+                                <div className="text-xs text-gray-400">Completed Tournaments</div>
                             </div>
                         </div>
                     </div>
@@ -1939,6 +1967,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                     if (!handData) return null;
                                     
                                     const userActionIndex = node.actions.findIndex((a, idx) => {
+                                        // Para timeout, a ação é sempre Fold
+                                        if (userAction?.includes('TIMEOUT')) {
+                                            return a.type === 'F';
+                                        }
                                         if (a.type === 'F') return userAction === 'Fold';
                                         if (a.type === 'C') return userAction === 'Call';
                                         if (a.type === 'X') return userAction === 'Check';
@@ -1958,7 +1990,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                         : userActionFreq > 0;
                                     
                                     // Verificar se foi timeout
-                                    const isTimeout = userAction === 'TIMEOUT';
+                                    const isTimeout = userAction?.includes('TIMEOUT') || false;
                                     
                                     return (
                                         <div className="flex items-center gap-2">
@@ -2027,6 +2059,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                                             }
                                             
                                             const isUserChoice = (() => {
+                                                // Para timeout, a ação é sempre Fold
+                                                if (userAction?.includes('TIMEOUT')) {
+                                                    return action.type === 'F';
+                                                }
                                                 if (action.type === 'F') return userAction === 'Fold';
                                                 if (action.type === 'C') return userAction === 'Call';
                                                 if (action.type === 'X') return userAction === 'Check';

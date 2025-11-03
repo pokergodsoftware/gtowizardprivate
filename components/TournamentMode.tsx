@@ -48,6 +48,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [showingResult, setShowingResult] = useState(false);
+    const [spotKey, setSpotKey] = useState(0); // Chave para forçar remontagem do TrainerSimulator
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
 
@@ -70,18 +71,25 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         setHandsPlayedInStage(newHandsInStage);
         setTotalHandsPlayed(newTotalHands);
 
-        // Verificar se completou o estágio
-        if (newHandsInStage >= currentStage.handsToPlay) {
-            // Verificar se completou o torneio
-            if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
-                setIsComplete(true);
-                setShowingResult(true);
+        // Aguardar 5 segundos antes de avançar para o próximo spot
+        setTimeout(() => {
+            // Verificar se completou o estágio
+            if (newHandsInStage >= currentStage.handsToPlay) {
+                // Verificar se completou o torneio
+                if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
+                    setIsComplete(true);
+                    setShowingResult(true);
+                } else {
+                    // Avançar para próximo estágio
+                    setCurrentStageIndex(currentStageIndex + 1);
+                    setHandsPlayedInStage(0);
+                    setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
+                }
             } else {
-                // Avançar para próximo estágio
-                setCurrentStageIndex(currentStageIndex + 1);
-                setHandsPlayedInStage(0);
+                // Continuar no mesmo estágio - gerar novo spot
+                setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
             }
-        }
+        }, 5000);
     };
 
     // Tela de resultado final
@@ -182,6 +190,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                 setIsBusted(false);
                                 setIsComplete(false);
                                 setShowingResult(false);
+                                setSpotKey(prev => prev + 1);
                             }}
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all"
                         >
@@ -258,6 +267,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
             {/* TrainerSimulator */}
             <div className="flex-1 overflow-hidden">
                 <TrainerSimulator
+                    key={spotKey}
                     solutions={solutions}
                     selectedPhases={[currentStage.phase]}
                     selectedSpotTypes={['Any']}
