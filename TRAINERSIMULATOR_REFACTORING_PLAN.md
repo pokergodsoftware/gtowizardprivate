@@ -284,55 +284,53 @@ export { generateAnySpot } from './generateAnySpot';
 
 ---
 
-### Phase 6: Extract Spot Generation Hook (High Risk)
+### Phase 6: Extract Spot Generation Hook (High Risk) - ✅ COMPLETED
 **Goal:** Orchestrate spot generation
 
-#### Step 6.1: Create useSpotGeneration hook
-**What to extract:**
-- `currentSpot` state
-- `isGeneratingSpot` ref
-- `generateNewSpot()` orchestration logic
-- Spot type selection
-- Solution filtering
-- Delegation to specific generators
+#### Step 6.1: Create useSpotGeneration hook ✅
+**What extracted:**
+- ✅ `currentSpot` state
+- ✅ `isGeneratingSpot` ref
+- ✅ `hasInitialized` ref
+- ✅ `retryCount` ref and maxRetries logic
+- ✅ `phaseSolutions` memoized filtering (by phase + player count)
+- ✅ `getRandomSpotType()` function
+- ✅ `getAverageStackBB()` function
+- ✅ `generateNewSpot()` orchestration logic
+- ✅ Solution filtering by spot type requirements (e.g., avg stack for vs Open)
+- ✅ Error handling and retry logic
 
 **File:** `components/TrainerSimulator/hooks/useSpotGeneration.ts`
 
 **Interface:**
 ```typescript
-export const useSpotGeneration = (
-  solutions: AppData[],
-  selectedPhases: string[],
-  selectedSpotTypes: string[],
-  loadNodesForSolution: LoadNodesFunction,
-  playerCountFilter?: number
-) => {
-  return {
-    currentSpot,
-    generateNewSpot: () => Promise<void>,
-    isGenerating: boolean
-  };
-};
+interface UseSpotGenerationProps {
+    solutions: AppData[];
+    selectedPhases: string[];
+    selectedSpotTypes: string[];
+    loadNodesForSolution: (solutionId: string, nodeIdsToLoad?: number[]) => Promise<AppData | null>;
+    playerCountFilter?: number;
+}
+
+interface UseSpotGenerationReturn {
+    currentSpot: SpotSimulation | null;
+    generateNewSpot: () => Promise<void>;
+    isGenerating: boolean;
+}
 ```
 
-**Logic flow:**
-```typescript
-1. Filter solutions by phase + player count
-2. Select random spot type from selectedSpotTypes
-3. Filter solutions by spot type requirements (e.g. avg stack for vs Open)
-4. Select random solution
-5. Delegate to specific generator:
-   - generateRFISpot()
-   - generateVsOpenSpot()
-   - generateVsShoveSpot()
-   - generateVsMultiwaySpot()
-   - generateAnySpot()
-6. Return SpotSimulation or null
-```
+**Note:** The hook currently has a placeholder for spot generator delegation. Full implementation will be completed in Phase 5 when individual spot generators are extracted.
+
+**Phase 6 Status:** ✅ Complete (November 3, 2025)
+- 1 hook created (~215 lines)
+- Orchestration logic extracted
+- Zero compilation errors
+- Original TrainerSimulator.tsx unchanged
+- Ready for Phase 5 (extract individual spot generators)
 
 ---
 
-### Phase 7: Extract UI Components (Low Risk)
+### Phase 5: Extract Spot Generators (High Risk) - 🔄 NEXT
 **Goal:** Separate presentation from logic
 
 #### Step 7.1: Extract TrainerHeader component

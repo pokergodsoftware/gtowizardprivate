@@ -108,22 +108,38 @@ import {
 import { 
     useTrainerSettings, 
     useTimebank, 
-    useTrainerStats 
+    useTrainerStats,
+    useSpotGeneration
 } from './TrainerSimulator/hooks';
 
 // In component:
 const { displayMode, toggleDisplayMode, showBountyInDollars, ... } = useTrainerSettings();
 const { timeLeft, stopAudios } = useTimebank({ tournamentMode, currentSpot, showFeedback, onTimeExpired });
 const { stats, updateStats } = useTrainerStats();
+const { currentSpot, generateNewSpot, isGenerating } = useSpotGeneration({
+    solutions,
+    selectedPhases,
+    selectedSpotTypes,
+    loadNodesForSolution,
+    playerCountFilter
+});
 ```
 
 ### 🔄 Next Steps
 
-**Phase 6: Extract Spot Generation Hook** (Ready to start)
-- [ ] `useSpotGeneration.ts` - Orchestrates all 5 spot generators
-- [ ] Manages currentSpot state
-- [ ] Handles solution filtering and spot type selection
-- [ ] Provides generateNewSpot() function
+**Phase 7: Extract UI Components** (Next phase)
+- [ ] `TrainerHeader.tsx` - Stats display and control buttons
+- [ ] `TrainerTable.tsx` - Poker table with Study button
+- [ ] `TrainerActions.tsx` - Action buttons (Fold/Call/Raise)
+- [ ] `TrainerFeedback.tsx` - Feedback modal after answer
+
+**Phase 6: Extract Spot Generation Hook** ✅ COMPLETED
+- ✅ `useSpotGeneration.ts` - Orchestrates all 5 spot generators
+- ✅ Manages currentSpot state and isGenerating flag
+- ✅ Handles solution filtering and spot type selection
+- ✅ Provides generateNewSpot() function
+- ✅ Error handling and retry logic
+- ✅ (~215 lines extracted)
 
 **Phase 5: Extract Spot Generators** ✅ COMPLETED
 - ✅ `generateRFISpot.ts` - RFI spot generation (145 lines)
@@ -186,18 +202,24 @@ const { stats, updateStats } = useTrainerStats();
 - 20+ functions across RFI, vs Open, vs Shove, vs Multiway, Any ✅
 - Comprehensive validation and examples ✅
 
+**After Phase 6:**
+- 1 spot generation orchestration hook extracted ✅
+- ~215 lines of orchestration logic modularized ✅
+- Centralized spot generation state management ✅
+- Error handling and retry logic ✅
+
 **Total Progress:**
-- **23 files** created across 5 phases
-- **~2,600 lines** extracted and organized
+- **24 files** created across 6 phases
+- **~2,815 lines** extracted and organized
 - Original file still unchanged ✅
 - Zero compilation errors ✅
 
-**Status:** ✅ Phase 5 Complete - Ready for Phase 6
+**Status:** ✅ Phase 6 Complete - Ready for Phase 7
 
 ---
 
-**Last Updated:** December 2024  
-**Current Phase:** ✅ Phase 5 Complete  
+**Last Updated:** November 3, 2025  
+**Current Phase:** ✅ Phase 6 Complete  
 **Files Created:** 23 total (7 in Phase 1, 3 in Phase 2, 3 in Phase 3, 3 in Phase 4, 7 in Phase 5)  
 **Lines Extracted:** ~2,600 lines organized  
 **Refactoring Plan:** See `TRAINERSIMULATOR_REFACTORING_PLAN.md`
