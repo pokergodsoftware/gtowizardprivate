@@ -26,6 +26,7 @@ export interface FirebaseStats {
   username: string;
   totalSpots: number;
   correctSpots: number;
+  incorrectSpots: number; // Spots errados (para calcular blunders)
   totalPoints: number;
   tournamentsPlayed: number;
   reachedFinalTable: number;
@@ -36,6 +37,7 @@ export interface FirebaseStats {
     [phase: string]: {
       total: number;
       correct: number;
+      incorrect: number; // Errados por fase
       points: number;
     };
   };
@@ -92,10 +94,11 @@ export async function saveStatsToFirebase(
       // Atualizar estatísticas por fase se fornecida
       if (phase) {
         if (!statsByPhase[phase]) {
-          statsByPhase[phase] = { total: 0, correct: 0, points: 0 };
+          statsByPhase[phase] = { total: 0, correct: 0, incorrect: 0, points: 0 };
         }
         statsByPhase[phase].total += 1;
         statsByPhase[phase].correct += isCorrect ? 1 : 0;
+        statsByPhase[phase].incorrect += isCorrect ? 0 : 1;
         statsByPhase[phase].points += pointsToAdd;
       }
       
@@ -103,6 +106,7 @@ export async function saveStatsToFirebase(
       await updateDoc(statsRef, {
         totalSpots: increment(1),
         correctSpots: increment(isCorrect ? 1 : 0),
+        incorrectSpots: increment(isCorrect ? 0 : 1),
         totalPoints: increment(pointsToAdd),
         lastUpdated: new Date().toISOString(),
         statsByPhase
@@ -121,6 +125,7 @@ export async function saveStatsToFirebase(
         statsByPhase[phase] = {
           total: 1,
           correct: isCorrect ? 1 : 0,
+          incorrect: isCorrect ? 0 : 1,
           points: pointsToAdd
         };
       }
@@ -130,6 +135,7 @@ export async function saveStatsToFirebase(
         username,
         totalSpots: 1,
         correctSpots: isCorrect ? 1 : 0,
+        incorrectSpots: isCorrect ? 0 : 1,
         totalPoints: pointsToAdd,
         tournamentsPlayed: 0,
         reachedFinalTable: 0,
@@ -252,6 +258,7 @@ export async function saveSpotHistoryToFirebase(
  */
 export async function loadSpotHistoryFromFirebase(userId: string): Promise<SpotHistoryEntry[]> {
   try {
+    console.log('🔄 Loading spot history from Firebase for user:', userId);
     const historyRef = collection(db, 'spotHistory');
     const q = query(
       historyRef, 
@@ -273,14 +280,27 @@ export async function loadSpotHistoryFromFirebase(userId: string): Promise<SpotH
         phase: data.phase,
         points: data.points,
         solutionPath: data.solutionPath,
-        nodeId: data.nodeId
+        nodeId: data.nodeId,
+        position: data.position,
+        playerAction: data.playerAction,
+        ev: data.ev
       });
     });
     
-    console.log('✅ Loaded spot history from Firebase:', history.length, 'entries');
+    console.log(`✅ Loaded ${history.length} spot history entries from Firebase`);
     return history;
-  } catch (error) {
-    console.error('❌ Error loading spot history from Firebase:', error);
+  } catch (error: any) {
+    console.error('❌ Error loading spot history from Firebase:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      userId,
+      hint: error?.code === 'failed-precondition' 
+        ? 'You need to create a Firestore index for spotHistory collection (userId + timestamp)'
+        : error?.code === 'permission-denied'
+        ? 'Check Firestore rules - spotHistory read permissions'
+        : 'Check network connection and Firebase config'
+    });
     throw error;
   }
 }

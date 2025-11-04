@@ -47,8 +47,8 @@ service cloud.firestore {
     // Armazena estatísticas de performance dos jogadores
     // ==========================================
     match /stats/{userId} {
-      // Qualquer um autenticado pode ler stats (leaderboard público)
-      allow read: if request.auth != null;
+      // Permite leitura pública (leaderboard)
+      allow read: if true;
       
       // Permite criar stats sem autenticação (primeiro spot jogado)
       allow create: if true;
@@ -65,12 +65,52 @@ service cloud.firestore {
       // Permite criar histórico mesmo sem autenticação Firebase
       allow create: if true;
       
-      // Permite ler apenas seu próprio histórico
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Permite ler histórico (necessário para "Practiced Hands")
+      // Se quiser restringir, use: allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if true;
     }
   }
 }
 ```
+
+### 3. Verificar se Funcionou
+
+Após publicar as regras:
+
+1. **Criar novo usuário** no site
+2. **Abrir DevTools** (F12) → Console
+3. Procurar por: `✅ User saved to Firebase successfully`
+4. **Verificar no Firebase Console**: Firestore Database → `users` collection
+
+## 📊 Índices Necessários no Firestore
+
+O Firestore requer índices compostos para queries com `where` + `orderBy`. Você precisa criar **2 índices**:
+
+### Índice 1: stats (para Leaderboard)
+- **Coleção**: `stats`
+- **Campo 1**: `totalPoints` (Decrescente)
+- **Status da query**: `Enabled`
+
+### Índice 2: spotHistory (para Practiced Hands)
+- **Coleção**: `spotHistory`
+- **Campo 1**: `userId` (Crescente)
+- **Campo 2**: `timestamp` (Decrescente)
+- **Status da query**: `Enabled`
+
+### Como criar os índices:
+
+**Opção A (Recomendada): Deixar o Firebase criar automaticamente**
+1. Acesse as páginas que usam os índices (Leaderboard e Practiced Hands)
+2. No Console (F12), procure por erro: `The query requires an index`
+3. O erro terá um **link direto** para criar o índice
+4. Clique no link e depois em "Criar índice"
+5. Aguarde alguns minutos para o índice ser construído
+
+**Opção B: Criar manualmente**
+1. Firebase Console → Firestore Database → **Índices**
+2. Clique em **Criar índice**
+3. Configure conforme tabela acima
+4. Clique em **Criar**
 
 ### 3. Verificar se Funcionou
 

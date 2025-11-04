@@ -7,6 +7,7 @@ interface LeaderboardEntry {
     totalPoints: number;
     totalSpots: number;
     correctSpots: number;
+    incorrectSpots: number; // Blunders/erros
     accuracy: number;
 }
 
@@ -39,6 +40,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                 totalPoints: stat.totalPoints,
                 totalSpots: stat.totalSpots,
                 correctSpots: stat.correctSpots,
+                incorrectSpots: stat.incorrectSpots || 0, // Fallback para dados antigos
                 accuracy: stat.accuracy
             }));
             
@@ -58,6 +60,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                         totalPoints: currentUserEntry.totalPoints,
                         totalSpots: currentUserEntry.totalSpots,
                         correctSpots: currentUserEntry.correctSpots,
+                        incorrectSpots: currentUserEntry.incorrectSpots || 0,
                         accuracy: currentUserEntry.accuracy
                     });
                     console.log('➕ Added current user to leaderboard');
@@ -285,15 +288,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                                 }`}>
                                                     {entry.accuracy.toFixed(1)}%
                                                 </div>
-                                                <div className="text-gray-500 text-xs">acertos</div>
+                                                <div className="text-gray-500 text-xs">accuracy</div>
                                             </div>
 
                                             {/* Corretos/Total */}
                                             <div className="text-right min-w-[80px]">
-                                                <div className="text-white font-semibold">
-                                                    {entry.correctSpots}/{entry.totalSpots}
+                                                <div className="text-green-400 font-semibold">
+                                                    {entry.correctSpots}
                                                 </div>
                                                 <div className="text-gray-500 text-xs">corretos</div>
+                                            </div>
+
+                                            {/* Blunders/Erros */}
+                                            <div className="text-right min-w-[80px]">
+                                                <div className="text-red-400 font-semibold">
+                                                    {entry.incorrectSpots}
+                                                </div>
+                                                <div className="text-gray-500 text-xs">blunders</div>
                                             </div>
                                         </div>
                                     </div>
