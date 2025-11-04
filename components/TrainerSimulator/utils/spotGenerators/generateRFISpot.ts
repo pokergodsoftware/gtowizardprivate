@@ -38,17 +38,12 @@ export function generateRFISpot(solution: AppData): RFISpotResult {
     const numPlayers = solution.settings.handdata.stacks.length;
     const bbPosition = numPlayers - 1; // BB is always last position
     
-    console.log('\n🎲 === GENERATING RFI SPOT ===');
-    console.log(`Players: ${numPlayers}, BB position: ${bbPosition}`);
-    
     // Select random position EXCEPT BB
     // BB cannot RFI (everyone acts before BB preflop)
     let heroPosition: number;
     do {
         heroPosition = Math.floor(Math.random() * numPlayers);
     } while (heroPosition === bbPosition);
-    
-    console.log(`✅ [RFI] Selected hero position ${heroPosition} of ${numPlayers} players (BB = ${bbPosition})`);
     
     return {
         heroPosition,

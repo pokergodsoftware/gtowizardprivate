@@ -199,9 +199,20 @@ export const calculatePlayerBet = (
             }
         }
     }
+    // For "vs Open", check if there's a villain action with the raise amount
+    else if (isRaiser && villainAction) {
+        // Parse raise amount from action string (e.g., "Raise 3.5" -> 3.5)
+        const raiseMatch = villainAction.action.match(/Raise\s+([\d.]+)/);
+        if (raiseMatch) {
+            const raiseBB = parseFloat(raiseMatch[1]);
+            playerBet = raiseBB * bigBlind;
+        } else {
+            playerBet = bigBlind * 2; // fallback
+        }
+    }
     // Raiser and Shovers always show bet (regardless of pot)
     else if (isRaiser) {
-        playerBet = bigBlind * 2;
+        playerBet = bigBlind * 2; // fallback if no villain action
     } else if (isShover || isMultiwayShover) {
         playerBet = stack;
     } else if (isAutoAllin) {

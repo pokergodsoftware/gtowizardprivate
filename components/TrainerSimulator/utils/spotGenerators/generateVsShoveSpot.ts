@@ -69,30 +69,23 @@ export async function generateVsShoveSpot(
     config: VsShoveConfig
 ): Promise<VsShoveSpotResult> {
     const { solution, loadNodes, solutionId } = config;
-    
-    console.log('\n🎲 === GENERATING VS SHOVE SPOT ===');
-    
+
     const numPlayers = solution.settings.handdata.stacks.length;
     
     // Hero must be position 1 to BB (cannot be position 0 - someone must shove first)
     const heroPosition = Math.floor(Math.random() * (numPlayers - 1)) + 1;
-    
-    console.log(`✅ [vs Shove] Selected hero at position ${heroPosition} of ${numPlayers} players`);
-    
+
     // List all positions that can shove (all before hero)
     const possibleShovers = Array.from({ length: heroPosition }, (_, i) => i);
-    console.log(`📋 Positions that can shove:`, possibleShovers);
-    
+
     // Try to find a valid shover (shuffle to add randomness)
     const shuffledShovers = possibleShovers.sort(() => Math.random() - 0.5);
     
     for (const potentialShover of shuffledShovers) {
-        console.log(`\n🔍 Checking if position ${potentialShover} can shove...`);
-        
+
         // Get shover's stack
         const shoverStack = solution.settings.handdata.stacks[potentialShover];
-        console.log(`   Stack at position ${potentialShover}: ${shoverStack} chips`);
-        
+
         // Navigate to this position
         const navResult = await foldUntilPosition(
             0, // start from node 0
@@ -103,7 +96,7 @@ export async function generateVsShoveSpot(
         );
         
         if (!navResult) {
-            console.log(`❌ Could not navigate to position ${potentialShover}`);
+
             continue;
         }
         
@@ -111,7 +104,7 @@ export async function generateVsShoveSpot(
         const checkNode = updatedSolution.nodes.get(navResult.nodeId);
         
         if (!checkNode) {
-            console.log(`❌ Node not found after navigation`);
+
             continue;
         }
         
@@ -119,7 +112,7 @@ export async function generateVsShoveSpot(
         const allinActionIndex = findAllInAction(checkNode.actions, shoverStack);
         
         if (allinActionIndex < 0) {
-            console.log(`❌ Position ${potentialShover} doesn't have all-in action`);
+
             continue;
         }
         
@@ -138,13 +131,10 @@ export async function generateVsShoveSpot(
         const hasMinFrequency = totalFreq > 0.05; // 5% minimum
         
         if (!hasMinFrequency) {
-            console.log(`❌ Position ${potentialShover} has all-in but freq < 5% (${(totalFreq * 100).toFixed(1)}%)`);
+
             continue;
         }
-        
-        console.log(`✅ Position ${potentialShover} can shove (total freq: ${(totalFreq * 100).toFixed(1)}%)`);
-        console.log(`\n🎯 Shover selected: position ${potentialShover}`);
-        
+
         return {
             heroPosition,
             shoverPosition: potentialShover,
@@ -154,8 +144,7 @@ export async function generateVsShoveSpot(
     }
     
     // No valid shover found
-    console.log('⚠️ No position before hero has valid shove');
-    
+
     return {
         heroPosition,
         shoverPosition: -1,

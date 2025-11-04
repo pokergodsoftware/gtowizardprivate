@@ -91,15 +91,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         return null;
     }
     
-    // Debug log
-    console.log('PokerTable Debug:', {
-        numPlayers,
-        positionsLength: positions?.length,
-        heroPosition,
-        stacksLength: stacks?.length,
-        blindsLength: blinds?.length
-    });
-    
     const { getPlayerPosition, getPlayerAngle } = usePlayerPositions();
     
     // Identify SB, BB and BTN
@@ -117,10 +108,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         : getTrainerAssetUrl('table.png');
     
     const tournamentName = getTournamentName(solutionFileName);
-    
-    // Debug logs
-    console.log('🎨 PokerTable - spotType:', spotType);
-    console.log('🎨 PokerTable - raiserPosition:', raiserPosition);
     
     return (
         <div className="relative w-full h-full flex items-center justify-center">
@@ -151,7 +138,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     const isShover = spotType === 'vs Shove' && raiserPosition !== undefined && index === raiserPosition;
                     const isMultiwayShover = spotType === 'vs Multiway shove' && shoverPositions !== undefined && shoverPositions.includes(index);
                     
-                    const villainAction = spotType === 'Any' && villainActions 
+                    // Get villain action for this position (works for Any, vs Open, etc)
+                    const villainAction = villainActions 
                         ? villainActions.find(va => va.position === index) 
                         : undefined;
                     

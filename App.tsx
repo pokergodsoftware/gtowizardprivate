@@ -33,6 +33,7 @@ const App: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<'home' | 'solutions' | 'trainer'>('home');
     const [solutions, setSolutions] = useState<AppData[]>([]);
     const solutionsRef = useRef<AppData[]>([]); // Ref para acesso síncrono ao estado mais recente
+    const hasLoggedSolutions = useRef(false); // Flag para evitar log duplicado
     const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingNode, setIsLoadingNode] = useState(false);
@@ -223,10 +224,6 @@ const App: React.FC = () => {
                     // IMPORTANTE: Usar ID determinístico baseado no path
                     const solutionId = generateDeterministicId(basePath);
                     
-                    if ((import.meta as any).env?.DEV) {
-                        console.log(`✅ Loaded solution: ${fileName} with ID: ${solutionId}`);
-                    }
-                    
                     return {
                         id: solutionId,
                         fileName,
@@ -250,6 +247,30 @@ const App: React.FC = () => {
             });
 
             const loadedSolutions = (await Promise.all(solutionPromises)).filter(s => s !== null) as AppData[];
+
+            // Agrupar e resumir por fase (apenas uma vez)
+            if ((import.meta as any).env?.DEV && !hasLoggedSolutions.current) {
+                const phaseCount: { [key: string]: number } = {};
+                const errorCount = metadata.length - loadedSolutions.length;
+                
+                loadedSolutions.forEach(sol => {
+                    phaseCount[sol.tournamentPhase] = (phaseCount[sol.tournamentPhase] || 0) + 1;
+                });
+                
+                console.log('📊 Solutions loaded by phase:');
+                Object.entries(phaseCount)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .forEach(([phase, count]) => {
+                        console.log(`   ✅ ${phase}: ${count} spots`);
+                    });
+                
+                if (errorCount > 0) {
+                    console.warn(`   ⚠️ Failed to load: ${errorCount} spots`);
+                }
+                
+                console.log(`📦 Total: ${loadedSolutions.length} spots loaded successfully`);
+                hasLoggedSolutions.current = true; // Marcar como já logado
+            }
 
             setSolutions(loadedSolutions);
 

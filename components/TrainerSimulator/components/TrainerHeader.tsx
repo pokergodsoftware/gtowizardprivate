@@ -26,6 +26,7 @@ interface TrainerStats {
 interface TrainerHeaderProps {
     stats: TrainerStats;
     tournamentMode: boolean;
+    tournamentPhase?: string;
     timeLeft?: number;
     displayMode: 'bb' | 'chips';
     showBountyInDollars: boolean;
@@ -40,6 +41,7 @@ interface TrainerHeaderProps {
 export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
     stats,
     tournamentMode,
+    tournamentPhase,
     timeLeft,
     displayMode,
     showBountyInDollars,
@@ -50,135 +52,72 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
     onToggleAutoAdvance,
     onBack
 }) => {
-    // Hide header in tournament mode
-    if (tournamentMode) {
-        return null;
-    }
 
     // Calculate accuracy percentage
     const accuracy = stats.totalQuestions > 0 
         ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) 
         : 0;
 
+    const errors = stats.totalQuestions - stats.correctAnswers;
+
     return (
-        <header className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 px-6 py-4 shadow-lg">
+        <header className="bg-[#23272f] border-b border-gray-700 px-4 py-2">
             <div className="max-w-[1800px] mx-auto">
                 {/* Top Row: Back button and Phase selector */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                     {/* Back Button */}
                     <button
                         onClick={onBack}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                        className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm"
                     >
-                        <span>←</span>
-                        <span>Voltar</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />   
+                        </svg>
+                        <span className="font-semibold">Voltar</span>
                     </button>
 
                     {/* Phase Display */}
-                    <div className="text-slate-300 text-sm font-medium">
+                    <h1 className="text-lg font-bold text-white">
                         {selectedPhases.length === 1 ? (
-                            <span>📊 Fase: {selectedPhases[0]}</span>
+                            <span>📊 {selectedPhases[0]}</span>
                         ) : (
-                            <span>📊 Fases: {selectedPhases.join(', ')}</span>
+                            <span>📊 {selectedPhases.length} Fases Selecionadas</span>
                         )}
-                    </div>
+                    </h1>
+
+                    {/* Spacer for alignment */}
+                    <div className="w-24"></div>
                 </div>
 
-                {/* Stats Row */}
-                <div className="flex items-center justify-between">
-                    {/* Left: Statistics */}
-                    <div className="flex items-center gap-6">
-                        {/* Total Questions */}
-                        <div className="flex flex-col">
-                            <span className="text-slate-400 text-xs uppercase tracking-wide">Questões</span>
-                            <span className="text-white text-2xl font-bold">{stats.totalQuestions}</span>
-                        </div>
-
-                        {/* Correct Answers */}
-                        <div className="flex flex-col">
-                            <span className="text-slate-400 text-xs uppercase tracking-wide">Acertos</span>
-                            <span className="text-green-400 text-2xl font-bold">{stats.correctAnswers}</span>
-                        </div>
-
-                        {/* Accuracy */}
-                        <div className="flex flex-col">
-                            <span className="text-slate-400 text-xs uppercase tracking-wide">Precisão</span>
-                            <span className={`text-2xl font-bold ${
-                                accuracy >= 70 ? 'text-green-400' : 
-                                accuracy >= 50 ? 'text-yellow-400' : 
-                                'text-red-400'
-                            }`}>
-                                {accuracy}%
-                            </span>
-                        </div>
-
-                        {/* Score */}
-                        <div className="flex flex-col">
-                            <span className="text-slate-400 text-xs uppercase tracking-wide">Pontos</span>
-                            <span className="text-blue-400 text-2xl font-bold">{stats.score}</span>
-                        </div>
-
-                        {/* Tournament Stats (if applicable) */}
-                        {stats.tournamentsPlayed > 0 && (
-                            <>
-                                <div className="h-8 w-px bg-slate-600"></div>
-                                <div className="flex flex-col">
-                                    <span className="text-slate-400 text-xs uppercase tracking-wide">Torneios</span>
-                                    <span className="text-purple-400 text-2xl font-bold">{stats.tournamentsPlayed}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-slate-400 text-xs uppercase tracking-wide">FT</span>
-                                    <span className="text-yellow-400 text-2xl font-bold">{stats.reachedFinalTable}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-slate-400 text-xs uppercase tracking-wide">Vitórias</span>
-                                    <span className="text-green-400 text-2xl font-bold">{stats.completedTournaments}</span>
-                                </div>
-                            </>
-                        )}
+                {/* Stats Row - Same style as Tournament Mode */}
+                <div className="grid grid-cols-4 gap-2">
+                    {/* Played Spots */}
+                    <div className="bg-blue-500/10 rounded-lg p-1.5 text-center border border-blue-500/30">
+                        <div className="text-blue-400 text-[10px] mb-0.5">Played Spots</div>
+                        <div className="text-blue-400 font-bold text-sm">{stats.totalQuestions}</div>
                     </div>
 
-                    {/* Right: Control Toggles */}
-                    <div className="flex items-center gap-3">
-                        {/* Display Mode Toggle (BB/Chips) */}
-                        <button
-                            onClick={onToggleDisplayMode}
-                            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                                displayMode === 'bb'
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                            }`}
-                            title="Toggle between BB and chips display"
-                        >
-                            {displayMode === 'bb' ? 'BB' : 'Chips'}
-                        </button>
+                    {/* Acertos */}
+                    <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
+                        <div className="text-green-400 text-[10px] mb-0.5">Acertos</div>
+                        <div className="text-green-400 font-bold text-sm">{stats.correctAnswers}</div>
+                    </div>
 
-                        {/* Bounty Display Toggle ($/x) */}
-                        <button
-                            onClick={onToggleShowBountyInDollars}
-                            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                                showBountyInDollars
-                                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                            }`}
-                            title="Toggle bounty display between $ and x"
-                        >
-                            {showBountyInDollars ? '$' : 'x'}
-                        </button>
+                    {/* Erros */}
+                    <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
+                        <div className="text-red-400 text-[10px] mb-0.5">Erros</div>
+                        <div className="text-red-400 font-bold text-sm">{errors}</div>
+                    </div>
 
-                        {/* Auto-Advance Toggle */}
-                        <button
-                            onClick={onToggleAutoAdvance}
-                            className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                                autoAdvance
-                                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                            }`}
-                            title="Auto-advance to next hand after answer"
-                        >
-                            <span>⏭️</span>
-                            <span>{autoAdvance ? 'Auto' : 'Manual'}</span>
-                        </button>
+                    {/* Score */}
+                    <div className="bg-purple-500/10 rounded-lg p-1.5 text-center border border-purple-500/30">
+                        <div className="text-purple-400 text-[10px] mb-0.5">Score</div>
+                        <div className="text-purple-400 font-bold text-sm">
+                            {stats.totalQuestions > 0 
+                                ? `${Math.round((stats.correctAnswers / stats.totalQuestions) * 100)}%`
+                                : '0%'
+                            }
+                        </div>
                     </div>
                 </div>
             </div>

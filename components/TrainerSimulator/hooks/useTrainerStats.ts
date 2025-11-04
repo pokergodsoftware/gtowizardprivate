@@ -3,6 +3,7 @@
  * 
  * Manages trainer statistics tracking.
  * Extracted from TrainerSimulator.tsx during Phase 2 refactoring.
+ * Stats are session-based and reset on unmount (not persisted).
  */
 
 import { useState } from 'react';
@@ -30,6 +31,7 @@ const INITIAL_STATS: TrainerStats = {
 /**
  * Custom hook for managing trainer statistics
  * Tracks questions, correct answers, score, and tournament progress
+ * Stats are reset on component mount (new training session)
  */
 export const useTrainerStats = (): UseTrainerStatsReturn => {
     const [stats, setStats] = useState<TrainerStats>(INITIAL_STATS);
@@ -45,22 +47,32 @@ export const useTrainerStats = (): UseTrainerStatsReturn => {
         phase: string, 
         points: number
     ) => {
-        setStats(prev => ({
-            totalQuestions: prev.totalQuestions + 1,
-            correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
-            score: prev.score + points,
-            tournamentsPlayed: phase === '100~60% left' 
-                ? prev.tournamentsPlayed + 1 
-                : prev.tournamentsPlayed,
-            reachedFinalTable: phase === 'Final table' 
-                ? prev.reachedFinalTable + 1 
-                : prev.reachedFinalTable,
-            completedTournaments: (phase === 'Final table' && isCorrect) 
-                ? prev.completedTournaments + 1 
-                : prev.completedTournaments
-        }));
-
-        console.log(`📊 Stats updated: ${isCorrect ? 'CORRECT' : 'WRONG'} - ${points} points - Phase: ${phase}`);
+        setStats(prev => {
+            const newStats = {
+                totalQuestions: prev.totalQuestions + 1,
+                correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
+                score: prev.score + points,
+                tournamentsPlayed: phase === '100~60% left' 
+                    ? prev.tournamentsPlayed + 1 
+                    : prev.tournamentsPlayed,
+                reachedFinalTable: phase === 'Final table' 
+                    ? prev.reachedFinalTable + 1 
+                    : prev.reachedFinalTable,
+                completedTournaments: (phase === 'Final table' && isCorrect) 
+                    ? prev.completedTournaments + 1 
+                    : prev.completedTournaments
+            };
+            
+            console.log(`📊 Stats updated:`, {
+                result: isCorrect ? 'CORRECT ✅' : 'WRONG ❌',
+                points,
+                phase,
+                before: { total: prev.totalQuestions, correct: prev.correctAnswers },
+                after: { total: newStats.totalQuestions, correct: newStats.correctAnswers }
+            });
+            
+            return newStats;
+        });
     };
 
     /**

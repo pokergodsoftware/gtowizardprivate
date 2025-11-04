@@ -2,6 +2,9 @@ import React from 'react';
 import { PokerTableVisual } from '../../PokerTableVisual';
 import { PlayerHand } from '../../PlayerHand';
 import { TrainerPayoutInfo } from './TrainerPayoutInfo';
+import { HandHistoryPanel } from './HandHistoryPanel';
+import { useHandHistory } from '../hooks/useHandHistory';
+import { getInitialBounty } from '../utils/trainerHelpers';
 import type { AppData, NodeData } from '../../../types';
 import type { VillainAction } from '../types';
 
@@ -12,6 +15,7 @@ import type { VillainAction } from '../types';
  * This is the main visual component for training sessions.
  * 
  * Features:
+ * - HandHistoryPanel showing actions leading to current spot
  * - PokerTableVisual with all players and their stacks
  * - Action buttons (Fold/Call/Check/Raise) positioned near hero
  * - Hero hand display with bounty (if applicable)
@@ -23,6 +27,7 @@ import type { VillainAction } from '../types';
 interface TrainerTableProps {
     solution: AppData;
     node: NodeData;
+    nodeId?: number;  // Optional: node ID for hand history
     playerPosition: number;
     playerHand: string;
     playerHandName: string;
@@ -40,11 +45,13 @@ interface TrainerTableProps {
     onToggleDisplayMode: () => void;
     onToggleBountyDisplay: () => void;
     onToggleAutoAdvance: () => void;
+    onStudy?: () => void;
 }
 
 export const TrainerTable: React.FC<TrainerTableProps> = ({
     solution,
     node,
+    nodeId,
     playerPosition,
     playerHand,
     playerHandName,
@@ -61,16 +68,35 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     onCheckAnswer,
     onToggleDisplayMode,
     onToggleBountyDisplay,
-    onToggleAutoAdvance
+    onToggleAutoAdvance,
+    onStudy
 }) => {
     const { settings } = solution;
     const bigBlind = settings.handdata.blinds.length > 1 
         ? Math.max(settings.handdata.blinds[0], settings.handdata.blinds[1]) 
         : (settings.handdata.blinds[0] || 0);
     
+    // Find nodeId if not provided
+    const actualNodeId = nodeId !== undefined ? nodeId : findNodeId(solution.nodes, node);
+    
+    // Build hand history using custom hook
+    const { history } = useHandHistory({
+        solution,
+        nodeId: actualNodeId,
+        displayMode
+    });
+    
+    // Helper to find node ID from node reference
+    function findNodeId(nodes: Map<number, NodeData>, targetNode: NodeData): number {
+        for (const [id, n] of nodes.entries()) {
+            if (n === targetNode) return id;
+        }
+        return 0;
+    }
+    
     // Helper function to format bounty display
     const formatBounty = (bounty: number): string => {
-        const actualBounty = bounty / 2; // Bounty real em dólar
+        const actualBounty = bounty / 2; // Bounty em dólares (PKO: metade vai para o prêmio)
         
         if (showBountyInDollars) {
             return `$${actualBounty.toFixed(2)}`;
@@ -80,21 +106,17 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
             return multiplier === 1 ? '1x' : `${multiplier.toFixed(1)}x`;
         }
     };
-    
-    // Helper function to determine initial bounty from solution filename
-    const getInitialBounty = (solutionFileName: string): number => {
-        const fileName = solutionFileName.toLowerCase();
-        if (fileName.includes('speed32')) return 16;
-        if (fileName.includes('speed50')) return 25;
-        if (fileName.includes('speed108')) return 54;
-        if (fileName.includes('speed20')) return 10;
-        return 7.5; // Default
-    };
 
     return (
-        <div className="flex gap-6">
-            {/* Mesa visual - 70% */}
-            <div className="relative w-fit">
+        <div className="flex gap-4 items-stretch">
+            {/* Hand History Panel - Left Side - Same height as table */}
+            <HandHistoryPanel 
+                history={history}
+                numPlayers={settings.handdata.stacks.length}
+            />
+            
+            {/* Mesa visual - Center - Content defines height */}
+            <div className="relative flex-shrink-0">
                 {/* Mesa visual */}
                 <div className="relative flex items-center justify-center bg-[#23272f] rounded-lg p-3 overflow-hidden">
                 <PokerTableVisual 
@@ -115,10 +137,10 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
             
                 {/* Ações disponíveis - Estilo GGPoker (à direita do hero) */}
                 {!showFeedback && (
-                    <div className={`absolute bottom-[45px] left-1/2 transform flex z-30 justify-center ${
-                        node.actions.length <= 2 ? 'translate-x-[40%] gap-2' :
-                        node.actions.length === 3 ? 'translate-x-[30%] gap-1.5' :
-                        'translate-x-[20%] gap-1'
+                    <div className={`absolute bottom-9 left-1/2 transform flex z-30 justify-center items-center ${
+                        node.actions.length <= 2 ? 'translate-x-[55%] gap-2' :
+                        node.actions.length === 3 ? 'translate-x-[45%] gap-1.5' :
+                        'translate-x-[35%] gap-1'
                     }`}>
                         {node.actions.map((action, index) => {
                             // Converte tipo para nome (incluindo valor para Raise)
@@ -145,12 +167,12 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                 ? 'bg-red-700 hover:bg-red-800' 
                                 : actionColors[actionName] || 'bg-red-700 hover:bg-red-800';
                             
-                            // Ajustar tamanho dos botões baseado na quantidade
+                            // Ajustar tamanho dos botões baseado na quantidade para não sair da mesa
                             const buttonSize = node.actions.length <= 2 
-                                ? 'px-4 py-3 min-w-[64px] min-h-[45px]'
+                                ? 'px-4 py-3 min-w-[70px] min-h-[50px]'
                                 : node.actions.length === 3
-                                ? 'px-3.5 py-2.5 min-w-[58px] min-h-[42px]'
-                                : 'px-3 py-2 min-w-[52px] min-h-[38px]';
+                                ? 'px-3.5 py-2.5 min-w-[65px] min-h-[48px]'
+                                : 'px-3 py-2 min-w-[58px] min-h-[45px]';
                             
                             return (
                                 <button
@@ -176,15 +198,25 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                     <div className="absolute inset-0 bg-black/20" />
                                     
                                     {/* Texto */}
-                                    <div className="relative z-10">
+                                    <div className="relative z-10 flex flex-col items-center justify-center min-h-[32px]">
                                         {(() => {
-                                            const textSize = node.actions.length >= 4 ? 'text-[10px]' : 'text-xs';
-                                            const subTextSize = node.actions.length >= 4 ? 'text-[8px]' : 'text-[10px]';
+                                            const textSize = 'text-xs';
+                                            const subTextSize = 'text-[10px]';
                                             
                                             if (actionName === 'Fold') {
-                                                return <div className={`${textSize} font-bold`}>Fold</div>;
+                                                return (
+                                                    <>
+                                                        <div className={`${textSize} font-bold`}>Fold</div>
+                                                        <div className={`${subTextSize} font-semibold invisible`}>0 BB</div>
+                                                    </>
+                                                );
                                             } else if (actionName === 'Check') {
-                                                return <div className={`${textSize} font-bold`}>Check</div>;
+                                                return (
+                                                    <>
+                                                        <div className={`${textSize} font-bold`}>Check</div>
+                                                        <div className={`${subTextSize} font-semibold invisible`}>0 BB</div>
+                                                    </>
+                                                );
                                             } else if (actionName === 'Call') {
                                                 return (
                                                     <>
@@ -327,15 +359,17 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
-            </div>
+            {/* Fim do container da mesa */}
             
-            {/* Toggle controls à direita - 30% */}
-            <div className="w-64 bg-[#23272f] rounded-lg p-4 space-y-3 h-fit">
-                <h3 className="text-white font-bold text-base mb-3">Settings</h3>
+            {/* Settings Panel - Right Side - Same height as table */}
+            <div className="flex-shrink-0 w-64 flex flex-col">
+                <div className="bg-[#23272f] rounded-lg p-3 space-y-2 flex flex-col h-full">
+                    <h3 className="text-white font-bold text-base mb-1">Settings</h3>
                 
                 {/* Show in big blinds */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1.5">
                     <span className="text-gray-300 text-sm">Show in big blinds</span>
                     <button
                         onClick={onToggleDisplayMode}
@@ -352,7 +386,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                 </div>
                 
                 {/* Show bounty as $ */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1.5">
                     <span className="text-gray-300 text-sm">Show bounty as $</span>
                     <button
                         onClick={onToggleBountyDisplay}
@@ -369,7 +403,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                 </div>
                 
                 {/* Auto advance next hand */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1.5">
                     <span className="text-gray-300 text-sm">Auto advance next hand</span>
                     <button
                         onClick={onToggleAutoAdvance}
@@ -386,13 +420,16 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                 </div>
                 
                 {/* Divider */}
-                <div className="border-t border-gray-700 my-2" />
+                <div className="border-t border-gray-700 my-1.5" />
                 
-                {/* Payouts and Tournament Info */}
-                <TrainerPayoutInfo 
-                    prizes={solution.settings.eqmodel?.structure?.prizes}
-                    solutionFileName={solution.fileName}
-                />
+                {/* Payouts and Tournament Info - Flex-grow to fill remaining space */}
+                <div className="flex-grow overflow-auto">
+                    <TrainerPayoutInfo 
+                        prizes={solution.settings.eqmodel?.structure?.prizes}
+                        solutionFileName={solution.fileName}
+                    />
+                </div>
+            </div>
             </div>
         </div>
     );

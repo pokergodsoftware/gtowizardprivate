@@ -305,21 +305,59 @@ export const useSpotGeneration = ({
                 const numPlayers = currentSolution.settings.handdata.stacks.length;
                 const bbPosition = numPlayers - 1;
                 
-                let heroPosition: number;
-                do {
-                    heroPosition = Math.floor(Math.random() * numPlayers);
-                } while (heroPosition === bbPosition);
+                // Carrega nodes 0-5 de uma vez se necessário
+                if (!currentSolution.nodes.has(1) || !currentSolution.nodes.has(2)) {
+                    console.log('📥 Loading RFI nodes 0-5...');
+                    const nodesToLoad = [0, 1, 2, 3, 4, 5];
+                    const updatedSolution = await loadNodesForSolution(originalSolutionId, nodesToLoad);
+                    if (updatedSolution) {
+                        currentSolution = updatedSolution;
+                    }
+                }
                 
-                console.log(`✅ [RFI] Hero position: ${heroPosition}`);
+                // Coleta todos os nós RFI disponíveis
+                const rfiNodes: Array<{ nodeId: number; position: number }> = [];
                 
-                const node = currentSolution.nodes.get(0);
-                if (!node) {
-                    console.error('❌ Node 0 not found');
+                // Verifica nodes 0-20 para encontrar nós RFI
+                for (let nodeId = 0; nodeId <= 20; nodeId++) {
+                    const node = currentSolution.nodes.get(nodeId);
+                    if (!node) continue;
+                    
+                    // Verifica se é um nó RFI (sem ações anteriores ou só folds antes)
+                    const isRFI = !node.sequence || node.sequence.length === 0 || 
+                                  node.sequence.every(action => action.type === 'F');
+                    
+                    if (isRFI && node.player !== bbPosition) {
+                        rfiNodes.push({ nodeId, position: node.player });
+                    }
+                }
+                
+                if (rfiNodes.length === 0) {
+                    console.error('❌ No RFI nodes found in solution');
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                console.log(`✅ Found ${rfiNodes.length} RFI nodes:`, rfiNodes);
+                
+                // Sorteia um nó RFI aleatório
+                const selectedRFI = randomElement(rfiNodes);
+                const heroPosition = selectedRFI.position;
+                const currentNodeId = selectedRFI.nodeId;
+                
+                console.log(`✅ [RFI] Hero position: ${heroPosition}, Node: ${currentNodeId}`);
+                
+                const currentNode = currentSolution.nodes.get(currentNodeId);
+                if (!currentNode) {
+                    console.error(`❌ Node ${currentNodeId} not found`);
                     isGeneratingSpot.current = false;
                     return;
                 }
                 
-                const handAndCombo = selectHandAndCombo(node);
+                console.log(`✅ Found RFI node ${currentNodeId} for position ${heroPosition}`);
+                
+                const handAndCombo = selectHandAndCombo(currentNode);
                 if (!handAndCombo) {
                     console.error('❌ Failed to select hand');
                     isGeneratingSpot.current = false;
@@ -329,7 +367,7 @@ export const useSpotGeneration = ({
                 
                 setCurrentSpot({
                     solution: currentSolution,
-                    nodeId: 0,
+                    nodeId: currentNodeId,
                     playerPosition: heroPosition,
                     playerHand: handAndCombo.combo,
                     playerHandName: handAndCombo.handName,
@@ -337,6 +375,239 @@ export const useSpotGeneration = ({
                 });
                 
                 console.log('✅✅✅ RFI spot generated successfully!');
+                isGeneratingSpot.current = false;
+                retryCount.current = 0;
+                return;
+            }
+            
+            if (spotType === 'vs Open') {
+                console.log('\n🎲 === GENERATING VS OPEN SPOT ===');
+                
+                const numPlayers = currentSolution.settings.handdata.stacks.length;
+                const blinds = currentSolution.settings.handdata.blinds;
+                const bigBlind = Math.max(blinds[0], blinds[1]);
+                const bbPosition = numPlayers - 1;
+                
+                // Carrega nodes 0-10 de uma vez
+                if (!currentSolution.nodes.has(5)) {
+                    console.log('📥 Loading nodes 0-10...');
+                    const nodesToLoad = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                    const updatedSolution = await loadNodesForSolution(originalSolutionId, nodesToLoad);
+                    if (updatedSolution) {
+                        currentSolution = updatedSolution;
+                    }
+                }
+                
+                // Passo 1: Verificar quais posições têm RFI NÃO all-in
+                const rfiNonAllinPositions: Array<{ position: number; nodeId: number; raiseNode: number }> = [];
+                
+                // Varre os primeiros nós para encontrar RFI não all-in
+                for (let nodeId = 0; nodeId <= 20; nodeId++) {
+                    const node = currentSolution.nodes.get(nodeId);
+                    if (!node) continue;
+                    
+                    // Verifica se é um nó RFI (sem ações anteriores ou só folds antes)
+                    const isRFI = !node.sequence || node.sequence.length === 0 || 
+                                  node.sequence.every(action => action.type === 'F');
+                    
+                    if (!isRFI || node.player === bbPosition) continue;
+                    
+                    // Verifica se tem raise NÃO all-in
+                    const playerStack = currentSolution.settings.handdata.stacks[node.player];
+                    
+                    for (let i = 0; i < node.actions.length; i++) {
+                        const action = node.actions[i];
+                        
+                        if (action.type !== 'R') continue;
+                        
+                        // Verifica se NÃO é all-in
+                        // É all-in se o raise amount é >= 95% do stack OU se deixa menos de 1 BB
+                        const remainingStack = playerStack - action.amount;
+                        const remainingBB = remainingStack / bigBlind;
+                        const isAllIn = action.amount >= playerStack * 0.95 || remainingBB < 1.0;
+                        
+                        if (!isAllIn && action.node !== undefined) {
+                            // Verifica se alguma mão joga esse raise
+                            let hasFrequency = false;
+                            for (const handName of Object.keys(node.hands)) {
+                                const handData = node.hands[handName];
+                                if (handData && handData.played[i] > 0) {
+                                    hasFrequency = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (hasFrequency) {
+                                rfiNonAllinPositions.push({
+                                    position: node.player,
+                                    nodeId: nodeId,
+                                    raiseNode: action.node
+                                });
+                                break; // Já encontrou raise não all-in neste nó
+                            }
+                        }
+                    }
+                }
+                
+                if (rfiNonAllinPositions.length === 0) {
+                    console.log('⚠️ No RFI non all-in found, trying another solution...');
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                console.log(`✅ Found ${rfiNonAllinPositions.length} positions with RFI non all-in:`, rfiNonAllinPositions);
+                
+                // Passo 2: Sorteia um raiser
+                const selectedRaiser = randomElement(rfiNonAllinPositions);
+                const raiserPosition = selectedRaiser.position;
+                
+                console.log(`✅ Selected raiser: Position ${raiserPosition} at node ${selectedRaiser.nodeId}`);
+                
+                // Passo 3: Entra no node do raise
+                let raiseNodeId = selectedRaiser.raiseNode;
+                let currentNode = currentSolution.nodes.get(raiseNodeId);
+                
+                if (!currentNode) {
+                    console.error(`❌ Raise node ${raiseNodeId} not found`);
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                console.log(`✅ Entered raise node ${raiseNodeId}, player: ${currentNode.player}`);
+                
+                // Passo 4: Sorteia hero entre as posições DEPOIS do raiser (até BB)
+                const possibleHeroPositions: number[] = [];
+                for (let pos = raiserPosition + 1; pos < numPlayers; pos++) {
+                    possibleHeroPositions.push(pos);
+                }
+                
+                if (possibleHeroPositions.length === 0) {
+                    console.error('❌ No valid hero positions after raiser');
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                const heroPosition = randomElement(possibleHeroPositions);
+                console.log(`✅ Hero position: ${heroPosition} (after raiser ${raiserPosition})`);
+                
+                // Passo 5: Registra ações anteriores e navega até o hero
+                const villainActions: VillainAction[] = [];
+                
+                // Adiciona ações de fold antes do raiser (se houver)
+                const flatCombos = allCombos.flat();
+                for (let pos = 0; pos < raiserPosition; pos++) {
+                    const randomCombo = randomElement(flatCombos);
+                    villainActions.push({
+                        position: pos,
+                        action: 'Fold',
+                        combo: randomCombo
+                    });
+                }
+                
+                // Adiciona a ação de raise do raiser
+                const raiserNode = currentSolution.nodes.get(selectedRaiser.nodeId);
+                if (raiserNode) {
+                    const raiseAction = raiserNode.actions.find(a => a.type === 'R' && a.node === selectedRaiser.raiseNode);
+                    if (raiseAction) {
+                        // Calcula o tamanho do raise em BB
+                        // raiseAction.amount é o total colocado no pote
+                        // Precisa descontar blind/ante já investido
+                        const blinds = currentSolution.settings.handdata.blinds;
+                        let alreadyInvested = 0;
+                        
+                        // Verifica quanto o raiser já investiu (blind/ante)
+                        if (raiserPosition === numPlayers - 1) { // BB
+                            alreadyInvested = Math.max(blinds[0], blinds[1]);
+                        } else if (raiserPosition === numPlayers - 2) { // SB
+                            alreadyInvested = Math.min(blinds[0], blinds[1]);
+                        }
+                        
+                        // Adiciona ante se houver
+                        const antePerPlayer = blinds[2] || 0;
+                        alreadyInvested += antePerPlayer;
+                        
+                        const actualRaiseAmount = raiseAction.amount - alreadyInvested;
+                        const raiseAmountBB = actualRaiseAmount / bigBlind;
+                        
+                        const randomCombo = randomElement(flatCombos);
+                        villainActions.push({
+                            position: raiserPosition,
+                            action: `Raise ${raiseAmountBB.toFixed(1)}`,
+                            combo: randomCombo
+                        });
+                    }
+                }
+                
+                // Navega fazendo fold até chegar no hero
+                let currentNodeId = raiseNodeId;
+                let attempts = 0;
+                
+                while (currentNode && currentNode.player !== heroPosition && attempts < 30) {
+                    attempts++;
+                    console.log(`🔍 Node ${currentNodeId}: player ${currentNode.player} (navegando até hero ${heroPosition})`);
+                    
+                    // Registra o fold do villain
+                    const randomCombo = randomElement(flatCombos);
+                    
+                    villainActions.push({
+                        position: currentNode.player,
+                        action: 'Fold',
+                        combo: randomCombo
+                    });
+                    
+                    const foldAction = currentNode.actions.find(a => a.type === 'F');
+                    if (!foldAction || foldAction.node === undefined) {
+                        console.error('❌ No fold action to navigate');
+                        isGeneratingSpot.current = false;
+                        setTimeout(() => generateNewSpot(), 100);
+                        return;
+                    }
+                    
+                    currentNodeId = foldAction.node;
+                    currentNode = currentSolution.nodes.get(currentNodeId);
+                    
+                    if (!currentNode) {
+                        console.error(`❌ Node ${currentNodeId} not found during navigation`);
+                        isGeneratingSpot.current = false;
+                        setTimeout(() => generateNewSpot(), 100);
+                        return;
+                    }
+                }
+                
+                if (!currentNode || currentNode.player !== heroPosition) {
+                    console.error(`❌ Could not reach hero position ${heroPosition}`);
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                console.log(`✅ Reached hero at node ${currentNodeId}`);
+                console.log(`✅ Villain actions recorded:`, villainActions);
+                
+                const handAndCombo = selectHandAndCombo(currentNode);
+                if (!handAndCombo) {
+                    console.error('❌ Failed to select hand');
+                    isGeneratingSpot.current = false;
+                    setTimeout(() => generateNewSpot(), 100);
+                    return;
+                }
+                
+                setCurrentSpot({
+                    solution: currentSolution,
+                    nodeId: currentNodeId,
+                    playerPosition: heroPosition,
+                    playerHand: handAndCombo.combo,
+                    playerHandName: handAndCombo.handName,
+                    spotType: spotType,
+                    raiserPosition: raiserPosition,
+                    villainActions: villainActions
+                });
+                
+                console.log('✅✅✅ vs Open spot generated successfully!');
+                console.log(`   Raiser: Position ${raiserPosition} → Hero: Position ${heroPosition}`);
                 isGeneratingSpot.current = false;
                 retryCount.current = 0;
                 return;
@@ -480,8 +751,10 @@ export const useSpotGeneration = ({
                         const updated = await loadNodesForSolution(originalSolutionId, [currentNodeId]);
                         
                         if (updated && updated.nodes.has(currentNodeId)) {
-                            workingSolution = updated;
-                            console.log(`   ✅ Node ${currentNodeId} loaded`);
+                            // Merge the newly loaded node into workingSolution
+                            // instead of replacing the entire solution (which would lose previous nodes)
+                            workingSolution.nodes.set(currentNodeId, updated.nodes.get(currentNodeId)!);
+                            console.log(`   ✅ Node ${currentNodeId} loaded and merged (total nodes: ${workingSolution.nodes.size})`);
                         } else {
                             console.error('❌ Failed to load node', currentNodeId);
                             isGeneratingSpot.current = false;

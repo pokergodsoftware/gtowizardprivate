@@ -133,9 +133,7 @@ export async function generateVsMultiwaySpot(
     config: VsMultiwayConfig
 ): Promise<VsMultiwaySpotResult> {
     const { solution, loadNodes, solutionId } = config;
-    
-    console.log('\n🎲 === GENERATING VS MULTIWAY SHOVE SPOT ===');
-    
+
     const numPlayers = solution.settings.handdata.stacks.length;
     const blinds = solution.settings.handdata.blinds;
     const bigBlind = Math.max(blinds[0], blinds[1]);
@@ -145,16 +143,12 @@ export async function generateVsMultiwaySpot(
     
     // Select random hero position from valid positions
     const heroPosition = validHeroPositions[Math.floor(Math.random() * validHeroPositions.length)];
-    
-    console.log(`✅ [vs Multiway] Selected hero at position ${heroPosition} of ${numPlayers} players`);
-    console.log(`📋 Valid hero positions:`, validHeroPositions);
-    
+
     // Determine maximum number of possible shovers (all before hero)
     const maxShovers = heroPosition;
-    console.log(`📊 Maximum possible shovers: ${maxShovers}`);
-    
+
     if (maxShovers < 2) {
-        console.log('⚠️ Less than 2 positions can shove');
+
         return {
             heroPosition,
             shoverPositions: [],
@@ -166,26 +160,20 @@ export async function generateVsMultiwaySpot(
     
     // Determine number of shovers
     const numShovers = getNumberOfShovers(maxShovers);
-    console.log(`🎲 Selected ${numShovers} shovers`);
-    
+
     // Select which positions will shove (all before hero)
     const possibleShoverPositions = Array.from({ length: heroPosition }, (_, i) => i);
     
     // Shuffle and take first numShovers positions, then sort
     const shuffled = possibleShoverPositions.sort(() => Math.random() - 0.5);
     const selectedShoverPositions = shuffled.slice(0, numShovers).sort((a, b) => a - b);
-    
-    console.log(`📋 Positions that will shove:`, selectedShoverPositions);
-    
+
     // Navigate to each shover and verify all have valid all-in actions
     let allShoversValid = true;
     
     for (const shoverPos of selectedShoverPositions) {
         const shoverStack = solution.settings.handdata.stacks[shoverPos];
-        
-        console.log(`\n🔍 Checking if position ${shoverPos} can shove...`);
-        console.log(`   Stack at position ${shoverPos}: ${shoverStack} (${(shoverStack / bigBlind).toFixed(1)}bb)`);
-        
+
         // Navigate to this position
         // Positions before this shover either fold or shove (if they're in selectedShoverPositions)
         let checkNode: NodeData | undefined = solution.nodes.get(0);
@@ -202,7 +190,7 @@ export async function generateVsMultiwaySpot(
                 const allinActionIndex = findAllInAction(checkNode.actions, prevShoverStack);
                 
                 if (allinActionIndex === -1) {
-                    console.log(`❌ Previous shover (pos ${currentPlayer}) doesn't have all-in`);
+
                     allShoversValid = false;
                     break;
                 }
@@ -214,7 +202,7 @@ export async function generateVsMultiwaySpot(
                 const foldActionIndex = findFoldAction(checkNode.actions);
                 
                 if (foldActionIndex === -1) {
-                    console.log(`❌ Position ${currentPlayer} doesn't have fold`);
+
                     allShoversValid = false;
                     break;
                 }
@@ -224,7 +212,7 @@ export async function generateVsMultiwaySpot(
             }
             
             if (checkNodeId === 0) {
-                console.log(`❌ Terminal node reached during navigation`);
+
                 allShoversValid = false;
                 break;
             }
@@ -238,7 +226,7 @@ export async function generateVsMultiwaySpot(
             );
             
             if (!updated) {
-                console.log(`❌ Failed to load node ${checkNodeId}`);
+
                 allShoversValid = false;
                 break;
             }
@@ -251,7 +239,7 @@ export async function generateVsMultiwaySpot(
         if (!allShoversValid) break;
         
         if (navigationPath >= 20) {
-            console.log(`❌ Navigation too long (> 20 steps)`);
+
             allShoversValid = false;
             break;
         }
@@ -261,21 +249,20 @@ export async function generateVsMultiwaySpot(
             const allinActionIndex = findAllInAction(checkNode.actions, shoverStack);
             
             if (allinActionIndex === -1) {
-                console.log(`❌ Position ${shoverPos} doesn't have all-in action`);
+
                 allShoversValid = false;
                 break;
             }
-            
-            console.log(`✅ Position ${shoverPos} can shove`);
+
         } else {
-            console.log(`❌ Failed to reach position ${shoverPos}`);
+
             allShoversValid = false;
             break;
         }
     }
     
     if (!allShoversValid) {
-        console.log('⚠️ Not all shovers have valid all-in');
+
         return {
             heroPosition,
             shoverPositions: [],
@@ -284,9 +271,7 @@ export async function generateVsMultiwaySpot(
             error: 'Invalid shover configuration'
         };
     }
-    
-    console.log(`\n🎯 Shovers selected:`, selectedShoverPositions);
-    
+
     return {
         heroPosition,
         shoverPositions: selectedShoverPositions,

@@ -125,10 +125,7 @@ export async function generateAnySpot(
     config: AnySpotConfig
 ): Promise<AnySpotResult> {
     const { solution, heroPosition, loadNodes, solutionId, allCombos } = config;
-    
-    console.log('\n🎲 === GENERATING ANY SPOT ===');
-    console.log(`Hero position: ${heroPosition}`);
-    
+
     const flatCombos: string[] = Array.isArray(allCombos[0]) ? allCombos.flat() : allCombos as string[];
     const villainActions: VillainAction[] = [];
     const blinds = solution.settings.handdata.blinds;
@@ -156,22 +153,16 @@ export async function generateAnySpot(
     while (currentNode && currentNode.player !== heroPosition && iterations < maxIterations) {
         iterations++;
         const villainPosition = currentNode.player;
-        
-        console.log(`\n🎯 Villain turn - Position ${villainPosition} at node ${currentNodeId}`);
-        console.log(`   Available actions:`, currentNode.actions.map(a => `${a.type} (${a.amount || 0})`));
-        
+
         // 1. Select random combo for this villain
         const randomCombo = randomElement(flatCombos);
         const handName = getHandNameFromCombo(randomCombo);
-        
-        console.log(`   🎴 Random combo for villain: ${randomCombo} (${handName})`);
-        
+
         // 2. Check if this combo has data in this node
         const handData = currentNode.hands[handName];
         
         if (!handData || !handData.played) {
-            console.log(`   ⚠️ No data for ${handName}, villain will fold`);
-            
+
             // Fold
             const foldAction = currentNode.actions.find(a => a.type === 'F');
             if (!foldAction || !foldAction.node) {
@@ -205,8 +196,7 @@ export async function generateAnySpot(
             });
             
             if (bestActionIndex === -1 || maxFreq === 0) {
-                console.log(`   ⚠️ No valid action for ${handName}, villain will fold`);
-                
+
                 const foldAction = currentNode.actions.find(a => a.type === 'F');
                 if (!foldAction || !foldAction.node) {
                     console.error('❌ No fold action available');
@@ -236,9 +226,7 @@ export async function generateAnySpot(
                     bigBlind,
                     villainStack
                 );
-                
-                console.log(`   ✅ Villain action: ${actionName} (freq: ${(maxFreq * 100).toFixed(1)}%)`);
-                
+
                 villainActions.push({
                     position: villainPosition,
                     action: actionName,
@@ -252,7 +240,7 @@ export async function generateAnySpot(
         
         // Check if reached terminal node
         if (currentNodeId === 0) {
-            console.log('⚠️ Reached terminal node before hero');
+
             return {
                 nodeId: 0,
                 solution: workingSolution,
@@ -264,7 +252,7 @@ export async function generateAnySpot(
         
         // Load next node if necessary
         if (!workingSolution.nodes.has(currentNodeId)) {
-            console.log(`   📥 Loading node ${currentNodeId}...`);
+
             const updated = await loadNodeIfNeeded(
                 workingSolution,
                 currentNodeId,
@@ -284,7 +272,7 @@ export async function generateAnySpot(
             }
             
             workingSolution = updated;
-            console.log(`   ✅ Node ${currentNodeId} loaded`);
+
         }
         
         currentNode = workingSolution.nodes.get(currentNodeId);
@@ -322,10 +310,7 @@ export async function generateAnySpot(
             error: 'Did not reach hero position'
         };
     }
-    
-    console.log(`\n✅ Reached hero at position ${heroPosition}, node ${currentNodeId}`);
-    console.log(`📊 Villain actions history:`, villainActions);
-    
+
     return {
         nodeId: currentNodeId,
         solution: workingSolution,

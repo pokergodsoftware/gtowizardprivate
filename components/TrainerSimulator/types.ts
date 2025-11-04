@@ -11,6 +11,27 @@ import type { AppData, VillainAction } from '../../types.ts';
 export type { VillainAction };
 
 /**
+ * Represents a single action in the hand history
+ */
+export interface HandHistoryAction {
+    position: number;           // Player position (0-8)
+    playerName: string;         // Position name (BTN, SB, BB, etc)
+    action: string;             // Action type (Fold, Call, Raise 2.5BB, Allin, etc)
+    amount?: number;            // Bet amount in chips (if applicable)
+    amountBB?: number;          // Bet amount in big blinds (if applicable)
+    street: 'Preflop' | 'Flop' | 'Turn' | 'River';
+    timestamp?: number;         // Optional timestamp for animation
+}
+
+/**
+ * Complete hand history data
+ */
+export interface HandHistoryData {
+    actions: HandHistoryAction[];
+    currentStreet: 'Preflop' | 'Flop' | 'Turn' | 'River';
+}
+
+/**
  * Represents a simulated poker spot for training
  */
 export interface SpotSimulation {

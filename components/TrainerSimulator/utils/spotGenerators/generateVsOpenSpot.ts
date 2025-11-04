@@ -68,28 +68,22 @@ export async function generateVsOpenSpot(
     config: VsOpenConfig
 ): Promise<VsOpenSpotResult> {
     const { solution, loadNodes, solutionId } = config;
-    
-    console.log('\n🎲 === GENERATING VS OPEN SPOT ===');
-    
+
     const numPlayers = solution.settings.handdata.stacks.length;
     const blinds = solution.settings.handdata.blinds;
     const bigBlind = Math.max(blinds[0], blinds[1]);
     
     // Hero must be position 1 to BB (cannot be position 0 - someone must open first)
     const heroPosition = Math.floor(Math.random() * (numPlayers - 1)) + 1;
-    
-    console.log(`✅ [vs Open] Selected hero at position ${heroPosition} of ${numPlayers} players`);
-    
+
     // List all positions that can open (all before hero)
     const possibleRaisers = Array.from({ length: heroPosition }, (_, i) => i);
-    console.log(`📋 Positions that can open:`, possibleRaisers);
-    
+
     // Try to find a valid raiser (shuffle to add randomness)
     const shuffledRaisers = possibleRaisers.sort(() => Math.random() - 0.5);
     
     for (const potentialRaiser of shuffledRaisers) {
-        console.log(`\n🔍 Checking if position ${potentialRaiser} can raise...`);
-        
+
         // Navigate to this position
         const navResult = await foldUntilPosition(
             0, // start from node 0
@@ -100,7 +94,7 @@ export async function generateVsOpenSpot(
         );
         
         if (!navResult) {
-            console.log(`❌ Could not navigate to position ${potentialRaiser}`);
+
             continue;
         }
         
@@ -108,7 +102,7 @@ export async function generateVsOpenSpot(
         const checkNode = updatedSolution.nodes.get(navResult.nodeId);
         
         if (!checkNode) {
-            console.log(`❌ Node not found after navigation`);
+
             continue;
         }
         
@@ -117,12 +111,12 @@ export async function generateVsOpenSpot(
             if (a.type !== 'R') return false;
             const raiseBB = a.amount / bigBlind;
             const isRaise2BB = Math.abs(raiseBB - 2.0) < 0.1; // Tolerance of 0.1 BB
-            console.log(`   Action type ${a.type}, amount: ${a.amount}, BB: ${raiseBB.toFixed(2)}, is 2BB? ${isRaise2BB}`);
+
             return isRaise2BB;
         });
         
         if (raiseActionIndex < 0) {
-            console.log(`❌ Position ${potentialRaiser} doesn't have 2BB raise action`);
+
             continue;
         }
         
@@ -140,13 +134,10 @@ export async function generateVsOpenSpot(
         }
         
         if (!hasFrequency) {
-            console.log(`❌ Position ${potentialRaiser} has 2BB raise but no hands with frequency`);
+
             continue;
         }
-        
-        console.log(`✅ Position ${potentialRaiser} can raise 2BB (total freq: ${(totalFreq * 100).toFixed(1)}%)`);
-        console.log(`\n🎯 Raiser selected: position ${potentialRaiser}`);
-        
+
         return {
             heroPosition,
             raiserPosition: potentialRaiser,
@@ -156,8 +147,7 @@ export async function generateVsOpenSpot(
     }
     
     // No valid raiser found
-    console.log('⚠️ No position before hero has valid raise');
-    
+
     return {
         heroPosition,
         raiserPosition: -1,

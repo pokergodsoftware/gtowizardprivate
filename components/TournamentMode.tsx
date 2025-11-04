@@ -52,15 +52,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
 
-    console.log('🎮 TournamentMode render:', {
-        currentStageIndex,
-        currentStage: currentStage.displayName,
-        handsPlayedInStage,
-        totalHandsPlayed,
-        mistakes,
-        showingResult
-    });
-
     // Callback quando o usuário responde um spot
     const handleSpotResult = (isCorrect: boolean) => {
         if (!isCorrect) {
@@ -191,7 +182,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                         </button>
                         <button
                             onClick={() => {
-                                console.log('🔄 Reiniciando torneio...');
                                 setCurrentStageIndex(0);
                                 setHandsPlayedInStage(0);
                                 setTotalHandsPlayed(0);
@@ -200,7 +190,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                 setIsComplete(false);
                                 setShowingResult(false);
                                 setSpotKey(prev => prev + 1);
-                                console.log('✅ Estados resetados, gerando novo spot...');
                             }}
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all"
                         >
@@ -223,7 +212,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                         className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />   
                         </svg>
                         <span className="font-semibold">Sair do Torneio</span>
                     </button>

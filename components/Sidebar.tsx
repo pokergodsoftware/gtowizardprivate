@@ -7,6 +7,7 @@ import { ActionsBar } from './ActionsBar.tsx';
 import { ComboDetail } from './ComboDetail.tsx';
 import { DisplayModeToggle } from './DisplayModeToggle.tsx';
 import { PayoutsModal } from './PayoutsModal.tsx';
+import { SolutionHandHistory } from './SolutionHandHistory.tsx';
 
 interface SidebarProps {
   appData: AppData;
@@ -77,6 +78,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ appData, currentNode, bigBlind
         displayMode={displayMode}
         fileName={appData.fileName}
       />
+      
+      {/* Hand History */}
+      <SolutionHandHistory 
+        appData={appData}
+        currentNodeId={pathNodeIds[pathNodeIds.length - 1] || 0}
+        displayMode={displayMode}
+        pathNodeIds={pathNodeIds}
+      />
+      
       <div className="mt-6">
         <ActionsBar currentNode={currentNode} bigBlind={bigBlind} settings={appData.settings} displayMode={displayMode} />
       </div>

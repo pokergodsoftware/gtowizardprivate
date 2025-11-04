@@ -4,7 +4,7 @@ import { saveSpotResult, saveSpotHistory, saveMarkedHand, removeMarkedHand } fro
 
 // Import extracted hooks and components (Phase 8 refactoring)
 import { useTrainerSettings, useTimebank, useTrainerStats, useSpotGeneration } from './TrainerSimulator/hooks';
-import { TrainerTable, TrainerFeedback } from './TrainerSimulator/components';
+import { TrainerTable, TrainerFeedback, TrainerHeader } from './TrainerSimulator/components';
 
 interface TrainerSimulatorProps {
     solutions: AppData[];
@@ -66,10 +66,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const handleTimeExpired = useCallback(() => {
         if (!currentSpot || showFeedback) return;
         
-        console.log('⏰ Timebank expired - auto-folding');
-        
-        // Busca solução atualizada
-        const currentSolution = solutions.find(s => s.id === currentSpot.solution.id);
+        // Use solution from currentSpot (has all nodes loaded)
+        const currentSolution = currentSpot.solution;
         if (!currentSolution) return;
         
         const node = currentSolution.nodes.get(currentSpot.nodeId);
@@ -83,7 +81,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         if (foldActionIndex === -1) {
             // Não tem Fold disponível - marca como erro
-            console.log('⚠️ TIMEOUT: No Fold action available - counting as mistake');
             setUserAction('Fold (TIMEOUT)');
             setShowFeedback(true);
             
@@ -121,8 +118,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             ? handData.evs[foldActionIndex] 
             : undefined;
         
-        console.log(`⏰ TIMEOUT - Auto-fold: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} (fold freq: ${(foldFrequency * 100).toFixed(1)}%)`);
-        
         // Marca a ação como Fold (Timeout)
         setUserAction('Fold (TIMEOUT)');
         setShowFeedback(true);
@@ -146,13 +141,11 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             foldEv
         );
         
-        console.log(`📊 Stats saved: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} - ${points} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
-        
         // Callback para modo torneio
         if (onSpotResult) {
             onSpotResult(isCorrect);
         }
-    }, [solutions, userId, updateStats, onSpotResult, showFeedback]); // Dependencies for callback
+    }, [userId, updateStats, onSpotResult, showFeedback]); // Dependencies for callback (currentSpot captured in closure)
     
     // Custom hook for spot generation (orchestrates spot generators)
     const { currentSpot, generateNewSpot, isGenerating } = useSpotGeneration({
@@ -178,7 +171,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     // Initialize first spot generation
     useEffect(() => {
         if (!currentSpot) {
-            console.log('🎬 Initial spot generation triggered');
             generateNewSpot();
         }
     }, []); // Run once on mount
@@ -194,7 +186,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     // Auto-advance when toggle is activated AFTER already answering
     useEffect(() => {
         if (autoAdvance && showFeedback && userAction) {
-            console.log('🔄 Auto-advance enabled after answer, advancing in 2.5s...');
             const delay = tournamentMode ? 5000 : 2500;
             const timer = setTimeout(() => {
                 nextSpot();
@@ -204,13 +195,12 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
     }, [autoAdvance, showFeedback, userAction, tournamentMode]); // Watch all relevant states
 
-    // Cleanup audio on unmount
+    // Cleanup audio on unmount only
     useEffect(() => {
         return () => {
             stopAudios();
-            resetStats();
         };
-    }, [stopAudios, resetStats]);
+    }, [stopAudios]);
 
     // ============================================================
     // Handler Functions
@@ -219,8 +209,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const checkAnswer = (actionName: string) => {
         if (!currentSpot || userAction) return; // Já respondeu
         
-        // Busca solução atualizada (pode ter nodes carregados dinamicamente)
-        const currentSolution = solutions.find(s => s.id === currentSpot.solution.id);
+        // Use solution from currentSpot (has all nodes loaded during generation)
+        const currentSolution = currentSpot.solution;
         if (!currentSolution) {
             console.error('❌ Current solution not found');
             return;
@@ -264,8 +254,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             ? handData.evs[actionIndex] 
             : undefined;
         
-        console.log(`🎯 User chose: ${actionName} (freq: ${(frequency * 100).toFixed(1)}%) - ${isCorrect ? '✅ CORRECT' : '❌ WRONG'}`);
-        
         setUserAction(actionName);
         setShowFeedback(true);
         
@@ -294,28 +282,21 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             actionEv
         );
         
-        console.log(`📊 Stats saved: ${isCorrect ? '✅ CORRECT' : '❌ WRONG'} - ${points} points - ${currentSpot.playerHand} - Phase: ${actualPhase}`);
-        
         // Callback para modo torneio
         if (onSpotResult) {
             onSpotResult(isCorrect);
         }
         
         // Auto-advance se ativado
-        console.log('🔍 Auto-advance check:', { autoAdvance, tournamentMode });
         if (autoAdvance) {
-            console.log('🔄 Auto-advance enabled, advancing in 2.5s...');
             const delay = tournamentMode ? 5000 : 2500;
             setTimeout(() => {
                 nextSpot();
             }, delay);
-        } else {
-            console.log('⏸️ Auto-advance disabled, waiting for manual next');
         }
     };
 
     const nextSpot = () => {
-        console.log('➡️ Next spot requested');
         setUserAction(null);
         setShowFeedback(false);
         setIsHandMarked(false);
@@ -327,13 +308,14 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const handleStudy = () => {
         if (!currentSpot) return;
         
-        // Navegar para Solutions Viewer com o spot atual
+        // Abrir Solutions Viewer em nova aba com o spot atual
         const solutionPath = currentSpot.solution.path || currentSpot.solution.id;
         const nodeId = currentSpot.nodeId;
         const hand = currentSpot.playerHandName;
         
-        const url = `?page=solutions&solution=${encodeURIComponent(solutionPath)}&node=${nodeId}&hand=${hand}`;
-        window.location.href = url;
+        const baseUrl = window.location.origin + window.location.pathname;
+        const url = `${baseUrl}?page=solutions&solution=${encodeURIComponent(solutionPath)}&node=${nodeId}&hand=${hand}`;
+        window.open(url, '_blank');
     };
 
     // ============================================================
@@ -363,7 +345,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         try {
             await saveMarkedHand(userId, markedHand);
             setIsHandMarked(true);
-            console.log('✅ Hand marked successfully');
         } catch (error) {
             console.error('❌ Error marking hand:', error);
         }
@@ -377,7 +358,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         try {
             await removeMarkedHand(userId, handKey);
             setIsHandMarked(false);
-            console.log('✅ Hand unmarked successfully');
         } catch (error) {
             console.error('❌ Error unmarking hand:', error);
         }
@@ -397,9 +377,9 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         );
     }
 
-    // Buscar solução e node atualizados
-    const currentSolution = solutions.find(s => s.id === currentSpot.solution.id);
-    const node = currentSolution?.nodes.get(currentSpot.nodeId);
+    // Use solution from currentSpot (has all nodes loaded during generation)
+    const currentSolution = currentSpot.solution;
+    const node = currentSolution.nodes.get(currentSpot.nodeId);
 
     if (!currentSolution || !node) {
         return (
@@ -412,56 +392,23 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     }
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-[#1a1d23]">
-            {/* Header com estatísticas - oculto no modo torneio */}
+        <div className={`flex flex-col ${tournamentMode ? 'h-full' : 'h-screen'} overflow-hidden bg-[#1a1d23]`}>
+            {/* Header with statistics and controls - Hidden in tournament mode */}
             {!tournamentMode && (
-                <div className="bg-[#282c33] border-b border-gray-700 p-4">
-                    <div className="flex items-center justify-between max-w-7xl mx-auto">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={onBack}
-                                className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors"
-                            >
-                                ← Voltar
-                            </button>
-                            <h1 className="text-xl font-bold text-white">
-                                {selectedPhases.length === 1
-                                    ? selectedPhases[0]
-                                    : `${selectedPhases.length} Fases Selecionadas`}
-                            </h1>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <div className="text-white">
-                                <span className="text-gray-400">Questões:</span>{' '}
-                                <span className="font-bold">{stats.totalQuestions}</span>
-                            </div>
-                            <div className="text-white">
-                                <span className="text-gray-400">Acertos:</span>{' '}
-                                <span className="font-bold text-green-400">{stats.correctAnswers}</span>
-                            </div>
-                            <div className="text-white">
-                                <span className="text-gray-400">Pontos:</span>{' '}
-                                <span className="font-bold text-blue-400">{stats.score}</span>
-                            </div>
-                            {stats.tournamentsPlayed > 0 && (
-                                <>
-                                    <div className="text-white">
-                                        <span className="text-gray-400">Torneios:</span>{' '}
-                                        <span className="font-bold">{stats.tournamentsPlayed}</span>
-                                    </div>
-                                    <div className="text-white">
-                                        <span className="text-gray-400">FT:</span>{' '}
-                                        <span className="font-bold text-yellow-400">{stats.reachedFinalTable}</span>
-                                    </div>
-                                    <div className="text-white">
-                                        <span className="text-gray-400">Vitórias:</span>{' '}
-                                        <span className="font-bold text-green-400">{stats.completedTournaments}</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <TrainerHeader
+                    stats={stats}
+                    tournamentMode={tournamentMode}
+                    tournamentPhase={tournamentPhase}
+                    timeLeft={timeLeft}
+                    displayMode={displayMode}
+                    showBountyInDollars={showBountyInDollars}
+                    autoAdvance={autoAdvance}
+                    selectedPhases={selectedPhases}
+                    onToggleDisplayMode={toggleDisplayMode}
+                    onToggleShowBountyInDollars={toggleShowBountyInDollars}
+                    onToggleAutoAdvance={toggleAutoAdvance}
+                    onBack={onBack}
+                />
             )}
 
             {/* Main content */}
@@ -471,8 +418,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                     <TrainerTable
                         solution={currentSolution}
                         node={node}
+                        nodeId={currentSpot.nodeId}
                         playerPosition={currentSpot.playerPosition}
                         playerHand={currentSpot.playerHand}
+                        playerHandName={currentSpot.playerHandName}
                         displayMode={displayMode}
                         showBountyInDollars={showBountyInDollars}
                         showFeedback={showFeedback}

@@ -23,8 +23,7 @@ import allCombos from '../../../../combos.json';
  * Example 1: Generate RFI spot (simplest)
  */
 async function example1_RFISpot(solution: AppData) {
-    console.log('=== RFI Spot Generation ===');
-    
+
     // Validate solution is suitable for RFI
     if (!isValidRFISolution(solution)) {
         console.error('Solution not valid for RFI spots');
@@ -33,11 +32,7 @@ async function example1_RFISpot(solution: AppData) {
     
     // Generate RFI spot
     const rfiSpot = generateRFISpot(solution);
-    
-    console.log(`Hero position: ${rfiSpot.heroPosition}`);
-    console.log(`BB position: ${rfiSpot.bbPosition}`);
-    console.log(`Total players: ${rfiSpot.numPlayers}`);
-    
+
     // Hero acts first (node 0) - no navigation needed
     // Now select a hand and show hero's RFI decision
     
@@ -51,8 +46,7 @@ async function example2_VsOpenSpot(
     solution: AppData,
     loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
 ) {
-    console.log('=== vs Open Spot Generation ===');
-    
+
     // Validate solution is suitable for vs Open
     if (!isValidVsOpenSolution(solution)) {
         console.error('Solution not valid for vs Open spots');
@@ -70,11 +64,7 @@ async function example2_VsOpenSpot(
         console.error(`Failed to generate vs Open spot: ${result.error}`);
         return null;
     }
-    
-    console.log(`Hero position: ${result.heroPosition}`);
-    console.log(`Raiser position: ${result.raiserPosition}`);
-    console.log('Scenario: A player opened with 2BB raise, hero must respond');
-    
+
     return result;
 }
 
@@ -85,8 +75,7 @@ async function example3_VsShoveSpot(
     solution: AppData,
     loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
 ) {
-    console.log('=== vs Shove Spot Generation ===');
-    
+
     // Validate solution is suitable for vs Shove
     if (!isValidVsShoveSolution(solution)) {
         console.error('Solution not valid for vs Shove spots');
@@ -104,11 +93,7 @@ async function example3_VsShoveSpot(
         console.error(`Failed to generate vs Shove spot: ${result.error}`);
         return null;
     }
-    
-    console.log(`Hero position: ${result.heroPosition}`);
-    console.log(`Shover position: ${result.shoverPosition}`);
-    console.log('Scenario: A player went all-in, hero must respond');
-    
+
     return result;
 }
 
@@ -119,8 +104,7 @@ async function example4_VsMultiwaySpot(
     solution: AppData,
     loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
 ) {
-    console.log('=== vs Multiway Shove Spot Generation ===');
-    
+
     // Validate solution is suitable for vs Multiway
     if (!isValidVsMultiwaySolution(solution)) {
         console.error('Solution not valid for vs Multiway spots');
@@ -138,12 +122,7 @@ async function example4_VsMultiwaySpot(
         console.error(`Failed to generate vs Multiway spot: ${result.error}`);
         return null;
     }
-    
-    console.log(`Hero position: ${result.heroPosition}`);
-    console.log(`Shover positions:`, result.shoverPositions);
-    console.log(`Number of shovers: ${result.shoverPositions.length}`);
-    console.log('Scenario: Multiple players went all-in, hero must respond');
-    
+
     return result;
 }
 
@@ -155,8 +134,7 @@ async function example5_AnySpot(
     heroPosition: number,
     loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
 ) {
-    console.log('=== Any Spot Generation ===');
-    
+
     // Validate solution is suitable for Any spots
     if (!isValidAnySolution(solution)) {
         console.error('Solution not valid for Any spots');
@@ -176,17 +154,11 @@ async function example5_AnySpot(
         console.error(`Failed to generate Any spot: ${result.error}`);
         return null;
     }
-    
-    console.log(`Hero position: ${heroPosition}`);
-    console.log(`Final node ID: ${result.nodeId}`);
-    console.log(`Villain actions:`);
-    
+
     result.villainActions.forEach((action, index) => {
-        console.log(`  ${index + 1}. Position ${action.position}: ${action.action} with ${action.combo}`);
+
     });
-    
-    console.log('Scenario: Random game tree navigation, hero faces realistic poker situation');
-    
+
     return result;
 }
 
@@ -198,8 +170,7 @@ async function example6_FullWorkflow(
     spotType: string,
     loadNodes: (solutionId: string, nodeIds: number[]) => Promise<AppData | null>
 ) {
-    console.log(`\n=== Generating ${spotType} Spot ===\n`);
-    
+
     switch (spotType) {
         case 'RFI':
             if (!isValidRFISolution(solution)) {
@@ -269,8 +240,7 @@ function example7_FilterSolutions(
     solutions: AppData[],
     spotType: string
 ): AppData[] {
-    console.log(`=== Filtering solutions for ${spotType} ===`);
-    
+
     let filtered: AppData[];
     
     switch (spotType) {
@@ -280,7 +250,7 @@ function example7_FilterSolutions(
             
         case 'vs Open':
             filtered = solutions.filter(isValidVsOpenSolution);
-            console.log('(Filtering for avg stack >= 10 BB)');
+
             break;
             
         case 'vs Shove':
@@ -289,7 +259,7 @@ function example7_FilterSolutions(
             
         case 'vs Multiway shove':
             filtered = solutions.filter(isValidVsMultiwaySolution);
-            console.log('(Filtering for >= 4 players)');
+
             break;
             
         case 'Any':
@@ -300,8 +270,7 @@ function example7_FilterSolutions(
             console.error(`Unknown spot type: ${spotType}`);
             return [];
     }
-    
-    console.log(`Found ${filtered.length} valid solutions out of ${solutions.length}`);
+
     return filtered;
 }
 

@@ -23,7 +23,7 @@ export const getInitialBounty = (solutionFileName: string): number => {
 
 /**
  * Formats bounty display based on show mode
- * @param bounty - The bounty value (in chips)
+ * @param bounty - The bounty value (in chips, where 100 chips = $1)
  * @param showInDollars - Whether to show in dollars (true) or as multiplier (false)
  * @param solutionFileName - The solution filename for calculating multiplier
  * @returns Formatted bounty string (e.g., "$3.75" or "0.5x")
@@ -33,7 +33,7 @@ export const formatBounty = (
     showInDollars: boolean,
     solutionFileName: string
 ): string => {
-    const actualBounty = bounty / 2; // Bounty real em dólar
+    const actualBounty = bounty / 2; // Bounty em dólares (PKO: metade vai para o prêmio)
     
     if (showInDollars) {
         // Modo $: exibir em dólar

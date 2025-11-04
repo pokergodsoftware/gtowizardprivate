@@ -40,15 +40,18 @@ export const useTimebank = ({
     const timebankAudio1 = useRef<HTMLAudioElement | null>(null);
     const timebankAudio2 = useRef<HTMLAudioElement | null>(null);
 
-    // Initialize timebank audio files (only in tournament mode)
+    // Initialize audio files (only in tournament mode)
     useEffect(() => {
         if (tournamentMode) {
-            timebankAudio1.current = new Audio(getTrainerAssetUrl('timebank1.mp3'));
-            timebankAudio2.current = new Audio(getTrainerAssetUrl('timebank2.mp3'));
-            console.log('🎵 Timebank audios initialized from CDN');
+            const url1 = getTrainerAssetUrl('timebank1.ogg');
+            const url2 = getTrainerAssetUrl('timebank2.ogg');
+            
+            timebankAudio1.current = new Audio(url1);
+            timebankAudio1.current.volume = 1.0;
+            timebankAudio2.current = new Audio(url2);
+            timebankAudio2.current.volume = 1.0;
         }
         
-        // Cleanup: stop and remove audio elements
         return () => {
             if (timebankAudio1.current) {
                 timebankAudio1.current.pause();
@@ -64,56 +67,49 @@ export const useTimebank = ({
     // Reset timebank when new spot is generated
     useEffect(() => {
         if (currentSpot && !showFeedback && tournamentMode) {
-            console.log('⏱️ Resetting timebank to 15s');
             setTimeLeft(15);
             setHasPlayedTimebank1(false);
             setHasPlayedTimebank2(false);
         }
     }, [currentSpot, showFeedback, tournamentMode]);
     
+    // Function to play audio file
+    const playBeep = (alertNumber: 1 | 2) => {
+        try {
+            const audio = alertNumber === 1 ? timebankAudio1.current : timebankAudio2.current;
+            if (!audio) return;
+            
+            audio.currentTime = 0;
+            audio.play().catch(e => console.error('❌ Audio playback failed:', e));
+        } catch (err) {
+            console.error('❌ Error playing audio:', err);
+        }
+    };
+    
     // Timebank countdown timer (only in tournament mode)
     useEffect(() => {
         if (!tournamentMode || showFeedback || !currentSpot) {
-            console.log('⏱️ Timebank countdown NOT active:', { 
-                tournamentMode, 
-                showFeedback, 
-                hasSpot: !!currentSpot 
-            });
             return;
         }
-        
-        console.log('⏱️ Timebank countdown ACTIVE');
         
         const interval = setInterval(() => {
             setTimeLeft(prev => {
                 const newTime = prev - 1;
                 
-                // Log every 5 seconds or when ≤5s remaining
-                if (newTime % 5 === 0 || newTime <= 5) {
-                    console.log(`⏱️ Timebank: ${newTime}s`);
-                }
-                
                 // Play first warning at 8s
-                if (newTime === 8 && !hasPlayedTimebank1 && timebankAudio1.current) {
-                    console.log('🔊 Playing timebank1 audio (8s)');
-                    timebankAudio1.current.play().catch(err => 
-                        console.error('Erro ao tocar timebank1:', err)
-                    );
+                if (newTime === 8 && !hasPlayedTimebank1) {
+                    playBeep(1);
                     setHasPlayedTimebank1(true);
                 }
                 
                 // Play second warning at 4s
-                if (newTime === 4 && !hasPlayedTimebank2 && timebankAudio2.current) {
-                    console.log('🔊 Playing timebank2 audio (4s)');
-                    timebankAudio2.current.play().catch(err => 
-                        console.error('Erro ao tocar timebank2:', err)
-                    );
+                if (newTime === 4 && !hasPlayedTimebank2) {
+                    playBeep(2);
                     setHasPlayedTimebank2(true);
                 }
                 
                 // Time expired - trigger callback
                 if (newTime <= 0) {
-                    console.log('⏰ Timebank expired - calling onTimeExpired');
                     onTimeExpired();
                     return 0;
                 }
@@ -125,17 +121,9 @@ export const useTimebank = ({
         return () => clearInterval(interval);
     }, [tournamentMode, showFeedback, currentSpot, hasPlayedTimebank1, hasPlayedTimebank2, onTimeExpired]);
 
-    // Function to stop all audio playback
+    // Function to stop all audio playback (no-op for Web Audio API)
     const stopAudios = () => {
-        if (timebankAudio1.current) {
-            timebankAudio1.current.pause();
-            timebankAudio1.current.currentTime = 0;
-        }
-        if (timebankAudio2.current) {
-            timebankAudio2.current.pause();
-            timebankAudio2.current.currentTime = 0;
-        }
-        console.log('🔇 Timebank audios stopped');
+        // Web Audio API doesn't need explicit stop
     };
 
     return {

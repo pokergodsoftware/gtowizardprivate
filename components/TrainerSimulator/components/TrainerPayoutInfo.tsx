@@ -38,32 +38,32 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
     const initialBounty = getInitialBountyValue(solutionFileName);
     
     return (
-        <div className="bg-[#2d3238] rounded-lg p-3 space-y-2">
+        <div className="bg-[#2d3238] rounded-lg p-2 space-y-2">
             {/* Payouts Section */}
             <div>
-                <h4 className="text-white font-bold text-xs mb-2 flex items-center gap-1">
+                <h4 className="text-white font-bold text-xs mb-1.5 flex items-center gap-1">
                     💰 Payouts
                 </h4>
                 
-                <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
                     {prizes && Object.keys(prizes).length > 0 ? (
                         Object.entries(prizes)
                             .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
                             .map(([position, prize], index) => (
                                 <div 
                                     key={position}
-                                    className="flex items-center justify-between bg-[#23272f] px-2 py-1 rounded"
+                                    className="flex items-center justify-between bg-[#23272f] px-1.5 py-0.5 rounded"
                                 >
-                                    <span className="text-gray-300 font-semibold text-[10px]">
+                                    <span className="text-gray-300 font-semibold text-[11px]">
                                         {index === 0 ? '1º-2º' : `${position}º`}
                                     </span>
-                                    <span className="text-green-400 font-bold text-[10px]">
+                                    <span className="text-green-400 font-bold text-[11px]">
                                         ${(prize as number).toFixed(2)}
                                     </span>
                                 </div>
                             ))
                     ) : (
-                        <div className="text-gray-400 text-[10px] text-center py-1 bg-[#23272f] rounded">
+                        <div className="text-gray-400 text-[11px] text-center py-1 bg-[#23272f] rounded">
                             Payouts N/A
                         </div>
                     )}
@@ -71,15 +71,15 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
             </div>
             
             {/* Tournament Info Section */}
-            <div className="border-t border-gray-700 pt-2 space-y-1.5">
+            <div className="border-t border-gray-700 pt-1.5 space-y-1">
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[10px]">Starting stack:</span>
-                    <span className="text-white font-semibold text-[10px]">10,000</span>
+                    <span className="text-gray-400 text-[11px]">Starting stack:</span>
+                    <span className="text-white font-semibold text-[11px]">10,000</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[10px]">Initial bounty:</span>
-                    <span className="text-yellow-400 font-semibold text-[10px]">${initialBounty}</span>
+                    <span className="text-gray-400 text-[11px]">Initial bounty:</span>
+                    <span className="text-yellow-400 font-semibold text-[11px]">${initialBounty}</span>
                 </div>
             </div>
         </div>
