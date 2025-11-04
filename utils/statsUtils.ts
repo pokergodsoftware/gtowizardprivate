@@ -34,6 +34,15 @@ export async function saveSpotResult(
     points?: number
 ): Promise<void> {
     try {
+        // Se username não foi passado, buscar do localStorage
+        if (!username) {
+            const currentUser = localStorage.getItem('poker_current_user');
+            if (currentUser) {
+                const userData = JSON.parse(currentUser);
+                username = userData.username;
+            }
+        }
+        
         const userStatsKey = `poker_stats_${userId}`;
         const storedStats = localStorage.getItem(userStatsKey);
         
@@ -94,6 +103,7 @@ export async function saveSpotResult(
         localStorage.setItem(userStatsKey, JSON.stringify(stats));
 
         console.log(`📊 Stats saved for user ${userId}:`, {
+            username: username || 'NO USERNAME',
             isCorrect,
             phase,
             points: finalPoints,
@@ -104,12 +114,24 @@ export async function saveSpotResult(
         // Salvar também no Firebase
         if (username) {
             try {
+                console.log('🔄 Syncing stats to Firebase...', { userId, username, isCorrect, phase, points: finalPoints });
                 await saveStatsToFirebase(userId, username, isCorrect, phase, finalPoints);
-                console.log('☁️ Stats synced to Firebase');
-            } catch (firebaseError) {
-                console.warn('⚠️ Failed to sync to Firebase (offline?):', firebaseError);
+                console.log('✅ ☁️ Stats synced to Firebase successfully!');
+            } catch (firebaseError: any) {
+                console.error('❌ FIREBASE ERROR - Failed to sync stats:', {
+                    error: firebaseError,
+                    message: firebaseError?.message,
+                    code: firebaseError?.code,
+                    userId,
+                    phase
+                });
+                console.warn('⚠️ Stats saved to localStorage only (not synced to cloud)');
+                console.warn('📖 See DATABASE_DIAGNOSTIC.md for troubleshooting');
                 // Não falha se Firebase estiver offline
             }
+        } else {
+            console.warn('⚠️ Username not found! Stats NOT synced to Firebase');
+            console.warn('💡 Make sure user is logged in before playing spots');
         }
     } catch (err) {
         console.error('Erro ao salvar estatísticas:', err);
@@ -212,10 +234,19 @@ export async function saveSpotHistory(
         
         // Salvar também no Firebase
         try {
+            console.log('🔄 Syncing history to Firebase...', { userId, hand, combo });
             await saveSpotHistoryToFirebase(userId, newEntry);
-            console.log('☁️ History synced to Firebase');
-        } catch (firebaseError) {
-            console.warn('⚠️ Failed to sync history to Firebase:', firebaseError);
+            console.log('✅ ☁️ History synced to Firebase successfully!');
+        } catch (firebaseError: any) {
+            console.error('❌ FIREBASE ERROR - Failed to sync history:', {
+                error: firebaseError,
+                message: firebaseError?.message,
+                code: firebaseError?.code,
+                userId,
+                hand
+            });
+            console.warn('⚠️ History saved to localStorage only (not synced to cloud)');
+            console.warn('📖 See DATABASE_DIAGNOSTIC.md for troubleshooting');
         }
     } catch (err) {
         console.error('Erro ao salvar histórico:', err);

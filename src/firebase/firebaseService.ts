@@ -48,23 +48,44 @@ export interface FirebaseStats {
  */
 export async function saveUserToFirebase(userId: string, username: string): Promise<void> {
   try {
-    console.log('🔄 Attempting to save user to Firebase:', { userId, username });
+    console.log('🔄 Firebase: Attempting to save user...', { userId, username });
+    console.log('📍 Firebase: Using project:', db.app.options.projectId);
+    
     const userRef = doc(db, 'users', userId);
+    
+    console.log('📝 Firebase: Creating document in collection "users"...');
     await setDoc(userRef, {
       userId,
       username,
       createdAt: new Date().toISOString()
     }, { merge: true });
     
-    console.log('✅ User saved to Firebase successfully:', username);
+    console.log('✅ Firebase: User document created successfully!');
+    console.log('🔍 Firebase: Verify at https://console.firebase.google.com/project/' + db.app.options.projectId + '/firestore');
   } catch (error: any) {
-    console.error('❌ Error saving user to Firebase:', {
+    console.error('❌ Firebase: Error saving user:', {
       error,
+      errorName: error?.name,
       message: error?.message,
       code: error?.code,
       userId,
-      username
+      username,
+      projectId: db.app.options.projectId
     });
+    
+    // Mensagens de ajuda específicas por erro
+    if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+      console.error('🚫 FIREBASE PERMISSION DENIED!');
+      console.error('📖 SOLUTION: Update Firestore rules to allow create:');
+      console.error('   1. Go to: https://console.firebase.google.com/project/' + db.app.options.projectId + '/firestore/rules');
+      console.error('   2. Add: allow create: if true; to users collection');
+      console.error('   3. See: DATABASE_DIAGNOSTIC.md for detailed instructions');
+    } else if (error?.code === 'unavailable') {
+      console.error('📡 FIREBASE UNAVAILABLE - Check internet connection');
+    } else if (error?.code === 'failed-precondition') {
+      console.error('⚙️ FIREBASE FAILED PRECONDITION - May need to create index');
+    }
+    
     throw error;
   }
 }
@@ -80,6 +101,8 @@ export async function saveStatsToFirebase(
   points?: number
 ): Promise<void> {
   try {
+    console.log('🔄 Firebase: Syncing stats...', { userId, username, isCorrect, phase, points });
+    
     const statsRef = doc(db, 'stats', userId);
     
     // Verificar se já existe
@@ -88,6 +111,7 @@ export async function saveStatsToFirebase(
     const pointsToAdd = points !== undefined ? points : (isCorrect ? 1 : 0);
     
     if (statsSnap.exists()) {
+      console.log('📝 Firebase: Updating existing stats document...');
       const data = statsSnap.data();
       const statsByPhase = data.statsByPhase || {};
       
@@ -118,7 +142,9 @@ export async function saveStatsToFirebase(
       const accuracy = (updatedData!.correctSpots / updatedData!.totalSpots) * 100;
       
       await updateDoc(statsRef, { accuracy });
+      console.log('✅ Firebase: Stats updated successfully!');
     } else {
+      console.log('📝 Firebase: Creating new stats document...');
       // Criar novas estatísticas
       const statsByPhase: any = {};
       if (phase) {
@@ -144,11 +170,24 @@ export async function saveStatsToFirebase(
         lastUpdated: new Date().toISOString(),
         statsByPhase
       });
+      console.log('✅ Firebase: Stats created successfully!');
     }
     
-    console.log('✅ Stats saved to Firebase for:', username);
-  } catch (error) {
-    console.error('❌ Error saving stats to Firebase:', error);
+    console.log('📊 Firebase: Stats synced for:', username);
+  } catch (error: any) {
+    console.error('❌ Firebase: Error saving stats:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      userId,
+      phase
+    });
+    
+    if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+      console.error('🚫 FIREBASE PERMISSION DENIED for stats!');
+      console.error('📖 See DATABASE_DIAGNOSTIC.md for fix');
+    }
+    
     throw error;
   }
 }
