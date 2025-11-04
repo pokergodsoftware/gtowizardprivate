@@ -279,17 +279,18 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         }
         
         // Para cada jogador, determinar qual node mostrar
+        // ESTRATÉGIA: Mostrar sempre um card por jogador, priorizando próximos nodes
         for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
             const nodeIdInPath = playerToNodeMap.get(playerIndex);
             const nextNodeId = nextNodesMap.get(playerIndex);
             
             // Prioridade: 
-            // 1. Node onde o jogador já agiu no path
-            // 2. Próximo node disponível (filho do node atual)
-            // 3. Node inicial do jogador
-            const nodeId = nodeIdInPath !== undefined 
-                ? nodeIdInPath 
-                : (nextNodeId !== undefined ? nextNodeId : playerIndex);
+            // 1. Próximo node disponível (filho do node atual onde jogador ainda não agiu)
+            // 2. Node atual (se for o jogador ativo)
+            // 3. Node inicial do jogador (fallback)
+            const nodeId = nextNodeId !== undefined 
+                ? nextNodeId 
+                : (nodeIdInPath !== undefined ? nodeIdInPath : playerIndex);
             
             cards.push({ 
                 playerIndex, 

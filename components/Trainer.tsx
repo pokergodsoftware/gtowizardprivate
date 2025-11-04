@@ -73,7 +73,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
 
     // Se não estiver autenticado, mostrar página de login
     if (!isAuthenticated) {
-        return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+        return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={onBack} />;
     }
 
     // Tela de seleção de modo (primeira tela após login)
