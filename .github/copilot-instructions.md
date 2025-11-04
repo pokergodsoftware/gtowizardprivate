@@ -18,7 +18,9 @@ const [solutions, setSolutions] = useState<AppData[]>([]);
 const [selectedSolutionId, setSelectedSolutionId] = useState<string | null>(null);
 const [viewerState, setViewerState] = useState({ currentNodeId, selectedHand, displayMode });
 ```
-**Critical**: Use `solutionsRef.current` for synchronous access to latest solutions state (ref kept in sync via useEffect).
+**Critical**: Use `solutionsRef.current` for synchronous access to latest solutions state (ref kept in sync via useEffect). This pattern prevents stale closures in callbacks and event handlers.
+
+**Why the ref?** React state updates are asynchronous. When callbacks need the latest solutions array (e.g., in `loadNode()` or URL state restoration), using `solutions` directly can give stale data. The ref provides immediate access to current state.
 
 ### Modular Refactoring Pattern (Established Dec 2024)
 This project follows a proven refactoring methodology:
@@ -64,11 +66,13 @@ TrainerSimulator/
 ```powershell
 npm install
 .\generate_index.bat  # Generates solutions-metadata.json + creates public/spots junction
-npm run dev           # Vite dev server on port 3000
+npm run dev           # Vite dev server on port 3000 (host: 0.0.0.0 for network access)
 ```
 **Key**: `generate_solutions.cjs` scans `/spots/` folder structure, reads `settings.json`/`equity.json`/`nodes/*.json`, generates manifests with relative paths (`./spots/...` not `/spots/...` - this is critical for Vite).
 
-**Important**: The `public/spots` junction point enables Vite to serve spot files during development. On Windows, this is created automatically by the batch script using `mklink /J`.
+**Important**: The `public/spots` junction point enables Vite to serve spot files during development. On Windows, this is created automatically by the batch script using `mklink /J`. If junction creation fails, run terminal as Administrator.
+
+**Node Version**: Requires Node.js v18+. Check with `node --version`.
 
 ### Versioning & Deploy
 ```powershell

@@ -27,97 +27,58 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
         try {
             console.log('🏆 Loading leaderboard from Firebase...');
             
-            // Tentar carregar do Firebase primeiro
-            try {
-                const firebaseStats = await getTop10FromFirebase();
-                
-                if (firebaseStats.length > 0) {
-                    console.log('☁️ Loaded from Firebase:', firebaseStats.length, 'players');
-                    
-                    // Converter FirebaseStats para LeaderboardEntry
-                    const entries: LeaderboardEntry[] = firebaseStats.map(stat => ({
-                        userId: stat.userId,
-                        username: stat.username,
-                        totalPoints: stat.totalPoints,
-                        totalSpots: stat.totalSpots,
-                        correctSpots: stat.correctSpots,
-                        accuracy: stat.accuracy
-                    }));
-                    
-                    // Verificar se usuário atual está no top 10
-                    const currentUserInTop10 = entries.some(e => e.userId === currentUserId);
-                    
-                    // Se não estiver, buscar todos e adicionar
-                    if (!currentUserInTop10) {
-                        const allPlayers = await getAllPlayersFromFirebase();
-                        const currentUserEntry = allPlayers.find(p => p.userId === currentUserId);
-                        
-                        if (currentUserEntry) {
-                            entries.push({
-                                userId: currentUserEntry.userId,
-                                username: currentUserEntry.username,
-                                totalPoints: currentUserEntry.totalPoints,
-                                totalSpots: currentUserEntry.totalSpots,
-                                correctSpots: currentUserEntry.correctSpots,
-                                accuracy: currentUserEntry.accuracy
-                            });
-                            console.log('➕ Added current user from Firebase');
-                        }
-                    }
-                    
-                    setLeaderboard(entries);
-                    setLoading(false);
-                    return;
-                }
-            } catch (firebaseError) {
-                console.warn('⚠️ Firebase unavailable, falling back to localStorage:', firebaseError);
-            }
+            // Carregar APENAS do Firebase
+            const firebaseStats = await getTop10FromFirebase();
             
-            // Fallback: carregar do localStorage
-            console.log('💾 Loading from localStorage...');
-            const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
-            const entries: LeaderboardEntry[] = [];
-
-            Object.entries(users).forEach(([username, userData]: [string, any]) => {
-                const userId = userData.id;
-                const userStatsKey = `poker_stats_${userId}`;
-                const statsData = localStorage.getItem(userStatsKey);
-
-                if (statsData) {
-                    const stats = JSON.parse(statsData);
-                    const accuracy = stats.totalSpots > 0 
-                        ? (stats.correctSpots / stats.totalSpots) * 100 
-                        : 0;
-
-                    entries.push({
-                        userId,
-                        username,
-                        totalPoints: stats.totalPoints || 0,
-                        totalSpots: stats.totalSpots || 0,
-                        correctSpots: stats.correctSpots || 0,
-                        accuracy
-                    });
-                }
-            });
-
-            // Ordenar por pontos (decrescente) e pegar apenas top 10
-            entries.sort((a, b) => b.totalPoints - a.totalPoints);
+            console.log('☁️ Loaded from Firebase:', firebaseStats.length, 'players');
             
-            let top10 = entries.slice(0, 10);
+            // Converter FirebaseStats para LeaderboardEntry
+            const entries: LeaderboardEntry[] = firebaseStats.map(stat => ({
+                userId: stat.userId,
+                username: stat.username,
+                totalPoints: stat.totalPoints,
+                totalSpots: stat.totalSpots,
+                correctSpots: stat.correctSpots,
+                accuracy: stat.accuracy
+            }));
             
-            // Se o usuário atual não está no top 10, adiciona ele no final
-            const currentUserInTop10 = top10.some(e => e.userId === currentUserId);
+            // Verificar se usuário atual está no top 10
+            const currentUserInTop10 = entries.some(e => e.userId === currentUserId);
+            
+            // Se não estiver, buscar todos e adicionar
             if (!currentUserInTop10) {
-                const currentUserEntry = entries.find(e => e.userId === currentUserId);
+                console.log('🔍 Current user not in top 10, fetching all players...');
+                const allPlayers = await getAllPlayersFromFirebase();
+                const currentUserEntry = allPlayers.find(p => p.userId === currentUserId);
+                
                 if (currentUserEntry) {
-                    top10.push(currentUserEntry);
+                    entries.push({
+                        userId: currentUserEntry.userId,
+                        username: currentUserEntry.username,
+                        totalPoints: currentUserEntry.totalPoints,
+                        totalSpots: currentUserEntry.totalSpots,
+                        correctSpots: currentUserEntry.correctSpots,
+                        accuracy: currentUserEntry.accuracy
+                    });
+                    console.log('➕ Added current user to leaderboard');
                 }
             }
             
-            console.log(`✅ Loaded ${top10.length} players from localStorage`);
-            setLeaderboard(top10);
-        } catch (err) {
-            console.error('❌ Erro ao carregar leaderboard:', err);
+            setLeaderboard(entries);
+            console.log('✅ Leaderboard loaded successfully');
+        } catch (err: any) {
+            console.error('❌ Error loading leaderboard from Firebase:', {
+                error: err,
+                message: err?.message,
+                code: err?.code
+            });
+            
+            // Mostrar mensagem de erro amigável
+            alert('Erro ao carregar leaderboard. Verifique:\n\n' +
+                  '1. As regras do Firestore estão configuradas?\n' +
+                  '2. Você tem conexão com a internet?\n' +
+                  '3. Há jogadores cadastrados no Firebase?\n\n' +
+                  'Veja o console (F12) para mais detalhes.');
         } finally {
             setLoading(false);
         }

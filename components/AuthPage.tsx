@@ -94,10 +94,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 // Salvar usuário no Firebase
                 try {
                     await saveUserToFirebase(userId, username);
-                    console.log('☁️ User saved to Firebase');
-                } catch (firebaseError) {
-                    console.warn('⚠️ Failed to save user to Firebase:', firebaseError);
-                    // Continua mesmo se Firebase falhar
+                    console.log('☁️ User saved to Firebase successfully');
+                } catch (firebaseError: any) {
+                    console.error('❌ Failed to save user to Firebase:', {
+                        error: firebaseError,
+                        message: firebaseError?.message,
+                        code: firebaseError?.code
+                    });
+                    // Continua mesmo se Firebase falhar (localStorage como fallback)
                 }
 
                 onAuthSuccess(userId, username);

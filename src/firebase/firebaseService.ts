@@ -46,6 +46,7 @@ export interface FirebaseStats {
  */
 export async function saveUserToFirebase(userId: string, username: string): Promise<void> {
   try {
+    console.log('🔄 Attempting to save user to Firebase:', { userId, username });
     const userRef = doc(db, 'users', userId);
     await setDoc(userRef, {
       userId,
@@ -53,9 +54,15 @@ export async function saveUserToFirebase(userId: string, username: string): Prom
       createdAt: new Date().toISOString()
     }, { merge: true });
     
-    console.log('✅ User saved to Firebase:', username);
-  } catch (error) {
-    console.error('❌ Error saving user to Firebase:', error);
+    console.log('✅ User saved to Firebase successfully:', username);
+  } catch (error: any) {
+    console.error('❌ Error saving user to Firebase:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      userId,
+      username
+    });
     throw error;
   }
 }
@@ -145,19 +152,29 @@ export async function saveStatsToFirebase(
  */
 export async function getTop10FromFirebase(): Promise<FirebaseStats[]> {
   try {
+    console.log('🔄 Fetching top 10 from Firestore...');
     const statsRef = collection(db, 'stats');
     const q = query(statsRef, orderBy('totalPoints', 'desc'), limit(10));
     const querySnapshot = await getDocs(q);
     
     const top10: FirebaseStats[] = [];
     querySnapshot.forEach((doc) => {
-      top10.push(doc.data() as FirebaseStats);
+      const data = doc.data() as FirebaseStats;
+      console.log('  📊', data.username, '-', data.totalPoints, 'points');
+      top10.push(data);
     });
     
-    console.log('✅ Loaded top 10 from Firebase:', top10.length, 'players');
+    console.log(`✅ Loaded ${top10.length} players from Firebase`);
     return top10;
-  } catch (error) {
-    console.error('❌ Error loading top 10 from Firebase:', error);
+  } catch (error: any) {
+    console.error('❌ Error loading top 10 from Firebase:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      hint: error?.code === 'failed-precondition' 
+        ? 'You may need to create a Firestore index for orderBy(totalPoints)'
+        : 'Check Firestore rules and network connection'
+    });
     throw error;
   }
 }
@@ -186,6 +203,7 @@ export async function getUserStatsFromFirebase(userId: string): Promise<Firebase
  */
 export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
   try {
+    console.log('🔄 Fetching all players from Firestore...');
     const statsRef = collection(db, 'stats');
     const q = query(statsRef, orderBy('totalPoints', 'desc'));
     const querySnapshot = await getDocs(q);
@@ -195,10 +213,14 @@ export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
       players.push(doc.data() as FirebaseStats);
     });
     
-    console.log('✅ Loaded all players from Firebase:', players.length);
+    console.log(`✅ Loaded ${players.length} total players from Firebase`);
     return players;
-  } catch (error) {
-    console.error('❌ Error loading all players from Firebase:', error);
+  } catch (error: any) {
+    console.error('❌ Error loading all players from Firebase:', {
+      error,
+      message: error?.message,
+      code: error?.code
+    });
     throw error;
   }
 }
