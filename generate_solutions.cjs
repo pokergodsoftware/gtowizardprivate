@@ -7,6 +7,7 @@ const phaseMapping = {
   '60-40': '60~40% left',
   '40-20': '40~20% left',
   'near_bubble': 'Near bubble',
+  'after_bubble': 'After bubble',
   '3tables': '3 tables',
   '2tables': '2 tables',
   'final_table': 'Final table'
