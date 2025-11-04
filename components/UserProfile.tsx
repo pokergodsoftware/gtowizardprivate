@@ -43,38 +43,64 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
     }, [userId, showMarkedHandsOnly]);
 
     const loadMarkedHandsData = async () => {
-        const marked = await loadMarkedHands(userId);
-        setMarkedHands(marked);
-        // Criar Set de IDs para lookup rápido
-        const ids = new Set(marked.map(m => m.id));
-        setMarkedHandIds(ids);
+        try {
+            const marked = await loadMarkedHands(userId);
+            setMarkedHands(marked);
+            // Criar Set de IDs para lookup rápido
+            const ids = new Set(marked.map(m => m.id));
+            setMarkedHandIds(ids);
+            console.log(`✅ Loaded ${marked.length} marked hands`);
+        } catch (error: any) {
+            console.error('❌ Error loading marked hands:', error);
+            setMarkedHands([]);
+            setMarkedHandIds(new Set());
+        }
     };
 
     const loadMarkedHandsDataAsHistory = async () => {
-        const marked = await loadMarkedHands(userId);
-        setMarkedHands(marked);
-        
-        // Converter MarkedHand para SpotHistoryEntry para exibir na mesma tabela
-        const convertedHistory: SpotHistoryEntry[] = marked.map(m => ({
-            id: m.id,
-            hand: m.hand,
-            combo: m.combo,
-            isCorrect: m.isCorrect,
-            timestamp: m.timestamp,
-            phase: m.phase,
-            points: m.isCorrect ? 1 : 0,
-            solutionPath: m.solutionPath,
-            nodeId: m.nodeId,
-            position: m.position,
-            playerAction: m.playerAction,
-            ev: m.ev
-        }));
-        setHistory(convertedHistory);
+        try {
+            const marked = await loadMarkedHands(userId);
+            setMarkedHands(marked);
+            
+            // Converter MarkedHand para SpotHistoryEntry para exibir na mesma tabela
+            const convertedHistory: SpotHistoryEntry[] = marked.map(m => ({
+                id: m.id,
+                hand: m.hand,
+                combo: m.combo,
+                isCorrect: m.isCorrect,
+                timestamp: m.timestamp,
+                phase: m.phase,
+                points: m.isCorrect ? 1 : 0,
+                solutionPath: m.solutionPath,
+                nodeId: m.nodeId,
+                position: m.position,
+                playerAction: m.playerAction,
+                ev: m.ev
+            }));
+            setHistory(convertedHistory);
+            console.log(`✅ Loaded ${convertedHistory.length} marked hands as history`);
+        } catch (error: any) {
+            console.error('❌ Error loading marked hands as history:', error);
+            setHistory([]);
+            setMarkedHands([]);
+        }
     };
 
     const loadHistory = async () => {
-        const userHistory = await loadSpotHistory(userId);
-        setHistory(userHistory);
+        try {
+            console.log('📜 Loading spot history for user:', userId);
+            const userHistory = await loadSpotHistory(userId);
+            setHistory(userHistory);
+            console.log(`✅ Loaded ${userHistory.length} history entries`);
+        } catch (error: any) {
+            console.error('❌ Error loading history in UserProfile:', {
+                error,
+                message: error?.message,
+                code: error?.code
+            });
+            // Continua com array vazio - não quebra a UI
+            setHistory([]);
+        }
     };
 
     const handleToggleMark = async (entry: SpotHistoryEntry) => {
