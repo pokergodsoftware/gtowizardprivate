@@ -26,9 +26,9 @@ build/
 !/public/trainer/AUDIO_INSTRUCTIONS.md
 !/public/trainer/README_AUDIO.md
 
-# Metadados gerados (regenerar com generate_solutions_lazy.cjs)
-solutions-metadata.json
-public/solutions-metadata.json
+# Metadados gerados - AGORA VIA GIT para sincronização automática
+# solutions-metadata.json e public/solutions-metadata.json serão commitados
+# solutions.json mantém no gitignore (arquivo legado, não usado)
 solutions.json
 public/solutions.json
 
