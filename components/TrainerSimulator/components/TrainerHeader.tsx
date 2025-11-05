@@ -93,26 +93,26 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                 <div className="grid grid-cols-4 gap-2">
                     {/* Played Spots */}
                     <div className="bg-blue-500/10 rounded-lg p-1.5 text-center border border-blue-500/30">
-                        <div className="text-blue-400 text-[10px] mb-0.5">Played Spots</div>
-                        <div className="text-blue-400 font-bold text-sm">{stats.totalQuestions}</div>
+                        <div className="text-blue-400 text-[20px] mb-0.5">Played Spots</div>
+                        <div className="text-blue-400 font-bold text-2xl">{stats.totalQuestions}</div>
                     </div>
 
                     {/* Acertos */}
                     <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
-                        <div className="text-green-400 text-[10px] mb-0.5">Acertos</div>
-                        <div className="text-green-400 font-bold text-sm">{stats.correctAnswers}</div>
+                        <div className="text-green-400 text-[20px] mb-0.5">Acertos</div>
+                        <div className="text-green-400 font-bold text-2xl">{stats.correctAnswers}</div>
                     </div>
 
                     {/* Erros */}
                     <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
-                        <div className="text-red-400 text-[10px] mb-0.5">Erros</div>
-                        <div className="text-red-400 font-bold text-sm">{errors}</div>
+                        <div className="text-red-400 text-[20px] mb-0.5">Erros</div>
+                        <div className="text-red-400 font-bold text-2xl">{errors}</div>
                     </div>
 
                     {/* Score */}
                     <div className="bg-purple-500/10 rounded-lg p-1.5 text-center border border-purple-500/30">
-                        <div className="text-purple-400 text-[10px] mb-0.5">Score</div>
-                        <div className="text-purple-400 font-bold text-sm">
+                        <div className="text-purple-400 text-[20px] mb-0.5">Score</div>
+                        <div className="text-purple-400 font-bold text-2xl">
                             {stats.totalQuestions > 0 
                                 ? `${Math.round((stats.correctAnswers / stats.totalQuestions) * 100)}%`
                                 : '0%'

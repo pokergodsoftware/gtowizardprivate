@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { AppData } from '../types.ts';
 import { TrainerSimulator } from './TrainerSimulator.tsx';
+import { StageTransitionScreen } from './StageTransitionScreen.tsx';
 
 interface TournamentModeProps {
     solutions: AppData[];
@@ -48,8 +49,16 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [spotKey, setSpotKey] = useState(0); // Chave para forçar remontagem do TrainerSimulator
+    const [isTransitioning, setIsTransitioning] = useState(false); // Tela de transição entre estágios
+    const [stageMistakesAtStart, setStageMistakesAtStart] = useState(0); // Erros no início do estágio
+    
+    // Estatísticas por estágio: { stageIndex: { handsPlayed, livesLost } }
+    const [stageStats, setStageStats] = useState<Record<number, { handsPlayed: number; livesLost: number }>>({});
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
+    const nextStage = currentStageIndex < TOURNAMENT_STAGES.length - 1 
+        ? TOURNAMENT_STAGES[currentStageIndex + 1] 
+        : null;
 
     // Callback quando o usuário responde um spot
     const handleSpotResult = (isCorrect: boolean, livesLost: number = 0) => {
@@ -76,20 +85,28 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         
         setHandsPlayedInStage(newHandsInStage);
         setTotalHandsPlayed(newTotalHands);
+        
+        // Atualizar estatísticas do estágio atual
+        setStageStats(prev => ({
+            ...prev,
+            [currentStageIndex]: {
+                handsPlayed: newHandsInStage,
+                livesLost: (prev[currentStageIndex]?.livesLost || 0) + livesLost
+            }
+        }));
 
         // Verificar se completou o estágio
-        // (O avanço de spot é gerenciado pelo TrainerSimulator via autoAdvance)
         if (newHandsInStage >= currentStage.handsToPlay) {
+            console.log('🎯 Stage complete!', { newHandsInStage, handsToPlay: currentStage.handsToPlay });
+            
             // Verificar se completou o torneio
             if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
+                console.log('🏆 Tournament complete!');
                 setIsComplete(true);
             } else {
-                // Avançar para próximo estágio após um pequeno delay
-                setTimeout(() => {
-                    setCurrentStageIndex(currentStageIndex + 1);
-                    setHandsPlayedInStage(0);
-                    setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
-                }, 100);
+                // Mostrar tela de transição
+                console.log('🎬 Showing stage transition screen...');
+                setIsTransitioning(true);
             }
         }
         // else: Continuar no mesmo estágio - o novo spot será gerado automaticamente
@@ -101,20 +118,51 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         ? ((totalHandsPlayed - mistakes) / totalHandsPlayed * 100).toFixed(1)
         : '0.0';
 
+    // Calcular estatísticas do estágio atual
+    const stageMistakes = mistakes - stageMistakesAtStart;
+    const stageAccuracy = handsPlayedInStage > 0
+        ? ((handsPlayedInStage - stageMistakes) / handsPlayedInStage * 100)
+        : 100;
+
+    // Função para continuar para o próximo estágio
+    const handleContinueToNextStage = () => {
+        console.log('➡️ Continuing to next stage...');
+        setIsTransitioning(false);
+        setCurrentStageIndex(currentStageIndex + 1);
+        setHandsPlayedInStage(0);
+        setStageMistakesAtStart(mistakes); // Salva erros atuais para próximo estágio
+        setSpotKey(prev => prev + 1); // Força remontagem do TrainerSimulator
+    };
+
     // Função para reiniciar torneio
     const handleRestartTournament = () => {
         setCurrentStageIndex(0);
         setHandsPlayedInStage(0);
         setTotalHandsPlayed(0);
         setMistakes(0);
+        setStageMistakesAtStart(0);
+        setStageStats({});
         setIsBusted(false);
         setIsComplete(false);
+        setIsTransitioning(false);
         setSpotKey(prev => prev + 1);
     };
 
     // Tela de jogo
     return (
         <div className="flex flex-col h-screen bg-[#1a1d23]">
+            {/* Popup de transição de estágio */}
+            {isTransitioning && nextStage && (
+                <StageTransitionScreen
+                    currentStage={currentStage}
+                    nextStage={nextStage}
+                    handsPlayedInStage={handsPlayedInStage}
+                    stageAccuracy={stageAccuracy}
+                    stageMistakes={stageMistakes}
+                    onContinue={handleContinueToNextStage}
+                />
+            )}
+
             {/* Header com progresso - 50% menor */}
             <div className="bg-[#23272f] border-b border-gray-700 px-4 py-2">
                 <div className="flex items-center justify-between mb-2">
@@ -152,20 +200,20 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                 {/* Stats - 50% menor */}
                 <div className="grid grid-cols-4 gap-2">
                     <div className="bg-gray-800/50 rounded-lg p-1.5 text-center">
-                        <div className="text-gray-400 text-[10px] mb-0.5">Total</div>
-                        <div className="text-white font-bold text-sm">{totalHandsPlayed}/{TOTAL_HANDS}</div>
+                        <div className="text-gray-400 text-[20px] mb-0.5">Total</div>
+                        <div className="text-white font-bold text-2xl">{totalHandsPlayed}/{TOTAL_HANDS}</div>
                     </div>
                     <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
-                        <div className="text-green-400 text-[10px] mb-0.5">Acertos</div>
-                        <div className="text-green-400 font-bold text-sm">{totalHandsPlayed - mistakes}</div>
+                        <div className="text-green-400 text-[20px] mb-0.5">Acertos</div>
+                        <div className="text-green-400 font-bold text-2xl">{totalHandsPlayed - mistakes}</div>
                     </div>
                     <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
-                        <div className="text-red-400 text-[10px] mb-0.5">Erros</div>
-                        <div className="text-red-400 font-bold text-sm">{mistakes.toFixed(1)}/{MAX_MISTAKES}</div>
+                        <div className="text-red-400 text-[20px] mb-0.5">Erros</div>
+                        <div className="text-red-400 font-bold text-2xl">{mistakes.toFixed(1)}/{MAX_MISTAKES}</div>
                     </div>
                     <div className="bg-yellow-500/10 rounded-lg p-1.5 text-center border border-yellow-500/30">
-                        <div className="text-yellow-400 text-[10px] mb-0.5">Vidas</div>
-                        <div className="text-yellow-400 font-bold text-sm">{(MAX_MISTAKES - mistakes).toFixed(1)}</div>
+                        <div className="text-yellow-400 text-[20px] mb-0.5">Vidas</div>
+                        <div className="text-yellow-400 font-bold text-2xl">{(MAX_MISTAKES - mistakes).toFixed(1)}</div>
                     </div>
                 </div>
             </div>
@@ -195,6 +243,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                             stages: TOURNAMENT_STAGES,
                             currentStageIndex,
                             handsPlayedInStage,
+                            stageStats,
                             onRestart: handleRestartTournament
                         } : undefined
                     }

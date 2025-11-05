@@ -109,7 +109,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     };
 
     return (
-        <div className="flex gap-4 items-stretch">
+        <div className="flex gap-4 items-stretch justify-center">
             {/* Hand History Panel - Left Side - Same height as table */}
             <HandHistoryPanel 
                 history={history}

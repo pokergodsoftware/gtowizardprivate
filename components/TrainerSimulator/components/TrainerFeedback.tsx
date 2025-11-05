@@ -46,6 +46,7 @@ interface TrainerFeedbackProps {
         }>;
         currentStageIndex: number;
         handsPlayedInStage: number;
+        stageStats: Record<number, { handsPlayed: number; livesLost: number }>;
         onRestart: () => void;
     };
     onBack: () => void;
@@ -75,13 +76,43 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
         handName: currentSpot?.playerHandName
     });
 
+    // Log mount/unmount
+    React.useEffect(() => {
+        console.log('✅ TrainerFeedback MOUNTED');
+        return () => {
+            console.log('❌ TrainerFeedback UNMOUNTED');
+        };
+    }, []);
+
     return (
         <div className="bg-[#23272f] rounded-lg p-2.5 max-w-4xl mx-auto">
             <div className="space-y-1.5">
                 {/* Mensagem de resultado */}
                 {(() => {
                     const handData = node.hands[currentSpot.playerHandName];
-                    if (!handData) return null;
+                    console.log('🔍 TrainerFeedback handData check:', {
+                        playerHandName: currentSpot.playerHandName,
+                        hasHandData: !!handData,
+                        availableHands: Object.keys(node.hands).slice(0, 10),
+                        totalHands: Object.keys(node.hands).length
+                    });
+                    if (!handData) {
+                        console.error('❌ TrainerFeedback: handData not found!', {
+                            lookingFor: currentSpot.playerHandName,
+                            availableHands: Object.keys(node.hands).slice(0, 10)
+                        });
+                        return (
+                            <div className="bg-red-500/20 border-2 border-red-500 rounded-lg p-4 text-center">
+                                <div className="text-red-400 font-bold text-xl mb-2">❌ ERRO</div>
+                                <div className="text-white text-sm">
+                                    Mão "{currentSpot.playerHandName}" não encontrada no nó.
+                                </div>
+                                <div className="text-gray-400 text-xs mt-2">
+                                    Combos: {currentSpot.playerHand} | Node: {currentSpot.nodeId}
+                                </div>
+                            </div>
+                        );
+                    }
                     
                     const userActionIndex = node.actions.findIndex((a, idx) => {
                         // Para timeout, a ação é sempre Fold
@@ -321,88 +352,151 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     </div>
                 )}
                 
-                {/* Tournament Results - Show when tournament ends */}
+                {/* Tournament Results - Show when tournament ends - COMPACT VERSION */}
                 {tournamentComplete && (
-                    <div className="mt-6 p-6 bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700">
-                        {/* Título */}
-                        <div className="text-center mb-6">
+                    <div className="mt-3 p-4 bg-gray-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700">
+                        {/* Título Compacto */}
+                        <div className="text-center mb-4">
                             {tournamentComplete.isBusted ? (
                                 <>
-                                    <div className="text-5xl mb-3">💥</div>
-                                    <h2 className="text-3xl font-bold text-red-400 mb-1">BUSTED!</h2>
-                                    <p className="text-gray-400">Você cometeu 10 erros</p>
+                                    <div className="text-4xl mb-2">💥</div>
+                                    <h2 className="text-2xl font-bold text-red-400">BUSTED!</h2>
+                                    <p className="text-sm text-gray-400 mt-1">Torneio encerrado</p>
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-5xl mb-3">🏆</div>
-                                    <h2 className="text-3xl font-bold text-yellow-400 mb-1">TORNEIO COMPLETO!</h2>
-                                    <p className="text-gray-400">Parabéns! Você completou todas as 45 mãos</p>
+                                    <div className="text-4xl mb-2">🏆</div>
+                                    <h2 className="text-2xl font-bold text-yellow-400">COMPLETO!</h2>
+                                    <p className="text-sm text-gray-400 mt-1">{tournamentComplete.totalHandsPlayed} mãos jogadas</p>
                                 </>
                             )}
                         </div>
 
-                        {/* Estatísticas */}
-                        <div className="grid grid-cols-2 gap-3 mb-6">
-                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
-                                <div className="text-gray-400 text-xs mb-1">Mãos Jogadas</div>
-                                <div className="text-2xl font-bold text-white">{tournamentComplete.totalHandsPlayed}</div>
-                            </div>
-                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
-                                <div className="text-gray-400 text-xs mb-1">Precisão</div>
-                                <div className="text-2xl font-bold text-green-400">{tournamentComplete.accuracy}%</div>
-                            </div>
-                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
-                                <div className="text-gray-400 text-xs mb-1">Acertos</div>
-                                <div className="text-2xl font-bold text-green-400">
-                                    {(tournamentComplete.totalHandsPlayed - tournamentComplete.mistakes).toFixed(1)}
-                                </div>
-                            </div>
-                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
-                                <div className="text-gray-400 text-xs mb-1">Erros</div>
-                                <div className="text-2xl font-bold text-red-400">{tournamentComplete.mistakes.toFixed(1)}</div>
-                            </div>
-                        </div>
-
-                        {/* Progresso por Estágio */}
-                        <div className="mb-6">
-                            <h3 className="text-white font-bold mb-3 text-sm">Estágio Alcançado</h3>
-                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {/* Progresso por Estágio - Formato Candle (Vertical) - EXPANDIDO */}
+                        <div className="mb-3">
+                            <h3 className="text-white font-bold mb-3 text-sm">Progresso por Estágio</h3>
+                            <div 
+                                className="flex gap-2 overflow-x-auto pb-2"
+                                style={{
+                                    scrollbarWidth: 'thin',
+                                    scrollbarColor: '#4b5563 #1f2937'
+                                }}
+                            >
                                 {tournamentComplete.stages.map((stage, index) => {
                                     const reached = index < tournamentComplete.currentStageIndex || 
                                                   (index === tournamentComplete.currentStageIndex && tournamentComplete.isComplete);
                                     const current = index === tournamentComplete.currentStageIndex && !tournamentComplete.isComplete;
                                     
+                                    // Obter estatísticas do estágio
+                                    const stageStat = tournamentComplete.stageStats[index];
+                                    const stageHandsPlayed = stageStat?.handsPlayed || 0;
+                                    const stageLivesLost = stageStat?.livesLost || 0;
+                                    
+                                    // Se não jogou nenhuma mão neste estágio, não renderiza
+                                    if (stageHandsPlayed === 0 && !current) {
+                                        return null;
+                                    }
+                                    
+                                    // Calcular performance
+                                    const stageHands = stage.handsToPlay;
+                                    const progress = reached ? 100 : (current ? (stageHandsPlayed / stageHands) * 100 : 0);
+                                    
+                                    // Calcular score do estágio
+                                    const stageScore = stageHandsPlayed > 0 
+                                        ? ((stageHandsPlayed - stageLivesLost) / stageHandsPlayed * 100).toFixed(0)
+                                        : '0';
+                                    
+                                    // Definir cor baseado no status
+                                    let statusColor = '';
+                                    let statusIcon = '';
+                                    let barColorFrom = '';
+                                    let barColorTo = '';
+                                    let bgColor = '';
+                                    
+                                    if (reached) {
+                                        statusColor = 'text-teal-400';
+                                        statusIcon = '✓';
+                                        barColorFrom = '#14b8a6'; // teal-500
+                                        barColorTo = '#0d9488';   // teal-600
+                                        bgColor = 'bg-teal-500/10 border-teal-500/30';
+                                    } else if (current) {
+                                        statusColor = 'text-yellow-400';
+                                        statusIcon = '⚠';
+                                        barColorFrom = '#eab308'; // yellow-500
+                                        barColorTo = '#ca8a04';   // yellow-600
+                                        bgColor = 'bg-yellow-500/10 border-yellow-500/30';
+                                    } else {
+                                        statusColor = 'text-gray-500';
+                                        statusIcon = '○';
+                                        barColorFrom = '#4b5563'; // gray-600
+                                        barColorTo = '#374151';   // gray-700
+                                        bgColor = 'bg-gray-700/10 border-gray-600/30';
+                                    }
+                                    
                                     return (
                                         <div 
                                             key={`${stage.phase}-${index}`}
-                                            className={`flex items-center justify-between p-2 rounded-lg text-xs ${
-                                                reached 
-                                                    ? 'bg-green-500/20 border border-green-500/50'
-                                                    : current
-                                                        ? 'bg-yellow-500/20 border border-yellow-500/50'
-                                                        : 'bg-gray-700/20 border border-gray-600/50'
-                                            }`}
+                                            className={`flex flex-col items-center min-w-[90px] ${bgColor} rounded-lg p-3 border`}
                                         >
-                                            <span className={`font-bold ${
-                                                reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
-                                            }`}>
-                                                {stage.displayName}
-                                            </span>
-                                            <span className={`text-xs ${
-                                                reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
-                                            }`}>
-                                                {reached ? '✓ Completo' : 
-                                                 current ? `${tournamentComplete.handsPlayedInStage}/${stage.handsToPlay}` : 
-                                                 `0/${stage.handsToPlay}`}
-                                            </span>
+                                            {/* Ícone de status no topo */}
+                                            <div className={`text-2xl mb-2 ${statusColor} font-bold`}>
+                                                {statusIcon}
+                                            </div>
+                                            
+                                            {/* Barra vertical (candle) - EXPANDIDA */}
+                                            <div className="relative w-12 h-64 bg-gray-800 rounded-full overflow-hidden border border-gray-700/50 mb-3">
+                                                <div 
+                                                    className="absolute bottom-0 left-0 right-0 transition-all duration-500 ease-out"
+                                                    style={{
+                                                        height: `${progress}%`,
+                                                        background: `linear-gradient(to top, ${barColorTo}, ${barColorFrom})`
+                                                    }}
+                                                />
+                                            </div>
+                                            
+                                            {/* Nome do estágio */}
+                                            <div className="text-xs text-white font-bold text-center leading-tight max-w-[86px] line-clamp-2 mb-1">
+                                                {stage.displayName.replace('Field', '').replace('Table', 'T').replace('-handed', 'p')}
+                                            </div>
+                                            
+                                            {/* Progresso */}
+                                            <div className={`text-xs ${statusColor} font-bold mb-2`}>
+                                                {reached ? '✓' : current ? `${stageHandsPlayed}/${stageHands}` : `0/${stageHands}`}
+                                            </div>
+                                            
+                                            {/* Lives Lost (vermelho) */}
+                                            <div className="text-center mb-1">
+                                                <div className="text-[9px] text-red-400 font-semibold">Lives Lost</div>
+                                                <div className="text-sm text-red-400 font-bold">{stageLivesLost.toFixed(1)}</div>
+                                            </div>
+                                            
+                                            {/* Score % (verde) */}
+                                            <div className="text-center">
+                                                <div className="text-[9px] text-teal-400 font-semibold">Score</div>
+                                                <div className="text-sm text-teal-400 font-bold">{stageScore}%</div>
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
 
+                        {/* Correct Moves e Score % */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="bg-teal-500/10 rounded-lg p-3 text-center border border-teal-500/30">
+                                <div className="text-teal-400 text-xs mb-1 font-semibold">Correct Moves</div>
+                                <div className="text-3xl font-bold text-teal-400">{(tournamentComplete.totalHandsPlayed - tournamentComplete.mistakes).toFixed(1)}</div>
+                                <div className="text-[10px] text-gray-400 mt-1">de {tournamentComplete.totalHandsPlayed} jogadas</div>
+                            </div>
+                            <div className="bg-teal-500/10 rounded-lg p-3 text-center border border-teal-500/30">
+                                <div className="text-teal-400 text-xs mb-1 font-semibold">Score</div>
+                                <div className="text-3xl font-bold text-teal-400">{tournamentComplete.accuracy}%</div>
+                                <div className="text-[10px] text-gray-400 mt-1">precisão geral</div>
+                            </div>
+                        </div>
+
                         {/* Botões */}
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                             <button
                                 onClick={onBack}
                                 className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold text-sm transition-all"

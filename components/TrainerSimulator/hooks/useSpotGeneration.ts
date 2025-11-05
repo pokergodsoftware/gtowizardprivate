@@ -285,6 +285,9 @@ export const useSpotGeneration = ({
      * Main spot generation function
      */
     const generateNewSpot = useCallback(async () => {
+        console.log('🚀 generateNewSpot CALLED');
+        console.log('📞 Call stack:', new Error().stack?.split('\n').slice(0, 5).join('\n'));
+        
         if (isGeneratingSpot.current) {
             console.log('⚠️ Already generating a spot, skipping...');
             return;

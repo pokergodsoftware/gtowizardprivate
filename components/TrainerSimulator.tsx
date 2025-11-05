@@ -34,6 +34,7 @@ interface TrainerSimulatorProps {
         }>;
         currentStageIndex: number;
         handsPlayedInStage: number;
+        stageStats: Record<number, { handsPlayed: number; livesLost: number }>;
         onRestart: () => void;
     };
 }
@@ -227,13 +228,25 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
 
     // Auto-advance when toggle is activated AFTER already answering
     useEffect(() => {
+        console.log('🔄 Auto-advance effect triggered:', {
+            autoAdvance,
+            userAction,
+            tournamentMode,
+            willAutoAdvance: autoAdvance && userAction
+        });
+        
         if (autoAdvance && userAction) {
             const delay = tournamentMode ? 5000 : 2500;
+            console.log(`⏰ Setting auto-advance timer for ${delay}ms`);
             const timer = setTimeout(() => {
+                console.log('⏰ Auto-advance timer fired!');
                 nextSpot();
             }, delay);
             
-            return () => clearTimeout(timer);
+            return () => {
+                console.log('🧹 Cleaning up auto-advance timer');
+                clearTimeout(timer);
+            };
         }
     }, [autoAdvance, userAction, tournamentMode]); // Watch all relevant states
 
@@ -255,6 +268,12 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
         
         console.log('🎯 Processing action:', actionName);
+        console.log('📋 Current spot info:', {
+            playerHandName: currentSpot.playerHandName,
+            playerHand: currentSpot.playerHand,
+            nodeId: currentSpot.nodeId,
+            solutionId: currentSpot.solution.id
+        });
         
         // Use solution from currentSpot (has all nodes loaded during generation)
         const currentSolution = currentSpot.solution;
@@ -269,9 +288,16 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             return;
         }
         
+        console.log('🔍 Node hands available:', {
+            totalHands: Object.keys(node.hands).length,
+            sampleHands: Object.keys(node.hands).slice(0, 10),
+            lookingFor: currentSpot.playerHandName
+        });
+        
         const handData = node.hands[currentSpot.playerHandName];
         if (!handData) {
             console.error(`❌ Hand ${currentSpot.playerHandName} not found in node`);
+            console.error('Available hands:', Object.keys(node.hands).slice(0, 20));
             return;
         }
         
@@ -316,12 +342,19 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             : undefined;
         
         console.log('💾 Setting user action and showing feedback...');
+        console.log('🔍 Before setUserAction:', {
+            currentSpotHandName: currentSpot.playerHandName,
+            currentSpotHand: currentSpot.playerHand,
+            nodeId: currentSpot.nodeId,
+            action: actionName
+        });
         
         // Parar áudio do timebank imediatamente ao clicar em ação
         stopAudios();
         
         setUserAction(actionName);
         console.log('✅ Feedback should now be visible');
+        console.log('🎯 userAction SET TO:', actionName);
         
         // Armazenar resultado para usar no mark hand
         setLastActionResult({ evaluation, ev: actionEv });
@@ -361,16 +394,27 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
         
         // Auto-advance se ativado
+        console.log('🔄 Auto-advance check in checkAnswer:', {
+            autoAdvance,
+            tournamentMode,
+            willAutoAdvance: autoAdvance === true
+        });
+        
         if (autoAdvance) {
             const delay = tournamentMode ? 5000 : 2500;
+            console.log(`⏰ AUTO-ADVANCE ENABLED! Setting timeout for ${delay}ms`);
             setTimeout(() => {
+                console.log('⏰ Auto-advance timeout fired from checkAnswer!');
                 nextSpot();
             }, delay);
+        } else {
+            console.log('✋ Auto-advance is OFF in checkAnswer - user must click NEXT HAND');
         }
     };
 
     const nextSpot = async () => {
         console.log('⏭️ NextSpot called - showing loading');
+        console.log('🔍 NextSpot called from:', new Error().stack?.split('\n')[2]);
         setIsLoadingNextHand(true);
         
         // Small delay to ensure loading appears smoothly

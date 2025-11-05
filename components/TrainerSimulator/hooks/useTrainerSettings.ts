@@ -52,6 +52,11 @@ export const useTrainerSettings = ({ tournamentMode = false }: UseTrainerSetting
     // DEFAULT: ON in tournament mode, OFF in training mode
     const [autoAdvance, setAutoAdvance] = useState(() => {
         const stored = localStorage.getItem('trainer_auto_advance');
+        console.log('🔧 useTrainerSettings: Loading autoAdvance from localStorage:', {
+            stored,
+            tournamentMode,
+            willBe: stored !== null ? stored === 'true' : tournamentMode
+        });
         if (stored !== null) {
             return stored === 'true';
         }
