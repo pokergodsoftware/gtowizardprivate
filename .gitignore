@@ -65,3 +65,6 @@ Desktop.ini
 *.tmp
 *.temp
 .cache/
+
+# Wrangler (Cloudflare)
+.wrangler/
