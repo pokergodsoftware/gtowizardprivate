@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Spots 40-20 no R2</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+        .spot {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .spot.loading {
+            background: #333;
+            color: #999;
+        }
+        .spot.success {
+            background: #1b5e20;
+            color: #a5d6a7;
+        }
+        .spot.error {
+            background: #b71c1c;
+            color: #ef9a9a;
+        }
+        .icon {
+            font-size: 20px;
+            min-width: 24px;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .summary h2 {
+            margin-top: 0;
+            color: #64B5F6;
+        }
+        .missing-list {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .missing-list code {
+            color: #FFC107;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Verificar Spots 40-20% no R2</h1>
+    
+    <button onclick="checkSpots()">Iniciar Verificação</button>
+    
+    <div id="results"></div>
+    
+    <div id="summary" class="summary" style="display: none;">
+        <h2>📊 Resumo</h2>
+        <p><strong>✓ Encontrados:</strong> <span id="foundCount">0</span></p>
+        <p><strong>✗ Faltando:</strong> <span id="missingCount">0</span></p>
+        <div id="missingList" class="missing-list" style="display: none;">
+            <h3>Spots que precisam ser enviados:</h3>
+            <div id="missingSpots"></div>
+        </div>
+    </div>
+
+    <script>
+        const CDN_BASE = 'https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev';
+        const SPOTS = [
+            { id: 'speed32_12', name: '40~20% left - 6p 24bb (speed32_12)' },
+            { id: 'speed32_13', name: '40~20% left - 5p 7bb (speed32_13)' },
+            { id: 'speed32_15', name: '40~20% left - 6p 24bb (speed32_15)' },
+            { id: 'speed32_16', name: '40~20% left - 6p 14bb (speed32_16)' },
+            { id: 'speed32_17', name: '40~20% left - 6p 28bb (speed32_17)' },
+            { id: 'speed32_18', name: '40~20% left - 6p 21bb (speed32_18)' },
+            { id: 'speed32_2d', name: '40~20% left - 6p 24bb (speed32_2d)' },
+            { id: 'speed32_5d', name: '40~20% left - 6p 28bb (speed32_5d)' },
+            { id: 'speed32_6d', name: '40~20% left - 6p 21bb (speed32_6d)' },
+            { id: 'speed50_1', name: '40~20% left - 6p 17bb (speed50_1)' },
+            { id: 'speed50_2', name: '40~20% left - 6p 17bb (speed50_2)' },
+            { id: 'speed50_3', name: '40~20% left - 6p 15bb (speed50_3)' },
+            { id: 'speed50_4', name: '40~20% left - 6p 15bb (speed50_4)' },
+            { id: 'speed50_5', name: '40~20% left - 6p 23bb (speed50_5)' }
+        ];
+
+        async function checkSpot(spot) {
+            const url = `${CDN_BASE}/spots/40-20/${spot.id}/settings.json`;
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function checkSpots() {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+            resultsDiv.innerHTML = '';
+            summaryDiv.style.display = 'none';
+
+            const found = [];
+            const missing = [];
+
+            // Create spot divs
+            for (const spot of SPOTS) {
+                const spotDiv = document.createElement('div');
+                spotDiv.className = 'spot loading';
+                spotDiv.innerHTML = `
+                    <span class="icon">⏳</span>
+                    <span>${spot.name}</span>
+                `;
+                spotDiv.id = `spot-${spot.id}`;
+                resultsDiv.appendChild(spotDiv);
+            }
+
+            // Check each spot
+            for (const spot of SPOTS) {
+                const spotDiv = document.getElementById(`spot-${spot.id}`);
+                const exists = await checkSpot(spot);
+                
+                if (exists) {
+                    spotDiv.className = 'spot success';
+                    spotDiv.querySelector('.icon').textContent = '✓';
+                    found.push(spot);
+                } else {
+                    spotDiv.className = 'spot error';
+                    spotDiv.querySelector('.icon').textContent = '✗';
+                    missing.push(spot);
+                }
+            }
+
+            // Show summary
+            document.getElementById('foundCount').textContent = found.length;
+            document.getElementById('missingCount').textContent = missing.length;
+            summaryDiv.style.display = 'block';
+
+            if (missing.length > 0) {
+                const missingListDiv = document.getElementById('missingList');
+                const missingSpotsDiv = document.getElementById('missingSpots');
+                missingListDiv.style.display = 'block';
+                
+                let html = '<ul>';
+                missing.forEach(spot => {
+                    html += `<li><code>${spot.id}</code> - ${spot.name}</li>`;
+                });
+                html += '</ul>';
+                
+                missingSpotsDiv.innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>
