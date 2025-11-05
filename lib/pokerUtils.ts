@@ -41,8 +41,11 @@ export const getActionColor = (
         ? playerIndex === numPlayers - 1 
         : false;
 
-    // Cores inspiradas no GTO Wizard
-    if (actionName.includes('All-in')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
+  // Cores inspiradas no GTO Wizard
+  // Normalizamos o nome da ação (removendo caracteres não-alfa-numéricos e em lowercase)
+  // para aceitar tanto 'All-in' quanto 'Allin' (e variações com/sem hífen).
+  const normalizedAction = actionName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normalizedAction.includes('allin')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
     if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Laranja para Raise
     if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Azul cyan para Fold
     if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Verde para Call

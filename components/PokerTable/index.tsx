@@ -105,7 +105,56 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     const smallBlind = blinds?.length > 1 ? Math.min(blinds[0], blinds[1]) : (blinds?.[0] / 2 || 0);
     const ante = blinds?.length > 2 ? blinds[2] : 0;
     
-    const totalPot = calculateTotalPot(smallBlind, bigBlind, ante, numPlayers);
+    // Baseline pot (blinds + todas as antes)
+    const baselinePot = calculateTotalPot(smallBlind, bigBlind, ante, numPlayers);
+
+    // Precompute player bets using baselinePot so calculatePlayerBet can rely on a non-circular value
+    const playerBets = stacks.map((stack, index) => {
+        const isBB = index === bbPosition;
+        const isSB = index === sbPosition;
+        const isAutoAllin = stack <= 0;
+        const isRaiser = spotType === 'vs Open' && raiserPosition !== undefined && index === raiserPosition;
+        const isShover = spotType === 'vs Shove' && raiserPosition !== undefined && index === raiserPosition;
+        const isMultiwayShover = spotType === 'vs Multiway shove' && shoverPositions !== undefined && shoverPositions.includes(index);
+
+        const villainAction = villainActions ? villainActions.find(va => va.position === index) : undefined;
+
+        return {
+            index,
+            bet: calculatePlayerBet(
+                index,
+                isRaiser,
+                isShover,
+                isMultiwayShover,
+                isAutoAllin,
+                isBB,
+                isSB,
+                stack,
+                bigBlind,
+                smallBlind,
+                ante,
+                baselinePot,
+                villainAction
+            ),
+            isBB,
+            isSB,
+            isAutoAllin,
+            isRaiser,
+            isShover,
+            isMultiwayShover,
+            villainAction,
+        };
+    });
+
+    // Sum extras beyond blinds (avoid double counting antes which are in baselinePot)
+    const extraFromActions = playerBets.reduce((acc, p) => {
+        if (p.isAutoAllin) return acc; // auto all-ins often only paid ante which is already counted
+        const blindContribution = p.isBB ? bigBlind : (p.isSB ? smallBlind : 0);
+        const extra = Math.max(0, p.bet - blindContribution);
+        return acc + extra;
+    }, 0);
+
+    const totalPot = Math.round(baselinePot + extraFromActions);
     
     // Determine table image
     const tableImage = tournamentPhase === 'Final table' 
@@ -136,40 +185,24 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     const isCurrentPlayer = index === currentNode.player;
                     const position = positions[index];
                     const bounty = bounties?.[index] || 0;
-                    const isBB = index === bbPosition;
-                    const isSB = index === sbPosition;
                     const isDealer = index === dealerPosition;
-                    const isRaiser = spotType === 'vs Open' && raiserPosition !== undefined && index === raiserPosition;
-                    const isShover = spotType === 'vs Shove' && raiserPosition !== undefined && index === raiserPosition;
-                    const isMultiwayShover = spotType === 'vs Multiway shove' && shoverPositions !== undefined && shoverPositions.includes(index);
-                    
-                    // Get villain action for this position (works for Any, vs Open, etc)
-                    const villainAction = villainActions 
-                        ? villainActions.find(va => va.position === index) 
-                        : undefined;
-                    
-                    const isAutoAllin = stack <= 0;
                     const hasFolded = hasPlayerFolded(index, heroPosition);
                     
+                    // Use precomputed player bet and flags
+                    const betInfo = playerBets.find(p => p.index === index)!;
+                    const isBB = betInfo?.isBB;
+                    const isSB = betInfo?.isSB;
+                    const isRaiser = betInfo?.isRaiser;
+                    const isShover = betInfo?.isShover;
+                    const isMultiwayShover = betInfo?.isMultiwayShover;
+                    const isAutoAllin = betInfo?.isAutoAllin;
+                    const villainAction = betInfo?.villainAction;
+
                     // Calculate player angle (for chip positioning)
                     const playerAngle = getPlayerAngle(index, numPlayers, heroPosition);
                     
-                    // Calculate player bet
-                    const playerBet = calculatePlayerBet(
-                        index,
-                        isRaiser,
-                        isShover,
-                        isMultiwayShover,
-                        isAutoAllin,
-                        isBB,
-                        isSB,
-                        stack,
-                        bigBlind,
-                        smallBlind,
-                        ante,
-                        totalPot,
-                        villainAction
-                    );
+                    // Calculate player bet (from precomputed values)
+                    const playerBet = betInfo ? betInfo.bet : 0;
                     
                     // Calculate chip position
                     const tableRadiusX = 42;
@@ -181,8 +214,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     const betX = centerX + betRadiusX * Math.cos(playerAngle);
                     const betY = centerY + betRadiusY * Math.sin(playerAngle);
                     
-                    const hasVillainFolded = villainAction && villainAction.action === 'Fold';
-                    const hasVillainAction = villainAction && villainAction.action !== 'Fold';
+                    const hasVillainFolded = !!(villainAction && villainAction.action === 'Fold');
+                    const hasVillainAction = !!(villainAction && villainAction.action !== 'Fold');
                     
                     return (
                         <div

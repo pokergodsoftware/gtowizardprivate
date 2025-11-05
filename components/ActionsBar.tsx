@@ -43,11 +43,12 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({ currentNode, bigBlind, s
     const isLargestRaise = index === largestRaiseIndex;
     let name = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
     
-    // Override the name to "Allin" if this is the largest raise
-    if (isLargestRaise && action.type === 'R' && !name.includes('Allin')) {
+    // Override the name to "All-in" if this is the largest raise
+    // Use a case-insensitive, hyphen-tolerant test to avoid mismatches.
+    if (isLargestRaise && action.type === 'R' && !/all-?in/i.test(name)) {
       const sizeMatch = name.match(/Raise (.+)/);
       if (sizeMatch) {
-        name = `Allin ${sizeMatch[1]}`;
+        name = `All-in ${sizeMatch[1]}`;
       }
     }
     

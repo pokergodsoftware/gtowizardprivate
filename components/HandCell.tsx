@@ -51,11 +51,12 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
             // Get action name
             let actionName = getActionName(action, bigBlind, playerStack, displayMode, settings.handdata.stacks);
             
-            // Override to "Allin" if this is the largest raise (same logic as ActionsBar)
-            if (index === largestRaiseIndex && action.type === 'R' && !actionName.includes('Allin')) {
+            // Override to "All-in" if this is the largest raise (same logic as ActionsBar)
+            // Use a case-insensitive, hyphen-tolerant test to avoid mismatches.
+            if (index === largestRaiseIndex && action.type === 'R' && !/all-?in/i.test(actionName)) {
                 const sizeMatch = actionName.match(/Raise (.+)/);
                 if (sizeMatch) {
-                    actionName = `Allin ${sizeMatch[1]}`;
+                    actionName = `All-in ${sizeMatch[1]}`;
                 }
             }
             
