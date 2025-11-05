@@ -33,30 +33,41 @@
 
 ---
 
-### 2. Action Button Styling Inconsistency (Localhost vs Vercel)
+### 2. **Action Button Styling Inconsistency (Localhost vs Vercel)** 🎨
 
 **Problem:**
 - Action buttons (Fold/Call/Raise) displayed with different styling between localhost and Vercel
-- Localhost: Properly rounded corners (`rounded-xl`) with adequate spacing
-- Vercel: Less rounded corners (`rounded-lg`) with tighter spacing
+- Localhost: Buttons with texture background from `action_button.png`
+- Vercel: Buttons without texture (plain colored background)
 
 **Root Cause:**
-- Component used `rounded-lg` and smaller gap values
-- Tailwind CDN in `index.html` may have caused compilation differences
+- Component used relative path `url(./trainer/action_button.png)` which works in dev but fails in production
+- The file exists in R2 but wasn't being loaded correctly
+- Needed to use `getTrainerAssetUrl()` helper for proper CDN path resolution
 
 **Solution:**
 Changed in `components/TrainerSimulator/components/TrainerTable.tsx`:
 
-1. **Border Radius**: `rounded-lg` → `rounded-xl`
-   - Line 182: Changed button className
+1. **Import CDN helper**: Added `import { getTrainerAssetUrl } from '../../../src/config'`
 
-2. **Gap Spacing**: Increased spacing between buttons
+2. **Background Image Path**: 
+   ```typescript
+   // Before
+   backgroundImage: 'url(./trainer/action_button.png)'
+   
+   // After
+   backgroundImage: `url(${getTrainerAssetUrl('action_button.png')})`
+   ```
+
+3. **Border Radius & Gap Spacing** (bonus improvements):
+   - Border: `rounded-lg` → `rounded-xl`
    - 2 buttons: `gap-2` → `gap-3`
    - 3 buttons: `gap-1.5` → `gap-2`
    - 4+ buttons: `gap-1` → `gap-1.5`
 
 **Visual Impact:**
-- Buttons now have more rounded corners matching GGPoker style
+- Buttons now display proper texture background in production
+- More rounded corners matching GGPoker style
 - Better visual separation between multiple action buttons
 - Consistent appearance across dev and production environments
 
@@ -69,8 +80,14 @@ Changed in `components/TrainerSimulator/components/TrainerTable.tsx`:
 
 ### Modified:
 - `components/TrainerSimulator/components/TrainerTable.tsx`
-  - Updated `rounded-lg` → `rounded-xl` (line 182)
-  - Increased gap spacing for button containers (lines 139-141)
+  - Added import: `getTrainerAssetUrl` from config
+  - Updated background image: `url(./trainer/action_button.png)` → `url(${getTrainerAssetUrl('action_button.png')})`
+  - Updated `rounded-lg` → `rounded-xl`
+  - Increased gap spacing for button containers
+
+### Copied:
+- `trainer/action_button.png` → `public/trainer/action_button.png` (for dev environment)
+- Already existed in R2: `cloudflare:gto-wizard-spots/trainer/action_button.png` (233,602 bytes)
 
 ---
 
@@ -78,7 +95,8 @@ Changed in `components/TrainerSimulator/components/TrainerTable.tsx`:
 
 **Commit:**
 ```
-fix: Update trainer action buttons styling - rounded-xl and increased gap spacing for better visual consistency with localhost
+1. fix: Update trainer action buttons styling - rounded-xl and increased gap spacing
+2. fix: Use getTrainerAssetUrl for action button background image - fixes missing button texture in production
 ```
 
 **Pushed to:** `main` branch
