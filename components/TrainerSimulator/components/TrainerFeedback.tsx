@@ -50,7 +50,18 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
     onNextSpot,
     onStudy
 }) => {
-    if (!show) return null;
+    console.log('🎨 TrainerFeedback render:', {
+        show,
+        hasSpot: !!currentSpot,
+        hasNode: !!node,
+        userAction,
+        handName: currentSpot?.playerHandName
+    });
+    
+    if (!show) {
+        console.log('⚠️ TrainerFeedback: show=false, not rendering');
+        return null;
+    }
 
     return (
         <div className="bg-[#23272f] rounded-lg p-2.5 max-w-4xl mx-auto">

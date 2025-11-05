@@ -44,7 +44,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [currentStageIndex, setCurrentStageIndex] = useState(0);
     const [handsPlayedInStage, setHandsPlayedInStage] = useState(0);
     const [totalHandsPlayed, setTotalHandsPlayed] = useState(0);
-    const [mistakes, setMistakes] = useState(0);
+    const [mistakes, setMistakes] = useState(0); // Pode ser fracionado (0.5)
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [showingResult, setShowingResult] = useState(false);
@@ -53,16 +53,24 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
 
     // Callback quando o usuário responde um spot
-    const handleSpotResult = (isCorrect: boolean) => {
-        if (!isCorrect) {
-            const newMistakes = mistakes + 1;
+    const handleSpotResult = (isCorrect: boolean, livesLost: number = 0) => {
+        console.log('🎮 TournamentMode: Received spot result:', { isCorrect, livesLost });
+        console.log('📊 Current state:', { mistakes, handsPlayedInStage, totalHandsPlayed });
+        
+        // Incrementar mistakes baseado em vidas perdidas
+        if (livesLost > 0) {
+            const newMistakes = mistakes + livesLost;
+            console.log(`❌ Lives lost: ${livesLost}! Incrementing mistakes: ${mistakes} → ${newMistakes}`);
             setMistakes(newMistakes);
             
             if (newMistakes >= MAX_MISTAKES) {
+                console.log('💀 BUSTED! Reached max mistakes');
                 setIsBusted(true);
                 setShowingResult(true);
                 return;
             }
+        } else {
+            console.log('✅ No lives lost!');
         }
 
         const newHandsInStage = handsPlayedInStage + 1;
@@ -250,15 +258,11 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                     </div>
                     <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
                         <div className="text-red-400 text-[10px] mb-0.5">Erros</div>
-                        <div className="text-red-400 font-bold text-sm">{mistakes}/{MAX_MISTAKES}</div>
+                        <div className="text-red-400 font-bold text-sm">{mistakes.toFixed(1)}/{MAX_MISTAKES}</div>
                     </div>
                     <div className="bg-yellow-500/10 rounded-lg p-1.5 text-center border border-yellow-500/30">
                         <div className="text-yellow-400 text-[10px] mb-0.5">Vidas</div>
-                        <div className="text-yellow-400 font-bold text-xs flex items-center justify-center gap-0.5">
-                            {Array.from({ length: MAX_MISTAKES - mistakes }).map((_, i) => (
-                                <span key={i} className="text-[10px]">❤️</span>
-                            ))}
-                        </div>
+                        <div className="text-yellow-400 font-bold text-sm">{(MAX_MISTAKES - mistakes).toFixed(1)}</div>
                     </div>
                 </div>
             </div>

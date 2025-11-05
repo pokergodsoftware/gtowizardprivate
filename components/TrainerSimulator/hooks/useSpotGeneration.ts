@@ -16,6 +16,7 @@ import { AppData, NodeData } from '../../../types';
 import { SpotSimulation, VillainAction } from '../types';
 import { randomElement, selectHandFromRange } from '../../../lib/trainerUtils';
 import { generateHandMatrix } from '../../../lib/pokerUtils';
+import { selectInterestingCombo, isInterestingCombo } from '../utils/comboSelection';
 import allCombos from '../../../combos.json';
 
 interface UseSpotGenerationProps {
@@ -180,37 +181,99 @@ export const useSpotGeneration = ({
 
         const finalHandsToUse = nonMarginalHands.length > 0 ? nonMarginalHands : handsToUse;
 
-        // 5. Sorteia mão
-        const randomHandName = randomElement(finalHandsToUse);
-        console.log(`✅ Selected hand: ${randomHandName}`);
-
-        // 6. Sorteia combo
-        const flatCombos = allCombos.flat();
-        const handCombos = flatCombos.filter(combo => {
-            const rank1 = combo[0];
-            const rank2 = combo[2];
-            const suit1 = combo[1];
-            const suit2 = combo[3];
-            
-            const comboHand = rank1 === rank2 
-                ? `${rank1}${rank2}`
-                : suit1 === suit2 
-                    ? `${rank1}${rank2}s`
-                    : `${rank1}${rank2}o`;
-            
-            return comboHand === randomHandName || 
-                   (rank1 !== rank2 && `${rank2}${rank1}${comboHand.slice(-1)}` === randomHandName);
-        });
+        // 5. NOVA ABORDAGEM: Pré-filtra TODOS os combos válidos primeiro
+        console.log('🎯 Pre-filtering valid combos with EV in range...');
         
-        if (handCombos.length === 0) {
-            console.error('No combos found for hand:', randomHandName);
+        const flatCombos = allCombos.flat();
+        const validCombos: Array<{ handName: string; combo: string }> = [];
+        
+        // Para cada mão, verifica quais combos passam no filtro de EV
+        for (const handName of finalHandsToUse) {
+            const handData = node.hands[handName];
+            if (!handData) continue;
+            
+            // Pega todos os combos dessa mão
+            const handCombos = flatCombos.filter(combo => {
+                const rank1 = combo[0];
+                const rank2 = combo[2];
+                const suit1 = combo[1];
+                const suit2 = combo[3];
+                
+                const comboHand = rank1 === rank2 
+                    ? `${rank1}${rank2}`
+                    : suit1 === suit2 
+                        ? `${rank1}${rank2}s`
+                        : `${rank1}${rank2}o`;
+                
+                return comboHand === handName || 
+                       (rank1 !== rank2 && `${rank2}${rank1}${comboHand.slice(-1)}` === handName);
+            });
+            
+            // Verifica se essa mão passa no filtro de EV
+            if (isInterestingCombo(handName, '', node, {
+                minPositiveEV: 0.07,
+                maxPositiveEV: 1.00,
+                minNegativeEV: -1.00,
+                maxNegativeEV: -0.07
+            })) {
+                // Adiciona todos os combos dessa mão
+                for (const combo of handCombos) {
+                    validCombos.push({ handName, combo });
+                }
+            }
+        }
+        
+        console.log(`✅ Found ${validCombos.length} valid combos from ${finalHandsToUse.length} hands`);
+        
+        if (validCombos.length === 0) {
+            console.error('❌ No valid combos found with EV in range!');
             return null;
         }
         
-        const randomCombo = randomElement(handCombos);
-        console.log(`✅ Selected combo: ${randomCombo}`);
+        // 6. Randomiza entre os combos válidos
+        const selectedEntry = randomElement(validCombos);
+        const { handName: randomHandName, combo: selectedCombo } = selectedEntry;
+        
+        console.log(`✅ Selected hand: ${randomHandName}`);
+        console.log(`✅ Selected combo: ${selectedCombo}`);
+        
+        // 7. Verificar EV do combo e mostrar logs detalhados
+        const handData = node.hands[randomHandName];
+        if (handData && handData.evs) {
+            const numActions = node.actions.length;
+            
+            if (numActions === 2) {
+                // 2 ações: mostrar todos os EVs
+                console.log(`📊 2 Actions - All EVs: [${handData.evs.map(ev => ev.toFixed(2)).join(', ')}]`);
+                const hasValidEV = handData.evs.some(ev => 
+                    (ev >= 0.07 && ev <= 1.00) || (ev >= -1.00 && ev <= -0.07)
+                );
+                console.log(`   Range: Positive (+0.07 to +1.00) OR Negative (-1.00 to -0.07)`);
+                console.log(`   Status: ${hasValidEV ? '✅ In range' : '❌ Should not happen!'}`);
+            } else if (numActions >= 3) {
+                // 3+ ações: encontrar a mais usada
+                let mostUsedIndex = 0;
+                let maxFreq = handData.played[0] || 0;
+                
+                for (let i = 1; i < handData.played.length; i++) {
+                    if (handData.played[i] > maxFreq) {
+                        maxFreq = handData.played[i];
+                        mostUsedIndex = i;
+                    }
+                }
+                
+                const mostUsedEV = handData.evs[mostUsedIndex];
+                const mostUsedAction = node.actions[mostUsedIndex].type;
+                console.log(`📊 3+ Actions - Most used: ${mostUsedAction} (${(maxFreq * 100).toFixed(1)}%)`);
+                console.log(`   EV of most used: ${mostUsedEV.toFixed(2)}`);
+                console.log(`   Range: Positive (+0.07 to +1.00) OR Negative (-1.00 to -0.07)`);
+                
+                const inRange = (mostUsedEV >= 0.07 && mostUsedEV <= 1.00) || (mostUsedEV >= -1.00 && mostUsedEV <= -0.07);
+                console.log(`   Status: ${inRange ? '✅ In range' : '❌ Should not happen!'}`);
+            }
+        }
 
-        return { handName: randomHandName, combo: randomCombo };
+        return { handName: randomHandName, combo: selectedCombo };
     }, []);
 
     /**

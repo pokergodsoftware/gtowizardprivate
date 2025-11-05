@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { AppData, NodeData } from '../types.ts';
 import { saveSpotResult, saveSpotHistory, saveMarkedHand, removeMarkedHand } from '../utils/statsUtils.ts';
+import { evaluateAction, isActionCorrect, type ActionEvaluation } from '../lib/actionEvaluation.ts';
 
 // Import extracted hooks and components (Phase 8 refactoring)
 import { useTrainerSettings, useTimebank, useTrainerStats, useSpotGeneration } from './TrainerSimulator/hooks';
-import { TrainerTable, TrainerFeedback, TrainerHeader } from './TrainerSimulator/components';
+import { TrainerTable, TrainerFeedback, TrainerHeader, LoadingTransition } from './TrainerSimulator/components';
 
 interface TrainerSimulatorProps {
     solutions: AppData[];
@@ -16,7 +17,7 @@ interface TrainerSimulatorProps {
     userId: string; // ID do usuário para salvar estatísticas
     tournamentPhase: string; // Fase do torneio atual
     tournamentMode?: boolean; // Se true, está no modo torneio
-    onSpotResult?: (isCorrect: boolean) => void; // Callback para modo torneio
+    onSpotResult?: (isCorrect: boolean, livesLost?: number) => void; // Callback para modo torneio (agora com livesLost)
     playerCountFilter?: number; // Filtro opcional por número de jogadores (para Final Table)
 }
 
@@ -57,7 +58,16 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const [userAction, setUserAction] = useState<string | null>(null);
     const [showFeedback, setShowFeedback] = useState(false);
     const [isHandMarked, setIsHandMarked] = useState(false);
-    const [lastActionResult, setLastActionResult] = useState<{isCorrect: boolean, ev?: number} | null>(null);
+    const [isLoadingNextHand, setIsLoadingNextHand] = useState(false);
+    const [lastActionResult, setLastActionResult] = useState<{
+        evaluation: ActionEvaluation;
+        ev?: number;
+    } | null>(null);
+    
+    // Debug: Monitor showFeedback changes
+    useEffect(() => {
+        console.log('🔄 showFeedback changed to:', showFeedback);
+    }, [showFeedback]);
     
     // ============================================================
     // Callback for timebank expiration
@@ -108,10 +118,15 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
         
         // REGRA: Quando timebank expira, herói sempre folda automaticamente
-        // - Se Fold for a ação correta (freq > 0), conta como ACERTO e ganha 1 ponto
-        // - Se Fold NÃO for a ação correta (freq = 0), conta como ERRO e ganha 0 pontos
-        const foldFrequency = handData.played[foldActionIndex] || 0;
-        const isCorrect = foldFrequency > 0;
+        // Avaliar usando o novo sistema
+        const foldEvaluation = evaluateAction(
+            foldActionIndex,
+            handData.played,
+            handData.evs,
+            node.actions
+        );
+        
+        console.log('⏰ Timeout - Fold evaluation:', foldEvaluation);
         
         // Pegar o EV do fold
         const foldEv = handData.evs && handData.evs[foldActionIndex] !== undefined 
@@ -122,17 +137,19 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         setUserAction('Fold (TIMEOUT)');
         setShowFeedback(true);
         
+        // Determinar se é "correto" para estatísticas
+        const isCorrect = isActionCorrect(foldEvaluation.quality);
+        
         // Salvar resultado
         const actualPhase = currentSpot.solution.tournamentPhase;
-        const points = isCorrect ? 1 : 0;
-        updateStats(isCorrect, actualPhase, points);
-        saveSpotResult(userId, isCorrect, actualPhase);
+        updateStats(isCorrect, actualPhase, foldEvaluation.points);
+        saveSpotResult(userId, isCorrect, actualPhase, undefined, foldEvaluation.points);
         saveSpotHistory(
             userId, 
             currentSpot.playerHandName, 
             isCorrect, 
             actualPhase, 
-            points,
+            foldEvaluation.points,
             currentSpot.playerHand,
             currentSpot.solution.path || currentSpot.solution.id,
             currentSpot.nodeId,
@@ -143,7 +160,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         // Callback para modo torneio
         if (onSpotResult) {
-            onSpotResult(isCorrect);
+            onSpotResult(foldEvaluation.livesLost === 0, foldEvaluation.livesLost);
         }
     }, [userId, updateStats, onSpotResult, showFeedback]); // Dependencies for callback (currentSpot captured in closure)
     
@@ -163,6 +180,29 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         showFeedback,
         onTimeExpired: handleTimeExpired
     });
+    
+    // Stop audio when user leaves page or changes tab
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                console.log('⏸️ Page hidden - stopping timebank audio');
+                stopAudios();
+            }
+        };
+        
+        const handleBeforeUnload = () => {
+            console.log('👋 Page unloading - stopping timebank audio');
+            stopAudios();
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [stopAudios]);
     
     // ============================================================
     // Effects & Lifecycle
@@ -207,7 +247,12 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     // ============================================================
 
     const checkAnswer = (actionName: string) => {
-        if (!currentSpot || userAction) return; // Já respondeu
+        if (!currentSpot || userAction) {
+            console.log('⚠️ Ignoring action: spot already answered or no current spot');
+            return; // Já respondeu ou não tem spot
+        }
+        
+        console.log('🎯 Processing action:', actionName);
         
         // Use solution from currentSpot (has all nodes loaded during generation)
         const currentSolution = currentSpot.solution;
@@ -242,38 +287,60 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         if (actionIndex === -1) {
             console.error(`❌ Action ${actionName} not found in node actions`);
+            console.error('Available actions:', node.actions.map(a => a.type));
             return;
         }
         
-        // Verificar se a ação escolhida é jogada com frequência > 0
-        const frequency = handData.played[actionIndex] || 0;
-        const isCorrect = frequency > 0;
+        console.log(`✅ Action found at index ${actionIndex}`);
+        
+        // Avaliar a qualidade da ação usando o novo sistema
+        const evaluation = evaluateAction(
+            actionIndex,
+            handData.played,
+            handData.evs,
+            node.actions
+        );
+        
+        console.log('🎯 Action Evaluation Result:', evaluation);
+        
+        if (!evaluation) {
+            console.error('❌ Evaluation returned null/undefined!');
+            return;
+        }
         
         // Pegar o EV da ação
         const actionEv = handData.evs && handData.evs[actionIndex] !== undefined 
             ? handData.evs[actionIndex] 
             : undefined;
         
+        console.log('💾 Setting user action and showing feedback...');
+        
+        // Parar áudio do timebank imediatamente ao clicar em ação
+        stopAudios();
+        
         setUserAction(actionName);
         setShowFeedback(true);
+        console.log('✅ Feedback should now be visible');
         
         // Armazenar resultado para usar no mark hand
-        setLastActionResult({ isCorrect, ev: actionEv });
+        setLastActionResult({ evaluation, ev: actionEv });
         
         // Parar o timebank
         stopAudios();
         
-        // Salvar resultado
+        // Determinar se é "correto" para estatísticas gerais
+        const isCorrect = isActionCorrect(evaluation.quality);
+        
+        // Salvar resultado com pontuação correta
         const actualPhase = currentSpot.solution.tournamentPhase;
-        const points = isCorrect ? 1 : 0;
-        updateStats(isCorrect, actualPhase, points);
-        saveSpotResult(userId, isCorrect, actualPhase);
+        updateStats(isCorrect, actualPhase, evaluation.points);
+        saveSpotResult(userId, isCorrect, actualPhase, undefined, evaluation.points);
         saveSpotHistory(
             userId, 
             currentSpot.playerHandName, 
             isCorrect, 
             actualPhase, 
-            points,
+            evaluation.points,
             currentSpot.playerHand,
             currentSpot.solution.path || currentSpot.solution.id,
             currentSpot.nodeId,
@@ -282,9 +349,14 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             actionEv
         );
         
-        // Callback para modo torneio
+        // Callback para modo torneio (passa vidas perdidas)
         if (onSpotResult) {
-            onSpotResult(isCorrect);
+            console.log('🏆 Tournament Mode: Calling onSpotResult with:', {
+                quality: evaluation.quality,
+                livesLost: evaluation.livesLost
+            });
+            // Para modo torneio, passa isCorrect E livesLost
+            onSpotResult(evaluation.livesLost === 0, evaluation.livesLost);
         }
         
         // Auto-advance se ativado
@@ -296,13 +368,25 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
     };
 
-    const nextSpot = () => {
+    const nextSpot = async () => {
+        console.log('⏭️ NextSpot called - showing loading');
+        setIsLoadingNextHand(true);
+        
+        // Small delay to ensure loading appears smoothly
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         setUserAction(null);
         setShowFeedback(false);
         setIsHandMarked(false);
         setLastActionResult(null);
         stopAudios();
-        generateNewSpot();
+        
+        // Generate new spot (can take some time)
+        await generateNewSpot();
+        
+        // Hide loading after spot is ready
+        console.log('✅ New spot ready - hiding loading');
+        setIsLoadingNextHand(false);
     };
 
     const handleStudy = () => {
@@ -328,6 +412,9 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         // Gerar ID único para a mão marcada
         const handId = `${currentSpot.solution.id}_${currentSpot.nodeId}_${currentSpot.playerHand}_${Date.now()}`;
         
+        // Determinar se foi correto baseado na avaliação
+        const isCorrect = isActionCorrect(lastActionResult.evaluation.quality);
+        
         const markedHand = {
             id: handId,
             timestamp: Date.now(),
@@ -337,7 +424,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             combo: currentSpot.playerHand,
             position: currentSpot.playerPosition,
             playerAction: userAction || 'N/A',
-            isCorrect: lastActionResult.isCorrect,
+            isCorrect: isCorrect,
             ev: lastActionResult.ev,
             phase: currentSpot.solution.tournamentPhase
         };
@@ -458,6 +545,9 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                             onStudy={handleStudy}
                         />
                     )}
+                    
+                    {/* Loading Transition: Shows when moving to next hand */}
+                    <LoadingTransition show={isLoadingNextHand} />
                 </div>
             </main>
         </div>

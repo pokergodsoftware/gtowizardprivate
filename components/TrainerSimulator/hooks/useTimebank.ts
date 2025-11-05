@@ -5,7 +5,7 @@
  * Extracted from TrainerSimulator.tsx during Phase 2 refactoring.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTrainerAssetUrl } from '../../../src/config.ts';
 import type { SpotSimulation } from '../types.ts';
 
@@ -121,10 +121,17 @@ export const useTimebank = ({
         return () => clearInterval(interval);
     }, [tournamentMode, showFeedback, currentSpot, hasPlayedTimebank1, hasPlayedTimebank2, onTimeExpired]);
 
-    // Function to stop all audio playback (no-op for Web Audio API)
-    const stopAudios = () => {
-        // Web Audio API doesn't need explicit stop
-    };
+    // Function to stop all audio playback
+    const stopAudios = useCallback(() => {
+        if (timebankAudio1.current) {
+            timebankAudio1.current.pause();
+            timebankAudio1.current.currentTime = 0;
+        }
+        if (timebankAudio2.current) {
+            timebankAudio2.current.pause();
+            timebankAudio2.current.currentTime = 0;
+        }
+    }, []);
 
     return {
         timeLeft,

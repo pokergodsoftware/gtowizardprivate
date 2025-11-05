@@ -10,6 +10,7 @@ export { TrainerTable } from './TrainerTable';
 export { TrainerFeedback } from './TrainerFeedback';
 export { TrainerPayoutInfo } from './TrainerPayoutInfo';
 export { HandHistoryPanel } from './HandHistoryPanel';
+export { LoadingTransition } from './LoadingTransition';
 
 // Note: TrainerActions are integrated within TrainerTable (action buttons)
 
