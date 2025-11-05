@@ -7,7 +7,7 @@ interface LeaderboardEntry {
     totalPoints: number;
     totalSpots: number;
     correctSpots: number;
-    incorrectSpots: number; // Blunders/erros
+    incorrectSpots: number; // Blunders/Errors
     accuracy: number;
 }
 
@@ -28,7 +28,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
         try {
             console.log('🏆 Loading leaderboard from Firebase...');
             
-            // Carregar APENAS do Firebase
+            // Load ONLY from Firebase
             const firebaseStats = await getTop10FromFirebase();
             
             console.log('☁️ Loaded from Firebase:', firebaseStats.length, 'players');
@@ -44,7 +44,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                 accuracy: stat.accuracy
             }));
             
-            // Verificar se usuário atual está no top 10
+            // Check if current user is in the top 10
             const currentUserInTop10 = entries.some(e => e.userId === currentUserId);
             
             // Se não estiver, buscar todos e adicionar
@@ -76,12 +76,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                 code: err?.code
             });
             
-            // Mostrar mensagem de erro amigável
-            alert('Erro ao carregar leaderboard. Verifique:\n\n' +
-                  '1. As regras do Firestore estão configuradas?\n' +
-                  '2. Você tem conexão com a internet?\n' +
-                  '3. Há jogadores cadastrados no Firebase?\n\n' +
-                  'Veja o console (F12) para mais detalhes.');
+        // Show a friendly error message
+        alert('Error loading leaderboard. Please check:\n\n' +
+            '1. Are your Firestore rules configured?\n' +
+            '2. Do you have an internet connection?\n' +
+            '3. Are there players registered in Firebase?\n\n' +
+            'See the console (F12) for details.');
         } finally {
             setLoading(false);
         }
@@ -116,8 +116,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-                <div className="text-white text-xl">Carregando leaderboard...</div>
+                <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+                <div className="text-white text-xl">Loading leaderboard...</div>
             </div>
         );
     }
@@ -127,14 +127,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-                    >
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                        >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        <span className="font-semibold">Voltar</span>
+                        <span className="font-semibold">Back</span>
                     </button>
                     <div className="flex items-center gap-3">
                         <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,10 +145,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                     <div className="w-24"></div> {/* Spacer para centralizar */}
                 </div>
 
-                {/* Pódio (Top 3) */}
+                {/* Podium (Top 3) */}
                 {leaderboard.length >= 3 && (
                     <div className="mb-8 flex items-end justify-center gap-4">
-                        {/* 2º Lugar */}
+                        {/* 2nd Place */}
                         <div className="flex flex-col items-center">
                             <div className="bg-gradient-to-br from-gray-700 to-gray-800 border-2 border-gray-500 rounded-xl p-6 w-48 mb-4 transform hover:scale-105 transition-transform">
                                 <div className="flex justify-center mb-3">
@@ -161,16 +161,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     <div className="text-3xl font-bold text-yellow-400 mb-1">
                                         {leaderboard[1].totalPoints.toFixed(1)}
                                     </div>
-                                    <div className="text-gray-400 text-sm">pontos</div>
+                                    <div className="text-gray-400 text-sm">points</div>
                                     <div className="text-gray-500 text-xs mt-2">
-                                        {leaderboard[1].accuracy.toFixed(1)}% acertos
+                                        {leaderboard[1].accuracy.toFixed(1)}% accuracy
                                     </div>
                                 </div>
                             </div>
                             <div className="w-full h-24 bg-gradient-to-t from-gray-600 to-gray-700 rounded-t-lg border-2 border-gray-500"></div>
                         </div>
 
-                        {/* 1º Lugar */}
+                        {/* 1st Place */}
                         <div className="flex flex-col items-center">
                             <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 border-2 border-yellow-400 rounded-xl p-6 w-52 mb-4 transform hover:scale-105 transition-transform shadow-2xl">
                                 <div className="flex justify-center mb-3">
@@ -183,16 +183,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     <div className="text-4xl font-bold text-white mb-1">
                                         {leaderboard[0].totalPoints.toFixed(1)}
                                     </div>
-                                    <div className="text-yellow-200 text-sm font-semibold">pontos</div>
+                                    <div className="text-yellow-200 text-sm font-semibold">points</div>
                                     <div className="text-yellow-200 text-xs mt-2">
-                                        {leaderboard[0].accuracy.toFixed(1)}% acertos
+                                        {leaderboard[0].accuracy.toFixed(1)}% accuracy
                                     </div>
                                 </div>
                             </div>
                             <div className="w-full h-32 bg-gradient-to-t from-yellow-600 to-yellow-700 rounded-t-lg border-2 border-yellow-400"></div>
                         </div>
 
-                        {/* 3º Lugar */}
+                        {/* 3rd Place */}
                         <div className="flex flex-col items-center">
                             <div className="bg-gradient-to-br from-orange-700 to-orange-800 border-2 border-orange-500 rounded-xl p-6 w-48 mb-4 transform hover:scale-105 transition-transform">
                                 <div className="flex justify-center mb-3">
@@ -205,9 +205,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     <div className="text-3xl font-bold text-yellow-400 mb-1">
                                         {leaderboard[2].totalPoints.toFixed(1)}
                                     </div>
-                                    <div className="text-gray-400 text-sm">pontos</div>
+                                    <div className="text-gray-400 text-sm">points</div>
                                     <div className="text-gray-500 text-xs mt-2">
-                                        {leaderboard[2].accuracy.toFixed(1)}% acertos
+                                        {leaderboard[2].accuracy.toFixed(1)}% accuracy
                                     </div>
                                 </div>
                             </div>
@@ -219,7 +219,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                 {/* Lista Completa */}
                 <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
                     <div className="bg-gray-700/50 px-6 py-4 border-b border-gray-600">
-                        <h2 className="text-xl font-bold text-white">Ranking Completo</h2>
+                        <h2 className="text-xl font-bold text-white">Full Leaderboard</h2>
                     </div>
                     
                     {leaderboard.length === 0 ? (
@@ -227,8 +227,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                             <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <p className="text-gray-400 text-lg">Nenhum jogador no ranking ainda</p>
-                            <p className="text-gray-500 text-sm mt-2">Seja o primeiro a treinar!</p>
+                            <p className="text-gray-400 text-lg">No players in the leaderboard yet</p>
+                            <p className="text-gray-500 text-sm mt-2">Be the first to train!</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-700">
@@ -260,26 +260,26 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                                 </h3>
                                                 {isCurrentUser && (
                                                     <span className="bg-teal-500/20 text-teal-400 text-xs font-bold px-2 py-1 rounded">
-                                                        VOCÊ
+                                                        YOU
                                                     </span>
                                                 )}
                                             </div>
                                             <div className="text-gray-400 text-sm">
-                                                {entry.totalSpots} spots jogados
+                                                {entry.totalSpots} spots played
                                             </div>
                                         </div>
 
-                                        {/* Estatísticas */}
+                                        {/* Statistics */}
                                         <div className="flex items-center gap-6">
-                                            {/* Pontos */}
+                                            {/* Points */}
                                             <div className="text-right">
                                                 <div className="text-2xl font-bold text-yellow-400">
                                                     {entry.totalPoints.toFixed(1)}
                                                 </div>
-                                                <div className="text-gray-500 text-xs">pontos</div>
+                                                <div className="text-gray-500 text-xs">points</div>
                                             </div>
 
-                                            {/* Acertos */}
+                                            {/* Accuracy */}
                                             <div className="text-right min-w-[80px]">
                                                 <div className={`text-xl font-bold ${
                                                     entry.accuracy >= 70 ? 'text-green-400' : 
@@ -291,15 +291,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                                 <div className="text-gray-500 text-xs">accuracy</div>
                                             </div>
 
-                                            {/* Corretos/Total */}
+                                            {/* Correct/Total */}
                                             <div className="text-right min-w-[80px]">
                                                 <div className="text-green-400 font-semibold">
                                                     {entry.correctSpots}
                                                 </div>
-                                                <div className="text-gray-500 text-xs">corretos</div>
+                                                <div className="text-gray-500 text-xs">correct</div>
                                             </div>
 
-                                            {/* Blunders/Erros */}
+                                            {/* Blunders */}
                                             <div className="text-right min-w-[80px]">
                                                 <div className="text-red-400 font-semibold">
                                                     {entry.incorrectSpots}

@@ -48,7 +48,7 @@ const PlayerStrategyCard = React.forwardRef<HTMLDivElement, PlayerStrategyCardPr
     const bountyAmount = bounty / 2;
     const bountyInBB = adjustedBigBlind > 0 ? ((bountyAmount / 100) / adjustedBigBlind).toFixed(1) : '0';
 
-    // Determinar tamanho do texto baseado no número de ações
+    // Determine text size based on the number of actions
     const numActions = nodeForActions?.actions.length || 0;
     let textSizeClass = 'text-sm';
     let paddingClass = 'px-2 py-1';
@@ -144,11 +144,11 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         }, 100);
     }, [currentNodeId]);
 
-    // Carregar TODOS os primeiros nodes dos jogadores para mostrar todas as ações disponíveis
+    // Load ALL first nodes of the players to show all available actions
     useEffect(() => {
         const numPlayers = settings.handdata.stacks.length;
         
-        // Carregar nodes 0 até numPlayers-1 (geralmente são os primeiros nodes de cada jogador)
+    // Load nodes 0 up to numPlayers-1 (usually the first nodes for each player)
         const nodesToLoad: number[] = [];
         for (let i = 0; i < numPlayers; i++) {
             if (!allNodes.has(i)) {
@@ -156,14 +156,14 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             }
         }
 
-        // Carregar nodes se necessário
+    // Load nodes if necessary
         if (nodesToLoad.length > 0) {
-            console.log(`📦 Carregando primeiros nodes de todos os jogadores: [${nodesToLoad.join(', ')}]`);
+            console.log(`📦 Loading first nodes for all players: [${nodesToLoad.join(', ')}]`);
             loadMultipleNodes(nodesToLoad);
         }
     }, [allNodes, settings.handdata.stacks, loadMultipleNodes]);
 
-    // Carregar próximos nodes quando o currentNode muda (navegação em profundidade)
+    // Load next nodes when currentNode changes (depth navigation)
     useEffect(() => {
         if (!currentNode) return;
         
@@ -171,14 +171,14 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         const visited = new Set<number>();
         const queue: number[] = [];
         
-        // Adicionar todos os nodes filhos do node atual
+    // Enqueue all child nodes of the current node
         currentNode.actions.forEach(action => {
             if (typeof action.node === 'number') {
                 queue.push(action.node);
             }
         });
         
-        // BFS limitado para carregar nodes até encontrar todos os jogadores
+    // Limited BFS to load nodes until all players are found
         const numPlayers = settings.handdata.stacks.length;
         const foundPlayers = new Set<number>();
         
@@ -188,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             if (visited.has(nodeId)) continue;
             visited.add(nodeId);
             
-            // Adicionar à lista de nodes para carregar
+                // Add to the list of nodes to load
             if (!allNodes.has(nodeId)) {
                 nodesToLoad.push(nodeId);
             }
@@ -197,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             if (node) {
                 foundPlayers.add(node.player);
                 
-                // Se ainda faltam jogadores, continuar explorando
+                // If some players are still missing, continue exploring
                 if (foundPlayers.size < numPlayers && node.actions.length > 0) {
                     const firstAction = node.actions[0];
                     if (typeof firstAction.node === 'number') {
@@ -208,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         }
         
         if (nodesToLoad.length > 0) {
-            console.log(`📦 Carregando próximos nodes (BFS): [${nodesToLoad.join(', ')}]`);
+            console.log(`📦 Loading next nodes (BFS): [${nodesToLoad.join(', ')}]`);
             loadMultipleNodes(nodesToLoad);
         }
     }, [currentNode, allNodes, loadMultipleNodes, settings.handdata.stacks]);
@@ -221,12 +221,12 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
         return map;
     }, [pathNodeIds]);
 
-    // Criar lista de todos os jogadores mostrando cards
+    // Create the list of all players showing their cards
     const allPlayerCards = useMemo(() => {
         const numPlayers = settings.handdata.stacks.length;
         const cards: Array<{ playerIndex: number; nodeId: number; showAllActions: boolean }> = [];
         
-        // Criar mapa de qual node cada jogador está agindo no path atual
+    // Create a map of which node each player is acting on in the current path
         const playerToNodeMap = new Map<number, number>();
         pathNodeIds.forEach(nodeId => {
             const node = allNodes.get(nodeId);
@@ -235,21 +235,21 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             }
         });
         
-        // Encontrar próximos nodes disponíveis para jogadores que ainda não agiram
-        // Navegar pela árvore seguindo a primeira ação até encontrar todos os jogadores
+    // Find next available nodes for players who haven't acted yet
+    // Walk the tree following the first action to find all players
         const nextNodesMap = new Map<number, number>();
         if (currentNode) {
             const visited = new Set<number>();
             const queue: number[] = [];
             
-            // Adicionar todos os nodes filhos do node atual à fila
+                    // Add all child nodes of the current node to the queue
             currentNode.actions.forEach(action => {
                 if (typeof action.node === 'number') {
                     queue.push(action.node);
                 }
             });
             
-            // BFS para encontrar os próximos nodes de cada jogador
+            // BFS to find the next nodes for each player
             while (queue.length > 0) {
                 const nodeId = queue.shift()!;
                 
@@ -259,17 +259,17 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                 const node = allNodes.get(nodeId);
                 if (!node) continue;
                 
-                // Se este jogador ainda não agiu e não temos um node para ele, guardar
+                // If this player hasn't acted yet and we don't have a node for them, record it
                 if (!playerToNodeMap.has(node.player) && !nextNodesMap.has(node.player)) {
                     nextNodesMap.set(node.player, nodeId);
                 }
                 
-                // Se ainda faltam jogadores, continuar explorando
+                // If players are still missing, continue exploring
                 const numPlayers = settings.handdata.stacks.length;
                 const foundPlayers = playerToNodeMap.size + nextNodesMap.size;
                 
                 if (foundPlayers < numPlayers && node.actions.length > 0) {
-                    // Adicionar o primeiro filho à fila para continuar explorando
+                    // Add the first child to the queue to continue exploring
                     const firstAction = node.actions[0];
                     if (typeof firstAction.node === 'number' && !visited.has(firstAction.node)) {
                         queue.push(firstAction.node);
@@ -278,16 +278,16 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
             }
         }
         
-        // Para cada jogador, determinar qual node mostrar
-        // ESTRATÉGIA: Mostrar sempre um card por jogador, priorizando próximos nodes
+        // For each player, determine which node to show
+    // STRATEGY: Always show one card per player, prioritizing next nodes
         for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
             const nodeIdInPath = playerToNodeMap.get(playerIndex);
             const nextNodeId = nextNodesMap.get(playerIndex);
             
-            // Prioridade: 
-            // 1. Próximo node disponível (filho do node atual onde jogador ainda não agiu)
-            // 2. Node atual (se for o jogador ativo)
-            // 3. Node inicial do jogador (fallback)
+            // Priority:
+            // 1. Next available node (child of the current node where the player hasn't acted yet)
+            // 2. Current node (if it's the active player's node)
+            // 3. Player's initial node (fallback)
             const nodeId = nextNodeId !== undefined 
                 ? nextNodeId 
                 : (nodeIdInPath !== undefined ? nodeIdInPath : playerIndex);
@@ -305,15 +305,15 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
     return (
         <header className="bg-[#282c33] border-b border-gray-700">
             <div className="p-4 flex items-center justify-between">
-                {/* Botão Voltar */}
+                {/* Back button */}
                 <button 
                     onClick={onChangeSolution}
                     className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors font-semibold"
                 >
-                    ← Voltar
+                    ← Back
                 </button>
                 
-                {/* Informações do Spot - Todas alinhadas horizontalmente */}
+                {/* Spot info - all aligned horizontally */}
                 <div className="flex items-center gap-6 text-gray-200">
                     <div className="font-semibold text-base">
                         Avg stack {solutionSummary.avgStackBB}bb
@@ -326,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                     </div>
                 </div>
                 
-                {/* Espaço vazio para balancear o layout */}
+                {/* Empty spacer to balance the layout */}
                 <div className="w-[100px]"></div>
             </div>
             <div ref={scrollContainerRef} className="p-2 flex items-center space-x-2 overflow-x-auto border-t border-black/20">
@@ -335,7 +335,7 @@ export const Header: React.FC<HeaderProps> = ({ currentNodeId, currentNode, bigB
                      const isActive = nodeId === currentNodeId;
                      const highlightedActionNodeId = nodeId >= 0 ? pathSuccessorMap.get(nodeId) : undefined;
                      
-                     // Se não tem node válido, criar um node fake com apenas Fold
+                     // If there's no valid node, create a fake node with only Fold
                      const displayNode = !showAllActions || !nodeData ? {
                          player: playerIndex,
                          street: 0,

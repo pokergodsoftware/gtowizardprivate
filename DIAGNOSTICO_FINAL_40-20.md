@@ -1,13 +1,13 @@
-# Diagnóstico Final - Spots 40-20
+# Final Diagnosis - 40-20 Spots
 
-## ✅ Situação REAL Confirmada:
+## ✅ Confirmed Status:
 
-### Testes Realizados:
-1. ✓ **Vercel**: Todos os 14 spots acessíveis via HTTPS
-2. ✓ **Metadata**: `solutions-metadata.json` tem 14 spots de 40-20
-3. ✗ **R2 CDN**: Acesso direto bloqueado (erro 401 - problema de configuração)
+### Tests Performed:
+1. ✓ **Vercel**: All 14 spots accessible via HTTPS
+2. ✓ **Metadata**: `solutions-metadata.json` contains 14 40-20 spots
+3. ✗ **R2 CDN**: Direct access blocked (401 - configuration issue)
 
-### Spots Verificados (14 total):
+### Verified Spots (14 total):
 - speed32_12 ✓
 - speed32_13 ✓
 - speed32_15 ✓
@@ -23,119 +23,119 @@
 - speed50_4 ✓
 - speed50_5 ✓
 
-## 🤔 Por que você vê apenas 9?
+## 🤔 Why are you seeing only 9?
 
-### Possíveis Causas:
+### Possible Causes:
 
-#### 1. **Cache do Navegador** (MAIS PROVÁVEL)
-O navegador está usando uma versão antiga do `solutions-metadata.json`.
+#### 1. **Browser Cache** (MOST LIKELY)
+The browser may be using a stale `solutions-metadata.json`.
 
-**Solução:**
+**Fix:**
 ```
 Ctrl + Shift + R (hard refresh)
-ou
-Ctrl + Shift + Del (limpar cache)
+or
+Ctrl + Shift + Del (clear cache)
 ```
 
-#### 2. **Filtro/Busca Ativa**
-Você pode estar com algum filtro aplicado na biblioteca.
+#### 2. **Active Filter/Search**
+You may have a filter applied in the library.
 
-**Verificação:**
-- Limpe o campo de busca
-- Verifique se há filtros ativos
-- Role a página até o final da categoria 40-20%
+**Check:**
+- Clear the search input
+- Check active filters
+- Scroll to the end of the 40-20% category
 
-#### 3. **Erro de Renderização**
-Algum erro JavaScript está impedindo 5 spots de serem exibidos.
+#### 3. **Rendering Error**
+A JavaScript error might be preventing 5 spots from rendering.
 
-**Verificação:**
-- Abra DevTools (F12)
-- Vá na aba Console
-- Procure por erros em vermelho
-- Tire um screenshot se encontrar
+**Check:**
+- Open DevTools (F12)
+- Go to the Console tab
+- Look for red errors
+- Take screenshots if you find any
 
-#### 4. **Metadata Desatualizado no Build**
-O Vercel pode estar usando uma versão antiga do metadata.
+#### 4. **Stale Metadata in Build**
+Vercel might be serving an older metadata file.
 
-**Solução:**
+**Fix:**
 ```powershell
-# 1. Fazer commit do metadata atualizado
+# 1. Commit updated metadata
 git add solutions-metadata.json
-git commit -m "update: atualiza metadata com todos os spots 40-20"
+git commit -m "update: refresh metadata with all 40-20 spots"
 git push origin main
 
-# 2. Aguardar novo deploy do Vercel (2-3 minutos)
+# 2. Wait for Vercel deploy (2-3 minutes)
 ```
 
-## 🔧 Ações Recomendadas
+## 🔧 Recommended Actions
 
-### Passo 1: Hard Refresh
+### Step 1: Hard Refresh
 ```
-1. Vá para https://gtowizardprivate.vercel.app
-2. Pressione Ctrl + Shift + R
-3. Vá em Solutions Library
-4. Conte os spots de 40~20% left
-```
-
-### Passo 2: Verificar Console
-```
-1. Pressione F12
-2. Aba Console
-3. Procure erros
-4. Tire screenshot se houver erros
+1. Go to https://gtowizardprivate.vercel.app
+2. Press Ctrl + Shift + R
+3. Open Solutions Library
+4. Count the spots in the 40~20% left category
 ```
 
-### Passo 3: Verificar Filtros
+### Step 2: Check Console
 ```
-1. Campo de busca está vazio?
-2. Algum filtro de players/stack está ativo?
-3. Role até o final da lista
+1. Press F12
+2. Console tab
+3. Look for errors
+4. Take screenshots if errors appear
 ```
 
-### Passo 4: Forçar Novo Deploy
+### Step 3: Verify Filters
+```
+1. Is the search input empty?
+2. Any player/stack filters active?
+3. Scroll to the end of the list
+```
+
+### Step 4: Force a New Deploy
 ```powershell
-# Se nada funcionar, force um novo deploy
+# If nothing works, trigger a rebuild
 git commit --allow-empty -m "chore: trigger rebuild"
 git push origin main
 ```
 
-## 📊 Comparação Local vs Vercel
+## 📊 Local vs Vercel Comparison
 
 | Item | Local | Vercel |
 |------|-------|--------|
-| Spots na pasta | 14 | N/A (não commitados) |
+| Spots in folder | 14 | N/A (not committed) |
 | Metadata | 14 | 14 ✓ |
-| Arquivos acessíveis | 14 | 14 ✓ |
-| R2 CDN | N/A | ✗ (erro 401) |
+| Files accessible | 14 | 14 ✓ |
+| R2 CDN | N/A | ✗ (401) |
 
-## ⚠️ Problema Identificado: R2 CDN
+## ⚠️ Identified Issue: R2 CDN
 
-O R2 está retornando erro 401 (não autorizado) para acesso direto:
+R2 is returning 401 (unauthorized) for direct access:
 ```
 https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/spots/40-20/...
 ```
 
-**Mas isso não é um problema** porque:
-- O Vercel está servindo os spots corretamente
-- Os arquivos estão acessíveis via Vercel URL
-- A aplicação funciona normalmente
+**This is not critical** because:
+- Vercel is serving the spots correctly
+- Files are accessible via the Vercel URL
+- The app operates normally
 
-**Se quiser corrigir o R2:**
-1. Acessar Cloudflare Dashboard
+**To fix R2:**
+1. Open the Cloudflare Dashboard
 2. R2 > gto-wizard-spots
 3. Settings > Public Access
-4. Ativar "Allow Public Access"
+4. Enable "Allow Public Access"
 
-## 🎯 Conclusão
+## 🎯 Conclusion
 
-**Todos os 14 spots de 40-20 estão funcionando no Vercel!**
+**All 14 40-20 spots are working on Vercel!**
 
-Se você está vendo apenas 9 na interface:
-1. Limpe o cache (Ctrl + Shift + R)
-2. Verifique console por erros (F12)
-3. Confirme que não há filtros ativos
+If you still see only 9 in the UI:
+1. Clear cache (Ctrl + Shift + R)
+2. Check DevTools console (F12)
+3. Confirm no filters are active
 
-Se o problema persistir, tire screenshots de:
-- A lista de spots mostrando apenas 9
-- O console do navegador (F12)
-- Os filtros/busca aplicados
+If the issue persists, capture screenshots of:
+- The spot list showing only 9
+- The browser console (F12)
+- Current filters/search

@@ -1,17 +1,17 @@
-# Guia Operacional - GTO Wizard Private
+# Operational Guide - GTO Wizard Private
 
-## 📋 Índice
-1. [Commit e Push](#commit-e-push)
-2. [Adicionar Novos Spots](#adicionar-novos-spots)
-3. [Adicionar Imagens PNG](#adicionar-imagens-png)
-4. [Upload para Cloudflare R2](#upload-para-cloudflare-r2)
-5. [Versionamento e Release](#versionamento-e-release)
+## 📋 Contents
+1. [Commit & Push](#commit--push)
+2. [Adding New Spots](#adding-new-spots)
+3. [Adding PNG Images](#adding-png-images)
+4. [Uploading to Cloudflare R2](#uploading-to-cloudflare-r2)
+5. [Versioning & Releases](#versioning--releases)
 
 ---
 
-## 🔄 Commit e Push
+## 🔄 Commit & Push
 
-### Comandos Git Básicos
+### Basic Git Commands
 
 ```powershell
 # 1. Verificar status (arquivos modificados)
@@ -33,498 +33,488 @@ git commit -m "refactor: modulariza componente PokerTable"
 git push origin main
 ```
 
-### Convenções de Mensagens de Commit
-
-Use prefixos semânticos:
-
-- `feat:` - Nova funcionalidade
-  - Exemplo: `feat: adiciona modo Tournament ao trainer`
-- `fix:` - Correção de bug
-  - Exemplo: `fix: corrige carregamento de nodes vazios`
-- `refactor:` - Refatoração de código (sem mudar comportamento)
-  - Exemplo: `refactor: extrai lógica de spots para utils/`
-- `docs:` - Apenas documentação
-  - Exemplo: `docs: atualiza GUIA_OPERACIONAL.md`
-- `style:` - Formatação, espaços (sem alterar código)
-  - Exemplo: `style: ajusta indentação em RangeGrid`
-- `chore:` - Tarefas de manutenção
-  - Exemplo: `chore: atualiza dependências do package.json`
-
-### Workflow Completo
-
-```powershell
-# 1. Verificar branch atual
-git branch
-
-# 2. Verificar modificações
-git status
-
-# 3. Ver diferenças detalhadas
-git diff
-
-# 4. Adicionar arquivos
-git add .
-
-# 5. Commit
-git commit -m "feat: implementa feedback visual no trainer"
-
-# 6. Push (envia para GitHub e dispara deploy automático no Vercel)
-git push origin main
-
-# 7. Verificar se foi enviado
-git log --oneline -5
-```
-
-### ⚠️ Resolução de Conflitos
-
-Se aparecer erro de "divergent branches":
-
-```powershell
-# Baixar alterações remotas
-git pull origin main
-
-# Se houver conflitos, edite os arquivos e resolva manualmente
-# Depois adicione e faça commit
-git add .
-git commit -m "merge: resolve conflitos"
-git push origin main
-```
-
----
-
-## 🎯 Adicionar Novos Spots
-
-### Passo 1: Criar Estrutura de Pastas
-
-Os spots seguem uma hierarquia de pastas em `/spots/`:
-
-```
-spots/
-├── final_table/
-│   ├── speed32_1/
-│   │   ├── settings.json
-│   │   ├── equity.json
-│   │   └── nodes/
-│   │       ├── 0.json
-│   │       ├── 1.json
-│   │       └── ...
-│   └── novo_spot_123/
-│       ├── settings.json
-│       ├── equity.json
-│       └── nodes/
-├── near_bubble/
-├── after_bubble/
-└── ...
-```
-
-### Passo 2: Adicionar Arquivos do Spot
-
-Cada spot DEVE ter:
-
-1. **`settings.json`** - Configurações do torneio
-```json
-{
-  "tournamentName": "Speed #32",
-  "gameType": "NLHE",
-  "rake": 5,
-  "players": 6,
-  "startingStack": 1500,
-  "smallBlind": 15,
-  "bigBlind": 30,
-  "ante": 0,
-  "playerStacks": [2000, 1800, 1500, 1200, 1000, 800],
-  "payouts": [500, 300, 200, 100, 50, 0]
-}
-```
-
-2. **`equity.json`** - Equidade dos jogadores
-```json
-{
-  "players": [
-    { "position": "BTN", "equity": 18.5 },
-    { "position": "SB", "equity": 16.2 },
-    { "position": "BB", "equity": 15.8 },
-    { "position": "UTG", "equity": 14.3 },
-    { "position": "MP", "equity": 17.9 },
-    { "position": "CO", "equity": 17.3 }
-  ]
-}
-```
-
-3. **`nodes/`** - Pasta com arquivos JSON dos nós da árvore de decisão
-   - Cada node é um arquivo separado: `0.json`, `1.json`, `2.json`, etc.
-   - Use lazy loading para árvores grandes (12,000+ nodes)
-
-### Passo 3: Gerar Metadados
-
-**CRÍTICO**: Após adicionar ou modificar spots, SEMPRE execute:
-
-```powershell
-node generate_solutions_optimized.cjs
-```
-
-Este script:
-- Escaneia toda a estrutura `/spots/`
-- Lê `settings.json` e `equity.json` de cada spot
-- Gera `solutions-metadata.json` e `solutions.json`
-- **Usa caminhos relativos** (`./spots/...` não `/spots/...`)
-- Cria automaticamente junction point `public/spots` se não existir
-
-### Passo 4: Reiniciar Dev Server
-
-```powershell
-# Parar servidor (Ctrl+C no terminal)
-# Reiniciar
-npm run dev
-```
-
-### Passo 5: Testar Localmente
-
-1. Abra `http://localhost:3000`
-2. Vá para "Solutions Library"
-3. Procure o novo spot na categoria apropriada
-4. Clique para carregar e verificar se todos os nodes carregam
-
-### Passo 6: Commit e Push
-
-```powershell
-git add spots/
-git add solutions-metadata.json
-git add solutions.json
-git commit -m "feat: adiciona novo spot {nome_do_spot}"
-git push origin main
-```
-
-### ⚠️ Importante
-
-- **Caminhos relativos**: Metadados DEVEM usar `./spots/...` (não `/spots/...`)
-- **Junction point**: Windows precisa do junction `public/spots` → `spots/` para Vite servir arquivos
-  - Criado automaticamente pelo `generate_solutions_optimized.cjs`
-  - Se falhar, execute terminal como Administrador
-- **Metadados não auto-watch**: Sempre re-execute `node generate_solutions_optimized.cjs` após mudanças
-
----
-
-## 🖼️ Adicionar Imagens PNG
-
-### Localização de Assets
-
-```
-public/
-└── trainer/
-    ├── card-backs/
-    │   ├── back-blue.png
-    │   ├── back-red.png
-    │   └── ...
-    ├── cards/
-    │   ├── AH.png (Ás de copas)
-    │   ├── KD.png (Rei de ouros)
-    │   └── ...
-    ├── chips/
-    │   ├── chip-1.png
-    │   ├── chip-5.png
-    │   └── ...
-    └── sounds/
-        ├── card-flip.mp3
-        └── timer-alert.mp3
-```
+### Commit Message Conventions
 
-### Adicionar Novo PNG
-
-#### 1. Copiar arquivo para pasta apropriada
-
-```powershell
-# Exemplo: adicionar novo card back
-copy C:\Downloads\back-green.png public\trainer\card-backs\
-
-# Exemplo: adicionar novo chip
-copy C:\Downloads\chip-1000.png public\trainer\chips\
-```
-
-#### 2. Verificar nomenclatura
-
-**Cards**: Use código de 2 caracteres
-- Valores: `A`, `K`, `Q`, `J`, `T`, `9`, `8`, `7`, `6`, `5`, `4`, `3`, `2`
-- Naipes: `H` (hearts/copas), `D` (diamonds/ouros), `C` (clubs/paus), `S` (spades/espadas)
-- Exemplo: `AH.png`, `KS.png`, `7D.png`
-
-**Card Backs**: `back-{cor}.png`
-
-**Chips**: `chip-{valor}.png`
-
-#### 3. Usar em Componentes
-
-```typescript
-// Em qualquer componente
-import { getTrainerAssetUrl } from '../config';
-
-// Cards
-const cardUrl = getTrainerAssetUrl(`cards/${rank}${suit}.png`);
-// Exemplo: getTrainerAssetUrl('cards/AH.png')
-
-// Card backs
-const backUrl = getTrainerAssetUrl('card-backs/back-blue.png');
-
-// Chips
-const chipUrl = getTrainerAssetUrl('chips/chip-100.png');
-```
-
-#### 4. Otimizar Imagens (Opcional mas Recomendado)
-
-```powershell
-# Usar ImageMagick ou similar para reduzir tamanho
-magick convert input.png -quality 85 -strip output.png
-```
-
-#### 5. Testar Localmente
-
-```powershell
-npm run dev
-# Verificar no navegador se imagem carrega corretamente
-```
-
-#### 6. Commit e Push
-
-```powershell
-git add public/trainer/
-git commit -m "feat: adiciona novo card back verde"
-git push origin main
-```
-
----
-
-## ☁️ Upload para Cloudflare R2
-
-### Pré-requisitos
-
-1. **Instalar Wrangler CLI**
-```powershell
-npm install -g wrangler
-```
-
-2. **Autenticar com Cloudflare**
-```powershell
-wrangler login
-```
-
-### Upload de Spots (Arquivos JSON)
-
-#### Método 1: Upload Completo de TODOS os Spots (RECOMENDADO)
-
-```powershell
-# PowerShell Script (com barra de progresso e tratamento de erros)
-.\upload-all-spots.ps1
-
-# Ou teste sem fazer upload real:
-.\upload-all-spots.ps1 -DryRun
-```
-
-Este script:
-- Faz upload de TODAS as 8 categorias (147 spots)
-- Mostra barra de progresso
-- Trata erros automaticamente
-- Oferece upload do metadata ao final
-- ⏱️ Tempo estimado: 30-60 minutos
-
-#### Método 2: Upload Específico por Categoria
-
-```powershell
-# Upload de uma categoria específica (ex: 40-20)
-$category = "40-20"
-Get-ChildItem ".\spots\$category" -Directory | ForEach-Object {
-    $spot = $_.Name
-    Write-Host "Uploading $spot..."
-    
-    # Settings e Equity
-    wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/settings.json" --file="./spots/$category/$spot/settings.json"
-    wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/equity.json" --file="./spots/$category/$spot/equity.json"
-    
-    # Nodes
-    Get-ChildItem ".\spots\$category\$spot\nodes\*.json" | ForEach-Object {
-        wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/nodes/$($_.Name)" --file="$($_.FullName)"
-    }
-}
-```
-
-#### Método 3: Upload de Spot Individual
-
-```powershell
-# Upload de um único spot
-$category = "40-20"
-$spot = "speed32_12"
-
-wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/settings.json" --file="./spots/$category/$spot/settings.json"
-wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/equity.json" --file="./spots/$category/$spot/equity.json"
-
-# Upload de nodes
-Get-ChildItem ".\spots\$category\$spot\nodes\*.json" | ForEach-Object {
-    wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/nodes/$($_.Name)" --file="$($_.FullName)"
-}
-```
-
-### Upload de Assets (PNG, MP3, etc.)
-
-```powershell
-# Upload de TODOS os assets do trainer
-.\upload-trainer-assets.bat
-
-# Ou manualmente:
-wrangler r2 object put gto-wizard-spots/trainer --file=./public/trainer --recursive
-```
-
-**O que está incluído:**
-- `/trainer/cards/` - Cartas de baralho
-- `/trainer/card-backs/` - Versos das cartas
-- `/trainer/chips/` - Fichas
-- `/trainer/sounds/` - Arquivos de áudio
-
-### Upload de Metadados
-
-```powershell
-# Solutions metadata (usado pela biblioteca)
-wrangler r2 object put gto-wizard-spots/solutions-metadata.json --file=./solutions-metadata.json
-
-wrangler r2 object put gto-wizard-spots/solutions.json --file=./solutions.json
-```
-
-### Verificar Upload
-
-```powershell
-# Listar arquivos no bucket
-wrangler r2 object list gto-wizard-spots --prefix=spots/final_table/
-
-# Verificar arquivo específico
-wrangler r2 object get gto-wizard-spots/spots/final_table/speed32_1/settings.json
-```
-
-### URLs de Produção
-
-Após upload, os arquivos ficam disponíveis em:
-
-```
-https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/spots/{caminho}
-https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/trainer/{caminho}
-```
-
-A aplicação usa automaticamente o CDN em produção via `config.ts`:
-
-```typescript
-const VITE_CDN_URL = import.meta.env.VITE_CDN_URL;
-const isProduction = import.meta.env.PROD;
-
-export function getResourceUrl(path: string): string {
-  if (isProduction && VITE_CDN_URL) {
-    return `${VITE_CDN_URL}/${path}`;
+Use semantic prefixes:
+
+- `feat:` - New feature
+  - Example: `feat: add Tournament mode to trainer`
+- `fix:` - Bug fix
+  - Example: `fix: fix loading of empty nodes`
+- `refactor:` - Code refactor (no behavior change)
+  - Example: `refactor: extract spot logic to utils/`
+
+  ---
+
+  ## 🔄 Commit & Push
+
+  ### Basic Git Commands
+
+  ```powershell
+  # 1. Check status (modified files)
+  git status
+
+  # 2. Stage specific files
+  git add path/to/file.tsx
+  git add components/TrainerSimulator.tsx
+
+  # 3. Stage ALL modified files
+  git add .
+
+  # 4. Commit with a descriptive message
+  git commit -m "feat: add new RFI spot generator"
+  git commit -m "fix: correct EV calculation in TrainerFeedback"
+  git commit -m "refactor: modularize PokerTable component"
+
+  # 5. Push to GitHub
+  git push origin main
+  ```
+
+  ### Commit Message Conventions
+
+  Use semantic prefixes:
+
+  - `feat:` - New feature
+    - Example: `feat: add Tournament mode to trainer`
+  - `fix:` - Bug fix
+    - Example: `fix: fix loading of empty nodes`
+  - `refactor:` - Code refactor (no behavior change)
+    - Example: `refactor: extract spot logic to utils/`
+  - `docs:` - Documentation only
+    - Example: `docs: update GUIA_OPERACIONAL.md`
+  - `style:` - Formatting, whitespace (no code changes)
+    - Example: `style: fix indentation in RangeGrid`
+  - `chore:` - Maintenance tasks
+    - Example: `chore: update dependencies in package.json`
+
+  ### Full Workflow
+
+  ```powershell
+  # 1. Check current branch
+  git branch
+
+  # 2. Inspect changes
+  git status
+
+  # 3. View diffs
+  git diff
+
+  # 4. Stage files
+  git add .
+
+  # 5. Commit
+  git commit -m "feat: implement visual feedback in trainer"
+
+  # 6. Push (this will trigger automatic Vercel deploy)
+  git push origin main
+
+  # 7. Verify push
+  git log --oneline -5
+  ```
+
+  ### ⚠️ Merge Conflicts
+
+  If you see errors about divergent branches:
+
+  ```powershell
+  # Pull remote changes
+  git pull origin main
+
+  # If conflicts occur, edit files and resolve manually
+  # Then stage and commit
+  git add .
+  git commit -m "merge: resolve conflicts"
+  git push origin main
+  ```
+
+  ---
+
+  ## 🎯 Adding New Spots
+
+  ### Step 1: Create Folder Structure
+
+  Spots follow a folder hierarchy under `/spots/`:
+
+  ```
+  spots/
+  ├── final_table/
+  │   ├── speed32_1/
+  │   │   ├── settings.json
+  │   │   ├── equity.json
+  │   │   └── nodes/
+  │   │       ├── 0.json
+  │   │       ├── 1.json
+  │   │       └── ...
+  │   └── new_spot_123/
+  │       ├── settings.json
+  │       ├── equity.json
+  │       └── nodes/
+  ├── near_bubble/
+  ├── after_bubble/
+  └── ...
+  ```
+
+  ### Step 2: Required Spot Files
+
+  Each spot MUST include:
+
+  1. **`settings.json`** - Tournament settings
+  ```json
+  {
+    "tournamentName": "Speed #32",
+    "gameType": "NLHE",
+    "rake": 5,
+    "players": 6,
+    "startingStack": 1500,
+    "smallBlind": 15,
+    "bigBlind": 30,
+    "ante": 0,
+    "playerStacks": [2000, 1800, 1500, 1200, 1000, 800],
+    "payouts": [500, 300, 200, 100, 50, 0]
   }
-  return `/${path}`;
-}
-```
+  ```
 
-### Workflow Completo para Novo Spot
+  2. **`equity.json`** - Players' equity
+  ```json
+  {
+    "players": [
+      { "position": "BTN", "equity": 18.5 },
+      { "position": "SB", "equity": 16.2 },
+      { "position": "BB", "equity": 15.8 },
+      { "position": "UTG", "equity": 14.3 },
+      { "position": "MP", "equity": 17.9 },
+      { "position": "CO", "equity": 17.3 }
+    ]
+  }
+  ```
 
-```powershell
-# 1. Adicionar spot localmente
-# (criar pastas e arquivos em /spots/)
+  3. **`nodes/`** - Folder with JSON files for decision tree nodes
+    - Each node is a separate file: `0.json`, `1.json`, `2.json`, etc.
+    - Use lazy loading for very large trees (12,000+ nodes)
 
-# 2. Gerar metadados
-node generate_solutions_optimized.cjs
+  ### Step 3: Generate Metadata
 
-# 3. Testar localmente
-npm run dev
-# Verificar se spot carrega corretamente
+  **CRITICAL**: After adding or modifying spots, ALWAYS run:
 
-# 4. Commit mudanças
-git add spots/
-git add solutions-metadata.json
-git add solutions.json
-git commit -m "feat: adiciona spot XYZ"
-git push origin main
+  ```powershell
+  node generate_solutions_optimized.cjs
+  ```
 
-# 5. Upload para R2
-.\upload-spots-fast.bat
-# Ou para spot específico:
-# wrangler r2 object put gto-wizard-spots/spots/final_table/novo_spot --file=./spots/final_table/novo_spot --recursive
+  This script:
+  - Scans the entire `/spots/` structure
+  - Reads `settings.json` and `equity.json` for each spot
+  - Generates `solutions-metadata.json` and `solutions.json`
+  - **Uses relative paths** (`./spots/...` not `/spots/...`)
+  - Creates a junction point `public/spots` -> `spots/` if missing
 
-# 6. Upload metadados atualizados
-wrangler r2 object put gto-wizard-spots/solutions-metadata.json --file=./solutions-metadata.json
-wrangler r2 object put gto-wizard-spots/solutions.json --file=./solutions.json
+  ### Step 4: Restart Dev Server
 
-# 7. Verificar em produção
-# Abrir https://gtowizardprivate.vercel.app
-# Testar carregamento do novo spot
-```
+  ```powershell
+  # Stop server (Ctrl+C in terminal)
+  # Restart
+  npm run dev
+  ```
 
-### Workflow para Novo PNG
+  ### Step 5: Test Locally
 
-```powershell
-# 1. Adicionar PNG em public/trainer/
-copy C:\Downloads\novo-chip.png public\trainer\chips\
+  1. Open `http://localhost:3000`
+  2. Go to "Solutions Library"
+  3. Find the new spot in the appropriate category
+  4. Click to load and verify nodes load correctly
 
-# 2. Testar localmente
-npm run dev
+  ### Step 6: Commit & Push
 
-# 3. Commit
-git add public/trainer/
-git commit -m "feat: adiciona chip de 1000"
-git push origin main
+  ```powershell
+  git add spots/
+  git add solutions-metadata.json
+  git add solutions.json
+  git commit -m "feat: add new spot {spot_name}"
+  git push origin main
+  ```
 
-# 4. Upload para R2
-.\upload-trainer-assets.bat
-# Ou manualmente:
-# wrangler r2 object put gto-wizard-spots/trainer/chips/novo-chip.png --file=./public/trainer/chips/novo-chip.png
+  ### ⚠️ Important Notes
 
-# 5. Verificar em produção
-# Abrir app e testar se imagem carrega
-```
+  - **Relative paths**: Metadata MUST use `./spots/...` (not `/spots/...`)
+  - **Junction point**: On Windows the `public/spots` junction to `spots/` is required for Vite to serve files
+    - It is created automatically by `generate_solutions_optimized.cjs`
+    - If creation fails, run the terminal as Administrator
+  - **Metadata not auto-watched**: Re-run `node generate_solutions_optimized.cjs` after changes
 
----
+  ---
 
-## 🔖 Versionamento e Release
+  ## 🖼️ Adding PNG Images
 
-### Scripts Disponíveis
+  ### Asset Locations
 
-```powershell
-# Release interativo (recomendado)
-.\release.bat
-# Pergunta: patch (1.0.0 → 1.0.1), minor (1.0.0 → 1.1.0), ou major (1.0.0 → 2.0.0)
+  ```
+  public/
+  └── trainer/
+      ├── card-backs/
+      │   ├── back-blue.png
+      │   ├── back-red.png
+      │   └── ...
+      ├── cards/
+      │   ├── AH.png (Ace of hearts)
+      │   ├── KD.png (King of diamonds)
+      │   └── ...
+      ├── chips/
+      │   ├── chip-1.png
+      │   ├── chip-5.png
+      │   └── ...
+      └── sounds/
+          ├── card-flip.mp3
+          └── timer-alert.mp3
+  ```
 
-# Ou versões específicas:
-.\version-patch.bat   # Bugfixes: 1.2.3 → 1.2.4
-.\version-minor.bat   # Novas features: 1.2.3 → 1.3.0
-.\version-major.bat   # Breaking changes: 1.2.3 → 2.0.0
-```
+  ### Add a New PNG
 
-### O que Acontece no Release
+  #### 1. Copy the file to the appropriate folder
 
-1. **Atualiza `package.json`**
-   ```json
-   {
-     "version": "1.2.4"
-   }
-   ```
+  ```powershell
+  # Example: add a new card back
+  copy C:\Downloads\back-green.png public\trainer\card-backs\\
+  ```
 
-2. **Atualiza `src/version.ts`**
-   ```typescript
-   export const APP_VERSION = '1.2.4';
-   ```
+  #### 2. Naming Conventions
 
-3. **Commit automático**
-   ```
-   git add package.json src/version.ts
-   git commit -m "chore: bump version to 1.2.4"
-   ```
+  **Cards**: Use a 2-character code
+  - Ranks: `A`, `K`, `Q`, `J`, `T`, `9`, `8`, `7`, `6`, `5`, `4`, `3`, `2`
+  - Suits: `H` (hearts), `D` (diamonds), `C` (clubs), `S` (spades)
+  - Example: `AH.png`, `KS.png`, `7D.png`
 
-4. **Push para GitHub**
-   ```
-   git push origin main
-   ```
+  **Card Backs**: `back-{color}.png`
 
-5. **Deploy automático no Vercel**
-   - Vercel detecta push na branch `main`
+  **Chips**: `chip-{value}.png`
+
+  #### 3. Use in Components
+
+  ```typescript
+  // In any component
+  import { getTrainerAssetUrl } from '../config';
+
+  // Cards
+  const cardUrl = getTrainerAssetUrl(`cards/${rank}${suit}.png`);
+  // Example: getTrainerAssetUrl('cards/AH.png')
+
+  // Card backs
+  const backUrl = getTrainerAssetUrl('card-backs/back-blue.png');
+
+  // Chips
+  const chipUrl = getTrainerAssetUrl('chips/chip-100.png');
+  ```
+
+  #### 4. Optimize Images (Optional but recommended)
+
+  ```powershell
+  # Use ImageMagick or similar to reduce file size
+  magick convert input.png -quality 85 -strip output.png
+  ```
+
+  #### 5. Test Locally
+
+  ```powershell
+  npm run dev
+  # Verify the image loads in the browser
+  ```
+
+  #### 6. Commit & Push
+
+  ```powershell
+  git add public/trainer/
+  git commit -m "feat: add new green card back"
+  git push origin main
+  ```
+
+  ---
+
+  ## ☁️ Uploading to Cloudflare R2
+
+  ### Prerequisites
+
+  1. **Install Wrangler CLI**
+  ```powershell
+  npm install -g wrangler
+  ```
+
+  2. **Authenticate with Cloudflare**
+  ```powershell
+  wrangler login
+  ```
+
+  ### Uploading Spots (JSON files)
+
+  #### Method 1: Upload All Spots (RECOMMENDED)
+
+  ```powershell
+  # PowerShell script with progress bar and error handling
+  .\\upload-all-spots.ps1
+
+  # Or a dry run
+  .\\upload-all-spots.ps1 -DryRun
+  ```
+
+  This script:
+  - Uploads ALL categories
+  - Shows progress
+  - Handles errors automatically
+  - Offers metadata upload at the end
+  - Estimated time: 30–60 minutes
+
+  #### Method 2: Upload by Category
+
+  ```powershell
+  # Upload a specific category (e.g., 40-20)
+  $category = "40-20"
+  Get-ChildItem ".\\spots\\$category" -Directory | ForEach-Object {
+      $spot = $_.Name
+      Write-Host "Uploading $spot..."
+    
+      # Settings and Equity
+      wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/settings.json" --file="./spots/$category/$spot/settings.json"
+      wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/equity.json" --file="./spots/$category/$spot/equity.json"
+    
+      # Nodes
+      Get-ChildItem ".\\spots\\$category\\$spot\\nodes\\*.json" | ForEach-Object {
+          wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/nodes/$($_.Name)" --file="$($_.FullName)"
+      }
+  }
+  ```
+
+  #### Method 3: Upload Single Spot
+
+  ```powershell
+  # Upload a single spot
+  $category = "40-20"
+  $spot = "speed32_12"
+
+  wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/settings.json" --file="./spots/$category/$spot/settings.json"
+  wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/equity.json" --file="./spots/$category/$spot/equity.json"
+
+  # Upload nodes
+  Get-ChildItem ".\\spots\\$category\\$spot\\nodes\\*.json" | ForEach-Object {
+      wrangler r2 object put "gto-wizard-spots/spots/$category/$spot/nodes/$($_.Name)" --file="$($_.FullName)"
+  }
+  ```
+
+  ### Upload Trainer Assets (PNG, MP3, etc.)
+
+  ```powershell
+  # Upload all trainer assets
+  .\\upload-trainer-assets.bat
+
+  # Or manually:
+  wrangler r2 object put gto-wizard-spots/trainer --file=./public/trainer --recursive
+  ```
+
+  Included paths:
+  - `/trainer/cards/` - Deck card images
+  - `/trainer/card-backs/` - Card backs
+  - `/trainer/chips/` - Chip images
+  - `/trainer/sounds/` - Audio files
+
+  ### Upload Metadata
+
+  ```powershell
+  # Solutions metadata (used by the library)
+  wrangler r2 object put gto-wizard-spots/solutions-metadata.json --file=./solutions-metadata.json
+
+  wrangler r2 object put gto-wizard-spots/solutions.json --file=./solutions.json
+  ```
+
+  ### Verify Upload
+
+  ```powershell
+  # List objects in the bucket
+  wrangler r2 object list gto-wizard-spots --prefix=spots/final_table/
+
+  # Get a specific file
+  wrangler r2 object get gto-wizard-spots/spots/final_table/speed32_1/settings.json
+  ```
+
+  ### Production URLs
+
+  After upload, files are available at:
+
+  ```
+  https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/spots/{path}
+  https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/trainer/{path}
+  ```
+
+  The app uses the CDN in production via `config.ts`:
+
+  ```typescript
+  const VITE_CDN_URL = import.meta.env.VITE_CDN_URL;
+  const isProduction = import.meta.env.PROD;
+
+  export function getResourceUrl(path: string): string {
+    if (isProduction && VITE_CDN_URL) {
+      return `${VITE_CDN_URL}/${path}`;
+    }
+    return `/${path}`;
+  }
+  ```
+
+  ### Full Workflow for a New Spot
+
+  ```powershell
+  # 1. Add the spot locally (create folders and files under /spots/)
+
+  # 2. Generate metadata
+  node generate_solutions_optimized.cjs
+
+  # 3. Test locally
+  npm run dev
+  # Verify the spot loads correctly
+
+  # 4. Commit changes
+  git add spots/
+  git add solutions-metadata.json
+  git add solutions.json
+  git commit -m "feat: add spot XYZ"
+  git push origin main
+
+  # 5. Upload to R2
+  .\\upload-spots-fast.bat
+  # Or for a specific spot:
+  # wrangler r2 object put gto-wizard-spots/spots/final_table/new_spot --file=./spots/final_table/new_spot --recursive
+
+  # 6. Upload updated metadata
+  wrangler r2 object put gto-wizard-spots/solutions-metadata.json --file=./solutions-metadata.json
+  wrangler r2 object put gto-wizard-spots/solutions.json --file=./solutions.json
+
+  # 7. Verify in production
+  # Open https://gtowizardprivate.vercel.app
+  # Test loading the new spot
+  ```
+
+  ### Workflow for a New PNG
+
+  ```powershell
+  # 1. Add PNG to public/trainer/
+  copy C:\Downloads\new-chip.png public\trainer\chips\\
+
+  # 2. Test locally
+  npm run dev
+
+  # 3. Commit
+  git add public/trainer/
+  git commit -m "feat: add chip-1000"
+  git push origin main
+
+  # 4. Upload to R2
+  .\\upload-trainer-assets.bat
+  # Or manually:
+  # wrangler r2 object put gto-wizard-spots/trainer/chips/new-chip.png --file=./public/trainer/chips/new-chip.png
+
+  # 5. Verify in production
+  # Open the app and confirm the image loads
+  ```
+
+  ---
    - Inicia build automaticamente
    - Deploy em ~2-3 minutos
 
-### Quando Usar Cada Versão
+### When to Use Each Version
 
 **Patch** (1.2.3 → 1.2.4):
 - Correções de bugs
@@ -610,7 +600,7 @@ node generate_solutions_optimized.cjs
 # 3. Reiniciar dev server
 npm run dev
 
-# 4. Verificar console do navegador (F12) por erros
+# 4. Check browser console (F12) for errors
 ```
 
 ### PNG não carrega

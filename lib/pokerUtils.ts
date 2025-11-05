@@ -41,14 +41,14 @@ export const getActionColor = (
         ? playerIndex === numPlayers - 1 
         : false;
 
-  // Cores inspiradas no GTO Wizard
-  // Normalizamos o nome da ação (removendo caracteres não-alfa-numéricos e em lowercase)
-  // para aceitar tanto 'All-in' quanto 'Allin' (e variações com/sem hífen).
+  // Colors inspired by GTO Wizard
+  // Normalize the action name (remove non-alphanumeric characters and lowercase)
+  // to accept both 'All-in' and 'Allin' (and variations with/without hyphen).
   const normalizedAction = actionName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (normalizedAction.includes('allin')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
-    if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Laranja para Raise
-    if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Azul cyan para Fold
-    if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Verde para Call
+  if (normalizedAction.includes('allin')) return 'bg-[#d946ef]'; // Vibrant magenta for All-in (matches GTO Wizard)
+    if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Orange for Raise
+    if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Cyan/blue for Fold
+    if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Green for Call
     if (actionName.startsWith('Check')) {
         // If the current player is the Big Blind, their "Check" action is green, like a "Call".
         if (isPlayerBB) {
@@ -56,7 +56,7 @@ export const getActionColor = (
         }
         return 'bg-[#6b7280]';
     }
-    return 'bg-[#4b5563]'; // Fallback for unexpected actions
+  return 'bg-[#4b5563]'; // Fallback for unexpected actions
 };
 
 export const formatChips = (amount: number): string => {
@@ -77,16 +77,16 @@ export const getActionName = (
     displayMode: 'bb' | 'chips',
     allStacks?: readonly number[]
 ): string => {
-    // Ajustar bigBlind para cálculos em modo BB (dividir por 100)
+  // Adjust bigBlind for BB mode calculations (divide by 100)
     const adjustedBigBlind = displayMode === 'bb' ? bigBlind / 100 : bigBlind;
     
     // Convert action amount and player stack to BB for comparison
     const actionAmountBB = adjustedBigBlind > 0 ? (action.amount / 100) / adjustedBigBlind : 0;
     const playerStackBB = adjustedBigBlind > 0 ? (playerStack / 100) / adjustedBigBlind : 0;
     
-    // An action (Raise or Call) is considered "All-in" if it commits at least 90% of the player's stack
-    // OR if the remaining stack is less than 0.5 BB (essentially all-in)
-    // This catches both exact all-ins and actions that exceed the stack
+  // An action (Raise or Call) is considered "All-in" if it commits at least 90% of the player's stack
+  // OR if the remaining stack is less than 0.5 BB (essentially all-in).
+  // This covers both exact all-ins and oversized commits that effectively put the player all-in.
     const remainingStackBB = playerStackBB - actionAmountBB;
     const isAllIn = (action.type === 'R' || action.type === 'C') && 
                     playerStackBB > 0 && 
@@ -236,7 +236,7 @@ export const formatPayouts = (payouts: number[]): { position: string; prize: str
   return formatted;
 };
 
-// Mapeamento de bounties iniciais por tipo de speed
+// Initial bounty mapping by speed type
 const INITIAL_BOUNTIES: { [key: string]: number } = {
   'speed32': 7.5,
   'speed20': 5,
@@ -245,8 +245,8 @@ const INITIAL_BOUNTIES: { [key: string]: number } = {
 };
 
 /**
- * Extrai o tipo de speed do nome do arquivo da solução
- * Ex: "speed32_1" -> "speed32"
+ * Extract the speed type from a solution filename
+ * Example: "speed32_1" -> "speed32"
  */
 export const getSpeedType = (fileName: string): string | null => {
   const match = fileName.match(/speed(\d+)/i);
@@ -254,7 +254,7 @@ export const getSpeedType = (fileName: string): string | null => {
 };
 
 /**
- * Retorna o bounty inicial baseado no tipo de speed
+ * Return the initial bounty amount based on the speed type
  */
 export const getInitialBounty = (fileName: string): number => {
   const speedType = getSpeedType(fileName);
@@ -262,8 +262,8 @@ export const getInitialBounty = (fileName: string): number => {
 };
 
 /**
- * Calcula quantos bounties iniciais o jogador possui
- * Retorna string formatada como "1x", "2x", etc.
+ * Calculate how many initial bounties the player has
+ * Returns a formatted string like "1x", "2x", etc.
  */
 export const calculateBountyMultiplier = (bountyAmount: number, fileName: string): string => {
   const initialBounty = getInitialBounty(fileName);

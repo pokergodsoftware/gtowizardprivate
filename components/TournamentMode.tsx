@@ -45,14 +45,14 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [currentStageIndex, setCurrentStageIndex] = useState(0);
     const [handsPlayedInStage, setHandsPlayedInStage] = useState(0);
     const [totalHandsPlayed, setTotalHandsPlayed] = useState(0);
-    const [mistakes, setMistakes] = useState(0); // Pode ser fracionado (0.5)
+    const [mistakes, setMistakes] = useState(0); // May be fractional (e.g. 0.5)
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [spotKey, setSpotKey] = useState(0); // Chave para forçar remontagem do TrainerSimulator
-    const [isTransitioning, setIsTransitioning] = useState(false); // Tela de transição entre estágios
+    const [isTransitioning, setIsTransitioning] = useState(false); // Transition screen between stages
     const [stageMistakesAtStart, setStageMistakesAtStart] = useState(0); // Erros no início do estágio
     
-    // Estatísticas por estágio: { stageIndex: { handsPlayed, livesLost } }
+    // Stage statistics: { stageIndex: { handsPlayed, livesLost } }
     const [stageStats, setStageStats] = useState<Record<number, { handsPlayed: number; livesLost: number }>>({});
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
@@ -173,7 +173,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />   
                         </svg>
-                        <span className="font-semibold">Sair do Torneio</span>
+                        <span className="font-semibold">Exit Tournament</span>
                     </button>
                     <h1 className="text-lg font-bold text-white">🏆 Tournament Mode</h1>
                     <div className="w-24"></div> {/* Spacer para centralizar */}
@@ -186,7 +186,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                             {currentStage.displayName}
                         </span>
                         <span className="text-gray-400 text-xs">
-                            Mão {handsPlayedInStage + 1}/{currentStage.handsToPlay}
+                            Hand {handsPlayedInStage + 1}/{currentStage.handsToPlay}
                         </span>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -204,15 +204,15 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                         <div className="text-white font-bold text-2xl">{totalHandsPlayed}/{TOTAL_HANDS}</div>
                     </div>
                     <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
-                        <div className="text-green-400 text-[20px] mb-0.5">Acertos</div>
+                        <div className="text-green-400 text-[20px] mb-0.5">Correct</div>
                         <div className="text-green-400 font-bold text-2xl">{totalHandsPlayed - mistakes}</div>
                     </div>
                     <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
-                        <div className="text-red-400 text-[20px] mb-0.5">Erros</div>
+                        <div className="text-red-400 text-[20px] mb-0.5">Mistakes</div>
                         <div className="text-red-400 font-bold text-2xl">{mistakes.toFixed(1)}/{MAX_MISTAKES}</div>
                     </div>
                     <div className="bg-yellow-500/10 rounded-lg p-1.5 text-center border border-yellow-500/30">
-                        <div className="text-yellow-400 text-[20px] mb-0.5">Vidas</div>
+                        <div className="text-yellow-400 text-[20px] mb-0.5">Lives</div>
                         <div className="text-yellow-400 font-bold text-2xl">{(MAX_MISTAKES - mistakes).toFixed(1)}</div>
                     </div>
                 </div>

@@ -15,7 +15,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         <span className="text-teal-400"> Private</span>
                     </h1>
                     <p className="text-xl text-gray-400">
-                        Aprimore sua estratégia de poker com soluções GTO e treinamento
+                        Improve your poker strategy with GTO solutions and training
                     </p>
                 </div>
 
@@ -42,12 +42,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                             </h2>
                             
                             <p className="text-gray-400 text-lg">
-                                Explore soluções GTO completas para diferentes cenários de torneio
+                                Explore complete GTO solutions for different tournament scenarios
                             </p>
                             
                             <div className="pt-4">
                                 <span className="inline-flex items-center text-teal-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
-                                    Acessar biblioteca
+                                    Access library
                                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
@@ -77,12 +77,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                             </h2>
                             
                             <p className="text-gray-400 text-lg">
-                                Pratique suas decisões e aprenda com feedback instantâneo
+                                Practice your decisions and learn with instant feedback
                             </p>
                             
                             <div className="pt-4">
                                 <span className="inline-flex items-center text-purple-400 font-semibold group-hover:translate-x-2 transition-transform duration-300">
-                                    Começar treino
+                                    Start training
                                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
@@ -94,7 +94,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
                 {/* Footer Info */}
                 <div className="pt-8 text-gray-500 text-sm">
-                    <p>Versão 2.0 • Lazy Loading • UI Moderna</p>
+                    <p>Version 2.0 • Lazy Loading • Modern UI</p>
                 </div>
             </div>
         </div>

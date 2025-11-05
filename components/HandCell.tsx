@@ -42,7 +42,7 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
         ? raiseIndices[raiseIndices.length - 1].index
         : -1;
 
-    // Create segments for gradient background (cores por ação)
+    // Create segments for gradient background (colors per action)
     const segments = handData.played
         .map((freq, index) => {
             const action = actions[index];
@@ -65,7 +65,7 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
         })
         .filter((item): item is { freq: number; color: string } => item !== null && item.freq > 0.001);
 
-    // Calculate weighted EV (EV ponderado baseado nas frequências das ações)
+    // Calculate weighted EV (weighted by action frequencies)
     const weightedEV = handData.played.reduce((acc, freq, index) => {
         if (freq > 0 && handData.evs[index] !== undefined) {
             return acc + (freq * handData.evs[index]);
@@ -79,7 +79,7 @@ const HandCellMemo: React.FC<HandCellProps> = ({ handName, handData, actions, bi
             className={`relative flex overflow-hidden text-white items-center justify-center cursor-pointer ${isSelected ? 'ring-2 ring-white z-10' : ''}`}
             onClick={() => setSelectedHand(handName)}
         >
-            {/* Background Gradient: cores por ação */}
+            {/* Background Gradient: colors per action */}
             {segments.length === 1 ? (
                 <div className={`absolute inset-0 ${segments[0].color}`}></div>
             ) : (

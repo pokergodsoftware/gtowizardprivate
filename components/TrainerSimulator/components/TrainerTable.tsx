@@ -80,7 +80,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     // Find nodeId if not provided
     const actualNodeId = nodeId !== undefined ? nodeId : findNodeId(solution.nodes, node);
     
-    // Build hand history using custom hook
+        // Build hand history using a custom hook
     const { history } = useHandHistory({
         solution,
         nodeId: actualNodeId,
@@ -97,7 +97,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     
     // Helper function to format bounty display
     const formatBounty = (bounty: number): string => {
-        const actualBounty = bounty / 2; // Bounty em dólares (PKO: metade vai para o prêmio)
+        const actualBounty = bounty / 2; // Bounty in dollars (PKO: half goes to the prize pool)
         
         if (showBountyInDollars) {
             return `$${actualBounty.toFixed(2)}`;
@@ -136,7 +136,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                     onToggleBountyDisplay={onToggleBountyDisplay}
                 />
             
-                {/* Ações disponíveis - Estilo GGPoker (à direita do hero) */}
+                {/* Available actions - GGPoker style (to the right of the hero) */}
                 {!userAction && (
                     <div className={`absolute bottom-9 left-1/2 transform flex z-30 justify-center items-center ${
                         node.actions.length <= 2 ? 'translate-x-[55%] gap-3' :
@@ -168,7 +168,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                 ? 'bg-red-700 hover:bg-red-800' 
                                 : actionColors[actionName] || 'bg-red-700 hover:bg-red-800';
                             
-                            // Ajustar tamanho dos botões baseado na quantidade para não sair da mesa
+                            // Adjust button sizes based on the number of actions so they stay within the table
                             const buttonSize = node.actions.length <= 2 
                                 ? 'px-4 py-3 min-w-[70px] min-h-[50px]'
                                 : node.actions.length === 3
@@ -241,10 +241,10 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                     </div>
                 )}
                 
-                {/* Mão do jogador no centro - estilo GGPoker */}
+                {/* Player hand centered - GGPoker style */}
                 <div className="absolute bottom-9 left-1/2 transform -translate-x-1/2">
                     <div className="flex flex-col items-center">
-                        {/* Fichas do blind (se hero for SB ou BB) */}
+                        {/* Blind chips (if hero is SB or BB) */}
                         {(() => {
                             const numPlayers = settings.handdata.stacks.length;
                             const bbPosition = numPlayers - 1;
@@ -259,13 +259,13 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                             
                             return (
                                 <div className="mb-1.5 flex flex-col items-center gap-0.5">
-                                    {/* Fichas empilhadas */}
+                                    {/* Stacked chips */}
                                     <div className="flex items-center gap-0.5">
-                                        {/* Ficha roxa */}
+                                        {/* Purple chip */}
                                         <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 border border-purple-300 shadow-md flex items-center justify-center">
                                             <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
                                         </div>
-                                        {/* Ficha amarela (se BB) */}
+                                        {/* Yellow chip (if BB) */}
                                         {isBB && (
                                             <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 border border-yellow-300 shadow-md flex items-center justify-center -ml-1.5">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
@@ -273,7 +273,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                         )}
                                     </div>
                                     
-                                    {/* Valor do blind */}
+                                    {/* Blind amount display */}
                                     <div className="bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded border border-yellow-500/50">
                                         <span className="text-yellow-400 font-bold text-[10px] whitespace-nowrap">
                                             {displayMode === 'bb' 
@@ -288,7 +288,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                             );
                         })()}
                         
-                        {/* Bounty acima das cartas (se houver) */}
+                        {/* Bounty above the cards (if present) */}
                         {settings.handdata.bounties && settings.handdata.bounties[playerPosition] > 0 && (
                             <div className="mb-1.5 bg-gradient-to-r from-yellow-500 to-yellow-600 px-2 py-1 rounded-full border border-yellow-400 relative z-10">
                                 <span className="text-white font-bold text-[10px]">
@@ -297,20 +297,20 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                             </div>
                         )}
                         
-                        {/* Container relativo para posicionar cartas atrás do quadrado */}
+                        {/* Relative container to position cards behind the square */}
                         <div className="relative flex flex-col items-center">
-                            {/* Cartas - posicionadas atrás com z-index negativo e deslocadas para baixo */}
+                            {/* Cards - positioned behind with negative z-index and offset down */}
                             <div className="relative -mb-6 z-0">
                                 <PlayerHand hand={playerHand} />
                             </div>
                             
-                            {/* Nome do jogador e stack - na frente das cartas */}
+                            {/* Player name and stack - in front of the cards */}
                             <div 
                                 onClick={onToggleDisplayMode}
                                 className="bg-black/90 backdrop-blur-sm rounded-lg px-2.5 py-1 border border-yellow-500 shadow-md min-w-[120px] cursor-pointer hover:bg-black/80 transition-colors relative z-10"
                             >
                                 <div className="text-center">
-                                    <div className="text-yellow-400 font-bold text-[10px] mb-0.5">Você</div>
+                                        <div className="text-yellow-400 font-bold text-[10px] mb-0.5">You</div>
                                     <div className="text-blue-400 font-bold text-xs">
                                         {(() => {
                                             const numPlayers = settings.handdata.stacks.length;
@@ -342,7 +342,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                 </div>
                             </div>
                             
-                            {/* Timebank bar (apenas modo torneio) - FORA e ABAIXO do quadrado, colado */}
+                            {/* Timebank bar (tournament mode only) - outside and below the square, attached */}
                             {tournamentMode && !userAction && timeLeft !== undefined && (
                                 <div className="w-[120px] px-2.5 mt-0.5">
                                     <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
@@ -362,7 +362,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                 </div>
                 </div>
             </div>
-            {/* Fim do container da mesa */}
+            {/* End of table container */}
             
             {/* Settings Panel - Right Side - Same height as table */}
             <div className="flex-shrink-0 w-64 flex flex-col">

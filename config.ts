@@ -1,9 +1,9 @@
-// Configuração de ambiente
+// Environment configuration
 export const config = {
   // URL do bucket R2 Cloudflare
   CDN_URL: (import.meta as any).env?.VITE_CDN_URL || '',
   
-  // Modo de desenvolvimento (usa arquivos locais)
+  // Development mode (uses local files)
   isDevelopment: (import.meta as any).env?.DEV || false,
 };
 

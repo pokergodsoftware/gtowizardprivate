@@ -14,7 +14,7 @@ export const ComboDetail: React.FC<ComboDetailProps> = ({ selectedHand, currentN
   if (!selectedHand) {
     return (
       <div className="flex-1 bg-[#1e2227] rounded-lg flex items-center justify-center text-gray-500">
-        <p>Selecione uma mão para ver os detalhes</p>
+        <p>Select a hand to see details</p>
       </div>
     );
   }
@@ -26,7 +26,7 @@ export const ComboDetail: React.FC<ComboDetailProps> = ({ selectedHand, currentN
   if (!handData) {
      return (
       <div className="flex-1 bg-[#1e2227] rounded-lg flex items-center justify-center text-gray-500">
-        <p>Nenhuma informação para {selectedHand}</p>
+        <p>No information for {selectedHand}</p>
       </div>
     );
   }
@@ -42,8 +42,8 @@ export const ComboDetail: React.FC<ComboDetailProps> = ({ selectedHand, currentN
         return { actionName, color, frequency, ev };
     });
 
-  // Debug: log para verificar quantas ações existem
-  console.log(`${selectedHand}: ${actionDetails.length} ações`, actionDetails.map(d => `${d.actionName} ${(d.frequency * 100).toFixed(1)}%`));
+  // Debug: log to verify how many actions exist
+  console.log(`${selectedHand}: ${actionDetails.length} actions`, actionDetails.map(d => `${d.actionName} ${(d.frequency * 100).toFixed(1)}%`));
 
   const totalEV = handData.evs.reduce((acc, ev, index) => acc + (ev * handData.played[index]), 0);
 
@@ -58,7 +58,7 @@ export const ComboDetail: React.FC<ComboDetailProps> = ({ selectedHand, currentN
 
       {/* Action Breakdown */}
       <div className="flex-shrink-0">
-        <h4 className="font-semibold text-gray-300 text-sm uppercase tracking-wide mb-2">Ações</h4>
+  <h4 className="font-semibold text-gray-300 text-sm uppercase tracking-wide mb-2">Actions</h4>
         <div className="grid grid-cols-2 gap-2 auto-rows-min">
           {actionDetails.map((detail, index) => (
             <div key={index} className="bg-[#2d3238] p-2.5 rounded-lg min-h-[60px]">

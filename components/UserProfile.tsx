@@ -46,7 +46,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
         try {
             const marked = await loadMarkedHands(userId);
             setMarkedHands(marked);
-            // Criar Set de IDs para lookup rápido
+            // Create a Set of IDs for quick lookup
             const ids = new Set(marked.map(m => m.id));
             setMarkedHandIds(ids);
             console.log(`✅ Loaded ${marked.length} marked hands`);
@@ -62,7 +62,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
             const marked = await loadMarkedHands(userId);
             setMarkedHands(marked);
             
-            // Converter MarkedHand para SpotHistoryEntry para exibir na mesma tabela
+            // Convert MarkedHand to SpotHistoryEntry to display in the same table
             const convertedHistory: SpotHistoryEntry[] = marked.map(m => ({
                 id: m.id,
                 hand: m.hand,
@@ -98,7 +98,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                 message: error?.message,
                 code: error?.code
             });
-            // Continua com array vazio - não quebra a UI
+            // Continue with empty array - keeps the UI intact
             setHistory([]);
         }
     };
@@ -107,17 +107,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
         const isCurrentlyMarked = markedHandIds.has(entry.id);
         
         if (isCurrentlyMarked) {
-            // Desmarcar
+            // Unmark
             await removeMarkedHand(userId, entry.id);
             console.log('❌ Hand unmarked:', entry.id);
             
-            // Se estamos na página de marked hands, remover da lista
+            // If viewing the marked-hands page, remove it from the list
             if (showMarkedHandsOnly) {
                 setHistory(prev => prev.filter(h => h.id !== entry.id));
                 setMarkedHands(prev => prev.filter(h => h.id !== entry.id));
             }
         } else {
-            // Marcar - converter SpotHistoryEntry para MarkedHand
+            // Mark - convert SpotHistoryEntry to MarkedHand
             const markedHand: MarkedHand = {
                 id: entry.id,
                 timestamp: entry.timestamp,
@@ -136,18 +136,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
             console.log('⭐ Hand marked:', entry.id);
         }
         
-        // Recarregar a lista de marked hands para atualizar o Set de IDs
+        // Reload the list of marked hands to update the ID Set
         await loadMarkedHandsData();
     };
 
     const loadUserStats = async () => {
-        // Tentar carregar stats (prioriza Firebase)
+        // Try loading stats (prefer Firebase)
         const loadedStats = await loadUserStatsUtil(userId);
         
         if (loadedStats) {
             setStats(loadedStats);
         } else {
-            // Inicializar stats vazias
+            // Initialize empty stats
             const emptyStats: UserStats = {
                 totalSpots: 0,
                 correctSpots: 0,
@@ -173,7 +173,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
     if (!stats) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-                <div className="text-white text-xl">Carregando...</div>
+                <div className="text-white text-xl">Loading...</div>
             </div>
         );
     }
@@ -186,7 +186,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
         return bPoints - aPoints;
     });
 
-    // Se showHistoryOnly ou showMarkedHandsOnly, mostrar apenas o histórico/marked hands
+    // If showHistoryOnly or showMarkedHandsOnly, show only the history / marked hands
     if (showHistoryOnly || showMarkedHandsOnly) {
         const pageTitle = showMarkedHandsOnly ? '⭐ Marked Hands' : 'Practiced Hands History';
         
@@ -202,16 +202,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            <span className="font-semibold">Voltar</span>
+                            <span className="font-semibold">Back</span>
                         </button>
                         <h1 className="text-2xl font-bold text-white">{pageTitle}</h1>
                         <div></div>
                     </div>
 
-                    {/* Histórico de Spots / Marked Hands */}
+                                {/* Spot History / Marked Hands */}
                     <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8">
                         <h2 className="text-2xl font-bold text-white mb-6">
-                            {showMarkedHandsOnly ? '⭐ Mãos Marcadas' : 'Histórico de Spots'}
+                            {showMarkedHandsOnly ? '⭐ Marked Hands' : 'Spot History'}
                         </h2>
                         <SpotHistory 
                             history={history} 
@@ -229,19 +229,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
-                    <button
+                        <button
                         onClick={onBack}
                         className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        <span className="font-semibold">Voltar</span>
+                            <span className="font-semibold">Back</span>
                     </button>
                 </div>
 
-                {/* Perfil do Usuário */}
-                <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8 mb-6">
+                {/* User Profile */}
+                    <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8 mb-6">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-full p-4">
                             <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,19 +250,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                         </div>
                         <div>
                             <h1 className="text-4xl font-bold text-white">{username}</h1>
-                            <p className="text-gray-400 text-lg">Estatísticas do Trainer</p>
+                            <p className="text-gray-400 text-lg">Trainer Statistics</p>
                         </div>
                     </div>
 
-                    {/* Cards de Estatísticas Gerais */}
+                    {/* General statistics cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* Total de Pontos */}
+                        {/* Total Points */}
                         <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-xl p-6">
                             <div className="flex items-center gap-3 mb-2">
                                 <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                 </svg>
-                                <span className="text-yellow-400 font-bold text-sm">PONTOS</span>
+                                <span className="text-yellow-400 font-bold text-sm">POINTS</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.totalPoints.toFixed(1)}</div>
                         </div>
@@ -274,7 +274,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12l2 2 4-4" />
                                 </svg>
-                                <span className="text-yellow-400 font-bold text-sm">TORNEIOS JOGADOS</span>
+                                <span className="text-yellow-400 font-bold text-sm">TOURNAMENTS PLAYED</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.tournamentsPlayed ?? 0}</div>
                         </div>
@@ -286,7 +286,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                     <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="2" fill="none" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
                                 </svg>
-                                <span className="text-orange-400 font-bold text-sm">MESA FINAL</span>
+                                <span className="text-orange-400 font-bold text-sm">FINAL TABLE</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.reachedFinalTable ?? 0}</div>
                         </div>
@@ -298,24 +298,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                     <polygon points="12,2 22,22 2,22" stroke="currentColor" strokeWidth="2" fill="none" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
                                 </svg>
-                                <span className="text-lime-400 font-bold text-sm">TORNEIOS COMPLETOS</span>
+                                <span className="text-lime-400 font-bold text-sm">COMPLETED TOURNAMENTS</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.completedTournaments ?? 0}</div>
                         </div>
 
-                        {/* Taxa de Acerto */}
+                        {/* Accuracy */}
                         <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-xl p-6">
                             <div className="flex items-center gap-3 mb-2">
                                 <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span className="text-green-400 font-bold text-sm">ACERTOS</span>
+                                <span className="text-green-400 font-bold text-sm">ACCURACY</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{getAccuracyPercentage()}%</div>
                             <div className="text-gray-400 text-sm mt-1">{stats.correctSpots}/{stats.totalSpots} spots</div>
                         </div>
 
-                        {/* Total de Spots */}
+                        {/* Total Spots */}
                         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/50 rounded-xl p-6">
                             <div className="flex items-center gap-3 mb-2">
                                 <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,13 +326,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                             <div className="text-4xl font-bold text-white">{stats.totalSpots}</div>
                         </div>
 
-                        {/* Erros */}
+                        {/* Mistakes */}
                         <div className="bg-gradient-to-br from-red-500/20 to-pink-500/20 border border-red-500/50 rounded-xl p-6">
                             <div className="flex items-center gap-3 mb-2">
                                 <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span className="text-red-400 font-bold text-sm">ERROS</span>
+                                <span className="text-red-400 font-bold text-sm">MISTAKES</span>
                             </div>
                             <div className="text-4xl font-bold text-white">{stats.totalSpots - stats.correctSpots}</div>
                         </div>
@@ -340,16 +340,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                 </div>
 
 
-                {/* Estatísticas por Fase */}
+                {/* Statistics by Phase */}
                 <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8">
-                    <h2 className="text-2xl font-bold text-white mb-6">Desempenho por Fase do Torneio</h2>
+                    <h2 className="text-2xl font-bold text-white mb-6">Performance by Tournament Phase</h2>
                     {sortedPhases.length === 0 ? (
                         <div className="text-center py-12">
                             <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                             </svg>
-                            <p className="text-gray-400 text-lg">Nenhum spot jogado ainda</p>
-                            <p className="text-gray-500 text-sm mt-2">Comece a treinar para ver suas estatísticas!</p>
+                            <p className="text-gray-400 text-lg">No spots played yet</p>
+                            <p className="text-gray-500 text-sm mt-2">Start training to see your statistics!</p>
                         </div>
                     ) : (
                         <div className="space-y-4">

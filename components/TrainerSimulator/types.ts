@@ -38,12 +38,12 @@ export interface SpotSimulation {
     solution: AppData;
     nodeId: number;
     playerPosition: number;
-    playerHand: string; // Combo específico (ex: "AhKd")
-    playerHandName: string; // Nome da mão (ex: "AKo")
-    raiserPosition?: number; // Posição do jogador que deu raise (para vs Open)
-    shoverPositions?: number[]; // Posições dos jogadores que deram shove (para vs Multiway shove)
-    spotType: string; // Tipo de spot: RFI, vs Open, Any, etc
-    villainActions?: VillainAction[]; // Histórico de ações dos vilões (para tipo Any)
+    playerHand: string; // Specific combo (e.g., "AhKd")
+    playerHandName: string; // Hand name (e.g., "AKo")
+    raiserPosition?: number; // Position of the player who raised (for 'vs Open')
+    shoverPositions?: number[]; // Positions of players who shoved (for 'vs Multiway shove')
+    spotType: string; // Spot type: RFI, vs Open, Any, etc.
+    villainActions?: VillainAction[]; // Villain actions history (for 'Any' spot type)
 }
 
 /**

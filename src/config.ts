@@ -1,51 +1,51 @@
-// Configuração de ambiente
+// Environment configuration
 export const config = {
-  // URL do bucket R2 Cloudflare (substitua pela sua URL pública)
+  // Cloudflare R2 bucket URL (replace with your public URL)
   CDN_URL: (import.meta as any).env?.VITE_CDN_URL || '',
   
-  // Modo de desenvolvimento (usa arquivos locais)
+  // Development mode (uses local files)
   isDevelopment: (import.meta as any).env?.DEV || false,
 };
 
-// Função helper para construir URLs de recursos
+// Helper to build resource URLs
 export function getResourceUrl(path: string): string {
-  // Remover ./ do início se existir
+  // Remove leading ./ if present
   const cleanPath = path.startsWith('./') ? path.substring(2) : path;
   
-  // Em desenvolvimento, usa arquivos locais
+  // In development, use local files
   if (config.isDevelopment) {
     return `/${cleanPath}`;
   }
   
-  // Em produção, usa CDN se configurado
+  // In production, use CDN if configured
   if (config.CDN_URL) {
     return `${config.CDN_URL}/${cleanPath}`;
   }
   
-  // Fallback para arquivos locais
+  // Fallback to local files
   return `/${cleanPath}`;
 }
 
-// Função helper para construir URLs de assets do trainer (sempre usa CDN em produção)
+// Helper to build trainer asset URLs (always uses CDN in production)
 export function getTrainerAssetUrl(filename: string): string {
-  // Em desenvolvimento, usa arquivos locais
+  // In development, use local files
   if (config.isDevelopment) {
     return `/trainer/${filename}`;
   }
   
-  // Em produção, SEMPRE usa CDN
+  // In production, ALWAYS use CDN
   if (config.CDN_URL) {
     return `${config.CDN_URL}/trainer/${filename}`;
   }
   
-  // Fallback para arquivos locais
+  // Fallback to local files
   return `/trainer/${filename}`;
 }
 
-// Função helper para metadata - SEMPRE usa arquivo local servido pelo Vercel
-// (metadata está versionado no git para sincronização automática)
+// Metadata helper - ALWAYS uses a local file served by Vercel
+// (metadata is versioned in git for automatic synchronization)
 export function getMetadataUrl(filename: string): string {
-  // Sempre usa arquivo local, tanto em dev quanto em produção
-  // O Vercel serve este arquivo do próprio deploy
+  // Always use the local file, both in dev and production
+  // Vercel serves this file from the deployment
   return `/${filename}`;
 }

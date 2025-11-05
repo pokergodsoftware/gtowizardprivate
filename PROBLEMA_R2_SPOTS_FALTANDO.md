@@ -1,15 +1,15 @@
-# 🔴 PROBLEMA REAL IDENTIFICADO - Spots Faltando no R2
+# 🔴 REAL ISSUE IDENTIFIED - Missing Spots on R2
 
-## ❌ Situação Atual
+## ❌ Current Situation
 
-### Erro no Console do Vercel:
+### Error in Vercel Console:
 ```
 GET https://pub-7731c4a...r2.dev/spots/60-40/speed50_9/settings.json
 404 (Not Found)
 ```
 
-### Causa Raiz:
-**Os spots NÃO estão no Cloudflare R2**, mas a aplicação em produção está configurada para buscar do R2 via `VITE_CDN_URL`.
+### Root Cause:
+**The spots are NOT on Cloudflare R2**, but the production app is configured to fetch from R2 via `VITE_CDN_URL`.
 
 ## 📊 Inventário Completo
 
@@ -30,45 +30,45 @@ GET https://pub-7731c4a...r2.dev/spots/60-40/speed50_9/settings.json
 - ✓ **Spots locais**: Todos os 147 spots existem
 - ❌ **R2 CDN**: NENHUM spot foi enviado
 
-## 🎯 Solução
+## 🎯 Solution
 
-### Passo 1: Upload de TODOS os Spots
+### Step 1: Upload ALL Spots
 
-Execute o script PowerShell otimizado:
+Run the optimized PowerShell upload script:
 
 ```powershell
 .\upload-all-spots.ps1
 ```
 
-**O que o script faz:**
-- Upload de todas as 8 categorias
-- 147 spots + settings.json + equity.json + nodes/*.json
-- Barra de progresso em tempo real
-- Tratamento automático de erros
-- Oferece upload do metadata ao final
+**What the script does:**
+- Uploads all 8 categories
+- Uploads 147 spots + settings.json + equity.json + nodes/*.json
+- Real-time progress bar
+- Automatic error handling
+- Optionally uploads metadata at the end
 
-**Tempo estimado:** 30-60 minutos (dependendo dos nodes)
+**Estimated time:** 30-60 minutes (depends on node count)
 
-### Passo 2: Upload do Metadata
+### Step 2: Upload Metadata
 
 ```powershell
 wrangler r2 object put gto-wizard-spots/solutions-metadata.json --file=./solutions-metadata.json
 wrangler r2 object put gto-wizard-spots/solutions.json --file=./solutions.json
 ```
 
-### Passo 3: Aguardar Propagação
+### Step 3: Wait for Propagation
 
-⏱️ **5-10 minutos** para o CDN atualizar
+⏱️ **5-10 minutes** for the CDN to update
 
-### Passo 4: Verificar
+### Step 4: Verify
 
-1. Abrir https://gtowizardprivate.vercel.app
-2. Pressionar Ctrl + Shift + R (hard refresh)
-3. Abrir DevTools (F12) → Console
-4. Verificar se NÃO há mais erros 404
-5. Testar spots de diferentes categorias
+1. Open https://gtowizardprivate.vercel.app
+2. Press Ctrl + Shift + R (hard refresh)
+3. Open DevTools (F12) → Console
+4. Confirm there are NO more 404 errors
+5. Test spots from different categories
 
-## 🚀 Comandos Rápidos
+## 🚀 Quick Commands
 
 ### Upload Completo (Recomendado)
 ```powershell

@@ -9,17 +9,17 @@ import { TrainerTable, TrainerFeedback, TrainerHeader, LoadingTransition } from 
 
 interface TrainerSimulatorProps {
     solutions: AppData[];
-    selectedPhases: string[]; // Agora aceita múltiplas fases
-    selectedSpotTypes: string[]; // Tipos de spots selecionados (Any, RFI, vs Open, etc)
+    selectedPhases: string[]; // Now accepts multiple phases
+    selectedSpotTypes: string[]; // Selected spot types (Any, RFI, vs Open, etc)
     onBack: () => void;
     loadNode: (nodeId: number) => Promise<void>;
     loadNodesForSolution: (solutionId: string, nodeIdsToLoad?: number[]) => Promise<AppData | null>;
-    userId: string; // ID do usuário para salvar estatísticas
-    tournamentPhase: string; // Fase do torneio atual
-    tournamentMode?: boolean; // Se true, está no modo torneio
-    onSpotResult?: (isCorrect: boolean, livesLost?: number) => void; // Callback para modo torneio (agora com livesLost)
-    playerCountFilter?: number; // Filtro opcional por número de jogadores (para Final Table)
-    // Tournament result props (quando torneio termina)
+    userId: string; // User ID for saving statistics
+    tournamentPhase: string; // Current tournament phase
+    tournamentMode?: boolean; // If true, running in tournament mode
+    onSpotResult?: (isCorrect: boolean, livesLost?: number) => void; // Tournament mode callback (now includes livesLost)
+    playerCountFilter?: number; // Optional filter by number of players (for Final Table)
+    // Tournament result props (when tournament completes)
     tournamentComplete?: {
         isBusted: boolean;
         isComplete: boolean;
@@ -87,7 +87,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     // ============================================================
     
     const handleTimeExpired = useCallback(() => {
-        if (!currentSpot || userAction) return; // Se já respondeu, ignora timeout
+    if (!currentSpot || userAction) return; // If already answered, ignore timeout
         
         // Use solution from currentSpot (has all nodes loaded)
         const currentSolution = currentSpot.solution;
@@ -99,11 +99,11 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         const handData = node.hands[currentSpot.playerHandName];
         if (!handData) return;
         
-        // TIMEOUT: Ação automática é sempre FOLD
+    // TIMEOUT: automatic action is always FOLD
         const foldActionIndex = node.actions.findIndex(a => a.type === 'F');
         
         if (foldActionIndex === -1) {
-            // Não tem Fold disponível - marca como erro
+            // No Fold available - mark as an error
             setUserAction('Fold (TIMEOUT)');
             
             const actualPhase = currentSpot.solution.tournamentPhase;
@@ -129,8 +129,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             return;
         }
         
-        // REGRA: Quando timebank expira, herói sempre folda automaticamente
-        // Avaliar usando o novo sistema
+    // RULE: When the timebank expires, the hero always folds automatically
+    // Evaluate using the new system
         const foldEvaluation = evaluateAction(
             foldActionIndex,
             handData.played,
@@ -140,18 +140,18 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         console.log('⏰ Timeout - Fold evaluation:', foldEvaluation);
         
-        // Pegar o EV do fold
+    // Get the EV of the fold
         const foldEv = handData.evs && handData.evs[foldActionIndex] !== undefined 
             ? handData.evs[foldActionIndex] 
             : undefined;
         
-        // Marca a ação como Fold (Timeout)
+    // Mark the action as Fold (Timeout)
         setUserAction('Fold (TIMEOUT)');
         
-        // Determinar se é "correto" para estatísticas
+    // Determine whether this is considered "correct" for statistics
         const isCorrect = isActionCorrect(foldEvaluation.quality);
         
-        // Salvar resultado
+    // Save result
         const actualPhase = currentSpot.solution.tournamentPhase;
         updateStats(isCorrect, actualPhase, foldEvaluation.points);
         saveSpotResult(userId, isCorrect, actualPhase, undefined, foldEvaluation.points);
@@ -169,7 +169,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             foldEv
         );
         
-        // Callback para modo torneio
+    // Callback for tournament mode
         if (onSpotResult) {
             onSpotResult(foldEvaluation.livesLost === 0, foldEvaluation.livesLost);
         }
@@ -264,7 +264,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const checkAnswer = (actionName: string) => {
         if (!currentSpot || userAction) {
             console.log('⚠️ Ignoring action: spot already answered or no current spot');
-            return; // Já respondeu ou não tem spot
+            return; // Already answered or no current spot
         }
         
         console.log('🎯 Processing action:', actionName);
@@ -301,7 +301,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             return;
         }
         
-        // Encontrar índice da ação escolhida
+    // Find index of the chosen action
         const actionIndex = node.actions.findIndex(a => {
             if (a.type === 'F') return actionName === 'Fold';
             if (a.type === 'X') return actionName === 'Check';
@@ -321,7 +321,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         console.log(`✅ Action found at index ${actionIndex}`);
         
-        // Avaliar a qualidade da ação usando o novo sistema
+        // Evaluate action quality using the new system
         const evaluation = evaluateAction(
             actionIndex,
             handData.played,
@@ -336,7 +336,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             return;
         }
         
-        // Pegar o EV da ação
+        // Get the EV of the action
         const actionEv = handData.evs && handData.evs[actionIndex] !== undefined 
             ? handData.evs[actionIndex] 
             : undefined;
@@ -349,7 +349,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             action: actionName
         });
         
-        // Parar áudio do timebank imediatamente ao clicar em ação
+    // Stop timebank audio immediately when clicking an action
         stopAudios();
         
         setUserAction(actionName);
@@ -362,10 +362,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         // Parar o timebank
         stopAudios();
         
-        // Determinar se é "correto" para estatísticas gerais
+    // Determine whether this is considered "correct" for overall statistics
         const isCorrect = isActionCorrect(evaluation.quality);
         
-        // Salvar resultado com pontuação correta
+    // Save result with correct scoring
         const actualPhase = currentSpot.solution.tournamentPhase;
         updateStats(isCorrect, actualPhase, evaluation.points);
         saveSpotResult(userId, isCorrect, actualPhase, undefined, evaluation.points);
@@ -383,13 +383,13 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             actionEv
         );
         
-        // Callback para modo torneio (passa vidas perdidas)
+    // Callback for tournament mode (passes lives lost)
         if (onSpotResult) {
             console.log('🏆 Tournament Mode: Calling onSpotResult with:', {
                 quality: evaluation.quality,
                 livesLost: evaluation.livesLost
             });
-            // Para modo torneio, passa isCorrect E livesLost
+            // For tournament mode, pass isCorrect AND livesLost
             onSpotResult(evaluation.livesLost === 0, evaluation.livesLost);
         }
         
@@ -453,10 +453,10 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const handleMarkHand = async () => {
         if (!currentSpot || !lastActionResult) return;
         
-        // Gerar ID único para a mão marcada
+        // Generate a unique ID for the marked hand
         const handId = `${currentSpot.solution.id}_${currentSpot.nodeId}_${currentSpot.playerHand}_${Date.now()}`;
         
-        // Determinar se foi correto baseado na avaliação
+        // Determine whether it was correct based on the evaluation
         const isCorrect = isActionCorrect(lastActionResult.evaluation.quality);
         
         const markedHand = {

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 
 /**
- * Hook para debounce de valores
- * Útil para evitar updates excessivos em ações rápidas
+ * Hook for debouncing values
+ * Useful to avoid excessive updates on rapid input/actions
  */
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -21,8 +21,8 @@ export function useDebounce<T>(value: T, delay: number): T {
 }
 
 /**
- * Hook para throttle de callbacks
- * Limita a frequência de execução de uma função
+ * Hook for throttling callbacks
+ * Limits how often a function can be executed
  */
 export function useThrottle<T extends (...args: any[]) => any>(
   callback: T,
@@ -55,8 +55,8 @@ export function useThrottle<T extends (...args: any[]) => any>(
 }
 
 /**
- * Hook para memoizar callbacks pesados
- * Similar ao useCallback mas com cache de resultados
+ * Hook to memoize heavy callbacks
+ * Similar to useCallback but with a simple result cache
  */
 export function useMemoizedCallback<T extends (...args: any[]) => any>(
   callback: T,
@@ -88,8 +88,8 @@ export function useMemoizedCallback<T extends (...args: any[]) => any>(
 }
 
 /**
- * Hook para cleanup de AbortController
- * Facilita cancelamento de requisições
+ * Hook for AbortController cleanup
+ * Simplifies cancelling requests
  */
 export function useAbortController(): AbortController {
   const controllerRef = useRef<AbortController>();
@@ -106,7 +106,7 @@ export function useAbortController(): AbortController {
 }
 
 /**
- * Hook para prevenir memory leaks em async operations
+ * Hook to help prevent memory leaks in async operations
  */
 export function useIsMounted(): () => boolean {
   const isMountedRef = useRef(true);

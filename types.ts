@@ -75,7 +75,7 @@ export interface AppData {
   settings: SettingsData;
   equity: EquityData;
   nodes: Map<number, NodeData>;
-  path?: string; // Caminho para carregar nodes sob demanda
+  path?: string; // Path to lazy-load nodes on demand
 }
 
 // ====================================

@@ -3,23 +3,23 @@ import React from 'react';
 export interface SpotHistoryEntry {
     id: string;
     hand: string;
-    combo?: string; // Combo específico (ex: "AhKd")
+    combo?: string; // Specific combo (e.g. "AhKd")
     isCorrect: boolean;
     timestamp: number;
     phase: string;
     points: number;
-    solutionPath?: string; // Caminho da solução para link
-    nodeId?: number; // ID do node para link
-    position?: number; // Posição do herói (0-8)
-    playerAction?: string; // Ação do jogador (Fold, Call, Raise 2, etc)
-    ev?: number; // Expected Value da ação escolhida
-    isMarked?: boolean; // Se a mão está marcada
+    solutionPath?: string; // Solution path for link
+    nodeId?: number; // Node ID for link
+    position?: number; // Hero position (0-8)
+    playerAction?: string; // Player action (Fold, Call, Raise 2, etc)
+    ev?: number; // Expected value of the chosen action
+    isMarked?: boolean; // Whether the hand is marked
 }
 
 interface SpotHistoryProps {
     history: SpotHistoryEntry[];
-    onToggleMark?: (entry: SpotHistoryEntry) => void; // Callback para marcar/desmarcar
-    markedHandIds?: Set<string>; // Set de IDs de mãos marcadas
+    onToggleMark?: (entry: SpotHistoryEntry) => void; // Callback to mark/unmark
+    markedHandIds?: Set<string>; // Set of marked hand IDs
 }
 
 export const SpotHistory: React.FC<SpotHistoryProps> = ({ history, onToggleMark, markedHandIds }) => {
@@ -29,13 +29,13 @@ export const SpotHistory: React.FC<SpotHistoryProps> = ({ history, onToggleMark,
                 <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-gray-400 text-lg">Nenhum histórico ainda</p>
-                <p className="text-gray-500 text-sm mt-2">Comece a praticar para ver suas mãos!</p>
+                <p className="text-gray-400 text-lg">No history yet</p>
+                <p className="text-gray-500 text-sm mt-2">Start practicing to see your hands!</p>
             </div>
         );
     }
 
-    // Mostrar últimos spots (ordenados do mais recente ao mais antigo)
+    // Show latest spots (most recent first)
     const recentHistory = history.slice(-50).reverse();
 
     const formatDate = (timestamp: number) => {
@@ -63,13 +63,13 @@ export const SpotHistory: React.FC<SpotHistoryProps> = ({ history, onToggleMark,
         };
         
         const suitColors: Record<string, string> = {
-            'd': '#3B82F6', // Ouros = Azul
+            'd': '#3B82F6', // Diamonds = Blue
             'D': '#3B82F6',
-            'c': '#10B981', // Paus = Verde
+            'c': '#10B981', // Clubs = Green
             'C': '#10B981',
-            's': '#4B5563', // Espadas = Cinza escuro
+            's': '#4B5563', // Spades = Dark gray
             'S': '#4B5563',
-            'h': '#EF4444', // Copas = Vermelho
+            'h': '#EF4444', // Hearts = Red
             'H': '#EF4444'
         };
         
@@ -109,10 +109,10 @@ export const SpotHistory: React.FC<SpotHistoryProps> = ({ history, onToggleMark,
                                 {/* Date */}
                                 <td className="py-3 px-4">
                                     <div className="flex items-center gap-2">
-                                        <button
+                                            <button
                                             onClick={() => onToggleMark?.(entry)}
                                             className="p-2 hover:bg-gray-700/30 rounded transition-all cursor-pointer group"
-                                            title={isMarked ? 'Remover dos marcados' : 'Marcar mão'}
+                                            title={isMarked ? 'Unmark hand' : 'Mark hand'}
                                         >
                                             {isMarked ? (
                                                 <svg className="w-5 h-5 text-yellow-500 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 20 20">

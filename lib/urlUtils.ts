@@ -2,13 +2,13 @@ import type { AppData } from '../types';
 
 export interface UrlState {
   page?: 'home' | 'solutions' | 'trainer';
-  solutionPath?: string; // Usamos o path da solução como identificador único
+  solutionPath?: string; // We use the solution path as the unique identifier
   nodeId?: number;
   hand?: string;
 }
 
 /**
- * Codifica o estado do app em parâmetros de URL
+ * Encode the app state into URL parameters
  */
 export function encodeUrlState(state: UrlState): string {
   const params = new URLSearchParams();
@@ -34,7 +34,7 @@ export function encodeUrlState(state: UrlState): string {
 }
 
 /**
- * Decodifica os parâmetros de URL para o estado do app
+ * Decode URL parameters into the app state
  */
 export function decodeUrlState(): UrlState {
   const params = new URLSearchParams(window.location.search);
@@ -68,7 +68,7 @@ export function decodeUrlState(): UrlState {
 }
 
 /**
- * Atualiza a URL do browser sem recarregar a página
+ * Update the browser URL without reloading the page
  */
 export function updateUrl(state: UrlState, replace: boolean = false): void {
   const url = encodeUrlState(state);
@@ -82,14 +82,14 @@ export function updateUrl(state: UrlState, replace: boolean = false): void {
 }
 
 /**
- * Encontra uma solução pelo path
+ * Find a solution by its path
  */
 export function findSolutionByPath(solutions: AppData[], path: string): AppData | undefined {
   return solutions.find(s => s.path === path);
 }
 
 /**
- * Cria o estado de URL a partir da solução e node atual
+ * Create a URL state from the given solution and current node
  */
 export function createUrlStateFromSolution(
   page: 'home' | 'solutions' | 'trainer',

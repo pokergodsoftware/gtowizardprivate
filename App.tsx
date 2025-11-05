@@ -478,7 +478,7 @@ const App: React.FC = () => {
                     
                 } else {
                     if ((import.meta as any).env?.DEV) {
-                        console.warn(`⚠️ Solução não encontrada: ${urlState.solutionPath}`);
+                        console.warn(`⚠️ Solution not found: ${urlState.solutionPath}`);
                     }
                     setHasRestoredFromUrl(true);
                 }

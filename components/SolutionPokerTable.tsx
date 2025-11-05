@@ -80,7 +80,7 @@ const Player: React.FC<{
         )}
       </div>
       
-      {/* Bounty Display - Logo abaixo do círculo */}
+  {/* Bounty Display - Below the player circle */}
       {bounty > 0 && (
         <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded-full bg-black/60 text-xs text-yellow-400 font-semibold transition-opacity duration-300 ${bountyOpacityClass}`}>
             <img src="https://waryhub.com/files/preview/960x960/11742569964ly8rjxfvuumzs0lup831ldwasvucbe4pnljcyq7voxhowhzlrmfowailtjbzxv8wrpn9ikcrlm3xqbl9uz9mxvyezd7boik50po6.png" alt="Bounty" className="w-3.5 h-3.5" />
@@ -120,7 +120,7 @@ export const SolutionPokerTable: React.FC<{ settings: SettingsData; activePlayer
   const smallBlindAmount = blinds.length > 1 ? Math.min(blinds[0], blinds[1]) : (blinds[0] || 0);
   const bigBlindAmount = blinds.length > 1 ? Math.max(blinds[0], blinds[1]) : (blinds[0] || 0);
   
-  // Ajustar bigBlind para cálculos em modo BB (dividir por 100)
+  // Adjust bigBlind for BB mode (divide by 100)
   const adjustedBigBlind = displayMode === 'bb' ? bigBlindAmount / 100 : bigBlindAmount;
   const ante = blinds.length > 2 ? blinds[2] : 0;
   
@@ -135,7 +135,7 @@ export const SolutionPokerTable: React.FC<{ settings: SettingsData; activePlayer
   const streetInvestments = new Map<number, number>();
   let totalPot = 0;
 
-  // 1. Antes
+  // 1. Antes (antes = antes/ante)
   stacks.forEach((_, i) => {
     currentStacks[i] -= ante;
     totalPot += ante;

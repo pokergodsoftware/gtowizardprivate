@@ -39,10 +39,10 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState<{ userId: string; username: string } | null>(null);
     const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
-    const [selectedSpotTypes, setSelectedSpotTypes] = useState<string[]>(['Any']); // Any por padrão
+    const [selectedSpotTypes, setSelectedSpotTypes] = useState<string[]>(['Any']); // Any by default
     const [viewMode, setViewMode] = useState<ViewMode>('modeSelection');
 
-    // Verificar se o usuário já está logado
+    // Check if the user is already logged in
     useEffect(() => {
         const storedUser = localStorage.getItem('poker_current_user');
         if (storedUser) {
@@ -50,8 +50,8 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                 const user = JSON.parse(storedUser);
                 setCurrentUser(user);
                 setIsAuthenticated(true);
-            } catch (err) {
-                console.error('Erro ao carregar usuário:', err);
+                } catch (err) {
+                console.error('Error loading user:', err);
                 localStorage.removeItem('poker_current_user');
             }
         }
@@ -90,7 +90,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            <span className="font-semibold">Voltar</span>
+                            <span className="font-semibold">Back</span>
                         </button>
                         <h1 className="text-2xl font-bold text-white">Trainer</h1>
                         {/* Informações do usuário */}
@@ -119,9 +119,9 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <button
                                 onClick={handleLogout}
                                 className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-semibold"
-                                title="Sair"
+                                title="Logout"
                             >
-                                Sair
+                                Logout
                             </button>
                         </div>
                     </div>
@@ -138,10 +138,10 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <div className="flex flex-col items-center justify-center space-y-6">
                                 <div className="text-7xl">🎯</div>
                                 <h2 className="text-3xl font-black text-white text-center leading-tight">
-                                    Jogar fases<br />do torneio
+                                    Play tournament<br />stages
                                 </h2>
                                 <p className="text-purple-200 text-center text-sm">
-                                    Escolha fases específicas e tipos de spots para treinar
+                                    Choose specific stages and spot types to train
                                 </p>
                             </div>
                             <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
@@ -155,10 +155,10 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <div className="flex flex-col items-center justify-center space-y-6">
                                 <div className="text-7xl">🏆</div>
                                 <h2 className="text-3xl font-black text-white text-center leading-tight">
-                                    Jogar modo<br />torneio
+                                    Play tournament<br />mode
                                 </h2>
                                 <p className="text-orange-200 text-center text-sm">
-                                    Simule um torneio completo do início ao fim
+                                    Simulate a full tournament from start to finish
                                 </p>
                             </div>
                             <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
@@ -172,10 +172,10 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <div className="flex flex-col items-center justify-center space-y-6">
                                 <div className="text-7xl">📊</div>
                                 <h2 className="text-3xl font-black text-white text-center leading-tight">
-                                    Ranking
+                                    Leaderboard
                                 </h2>
                                 <p className="text-yellow-200 text-center text-sm">
-                                    Veja os melhores jogadores e suas estatísticas
+                                    See top players and their statistics
                                 </p>
                             </div>
                             <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 rounded-2xl transition-all duration-300"></div>
@@ -318,9 +318,9 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            <span className="font-semibold">Voltar</span>
+                            <span className="font-semibold">Back</span>
                         </button>
-                        <h1 className="text-2xl font-bold text-white">Trainer - Configuração</h1>
+                        <h1 className="text-2xl font-bold text-white">Trainer - Configuration</h1>
                         {/* Informações do usuário e logout */}
                         <div className="flex items-center gap-3">
                             <button
@@ -354,12 +354,12 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                         </div>
                     </div>
                     {selectedPhases.length > 0 && (
-                        <div className="flex items-center justify-end gap-3 mt-4">
+                            <div className="flex items-center justify-end gap-3 mt-4">
                             <button
                                 onClick={() => setViewMode('training')}
                                 className="px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all shadow-lg"
                             >
-                                Iniciar Treino ({selectedPhases.length} {selectedPhases.length === 1 ? 'fase' : 'fases'})
+                                Start Training ({selectedPhases.length} {selectedPhases.length === 1 ? 'stage' : 'stages'})
                             </button>
                         </div>
                     )}
@@ -370,7 +370,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                     <div className="max-w-5xl mx-auto space-y-8">
                         {/* Tipos de Spot */}
                         <div>
-                            <h2 className="text-xl font-bold text-white mb-4">Tipos de Spot</h2>
+                            <h2 className="text-xl font-bold text-white mb-4">Spot Types</h2>
                             <div className="flex flex-wrap gap-3">
                                 {spotTypes.map(spotType => {
                                     const isSelected = selectedSpotTypes.includes(spotType);
@@ -391,27 +391,27 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                                         >
                                             {isSelected && '✓ '}
                                             {spotType}
-                                            {isDisabled && ' (Em breve)'}
+                                            {isDisabled && ' (Coming soon)'}
                                         </button>
                                     );
                                 })}
                             </div>
                             <p className="text-gray-400 text-sm mt-2">
-                                ℹ️ Selecione o tipo de spot para treinar (pelo menos 1 deve estar selecionado). "vs Open" requer soluções com avg stack ≥ 13.2bb.
+                                ℹ️ Select the spot types to train (at least one must be selected). "vs Open" requires solutions with avg stack ≥ 13.2bb.
                             </p>
                         </div>
 
-                        {/* Fases do Torneio */}
+                        {/* Tournament stages */}
                         <div>
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-white">Fases do Torneio</h2>
+                                <h2 className="text-xl font-bold text-white">Tournament Stages</h2>
                                 <button
                                     onClick={toggleAllPhases}
                                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-semibold"
                                 >
                                     {selectedPhases.length === tournamentPhases.filter(p => solutions.filter(s => s.tournamentPhase === p).length > 0).length
-                                        ? '✓ Desmarcar Todas Fases'
-                                        : '☐ Selecionar Todas Fases'
+                                        ? '✓ Unselect All Stages'
+                                        : '☐ Select All Stages'
                                     }
                                 </button>
                             </div>
@@ -465,7 +465,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                                             </h3>
                                             
                                             <div className="text-center text-gray-400">
-                                                {phaseSolutions.length} {phaseSolutions.length === 1 ? 'solução' : 'soluções'}
+                                                {phaseSolutions.length} {phaseSolutions.length === 1 ? 'solution' : 'solutions'}
                                             </div>
 
                                             <div className={`pt-2 font-semibold text-sm text-center transition-all duration-300 ${
@@ -473,7 +473,7 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                                                     ? 'text-purple-300'
                                                     : 'text-purple-400 group-hover:translate-x-2'
                                             }`}>
-                                                {isSelected ? '✓ Selecionado' : 'Clique para selecionar'}
+                                                {isSelected ? '✓ Selected' : 'Click to select'}
                                             </div>
                                         </div>
                                     </button>

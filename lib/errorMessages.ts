@@ -4,37 +4,37 @@
 
 export const ERROR_MESSAGES = {
   // File Upload Errors
-  INVALID_FOLDER: 'Pasta de solução inválida. Certifique-se de incluir settings.json, equity.json e a pasta nodes/',
-  MISSING_SETTINGS: 'Arquivo settings.json não encontrado na pasta selecionada.',
-  MISSING_EQUITY: 'Arquivo equity.json não encontrado na pasta selecionada.',
-  MISSING_NODES: 'Pasta nodes/ não encontrada ou vazia.',
-  INVALID_JSON: (fileName: string) => `Erro ao processar ${fileName}: formato JSON inválido.`,
-  
+  INVALID_FOLDER: 'Invalid solution folder. Make sure settings.json, equity.json and the nodes/ folder are present.',
+  MISSING_SETTINGS: 'settings.json file not found in the selected folder.',
+  MISSING_EQUITY: 'equity.json file not found in the selected folder.',
+  MISSING_NODES: 'nodes/ folder not found or is empty.',
+  INVALID_JSON: (fileName: string) => `Failed to process ${fileName}: invalid JSON format.`,
+
   // Network Errors
-  NETWORK_ERROR: 'Erro de conexão. Verifique sua internet e tente novamente.',
-  TIMEOUT_ERROR: 'A requisição demorou muito. Tente novamente.',
-  SERVER_ERROR: 'Erro no servidor. Tente novamente em alguns instantes.',
-  
+  NETWORK_ERROR: 'Network error. Check your connection and try again.',
+  TIMEOUT_ERROR: 'The request timed out. Please try again.',
+  SERVER_ERROR: 'Server error. Please try again later.',
+
   // Solution Loading Errors
-  SOLUTIONS_NOT_FOUND: 'Nenhuma solução encontrada. A biblioteca está vazia.',
-  SOLUTION_NOT_FOUND: (id: string) => `Solução com ID ${id} não encontrada.`,
-  METADATA_LOAD_FAILED: 'Falha ao carregar o índice de soluções.',
-  METADATA_INVALID: 'Formato do índice de soluções está corrompido.',
-  
+  SOLUTIONS_NOT_FOUND: 'No solutions found. The library is empty.',
+  SOLUTION_NOT_FOUND: (id: string) => `Solution with ID ${id} not found.`,
+  METADATA_LOAD_FAILED: 'Failed to load solutions index.',
+  METADATA_INVALID: 'Solutions index format is corrupted.',
+
   // Node Loading Errors
-  NODE_NOT_FOUND: (nodeId: number) => `Node ${nodeId} não encontrado nesta solução.`,
-  NODE_LOAD_FAILED: (nodeId: number) => `Falha ao carregar node ${nodeId}.`,
-  NO_NODES_LOADED: 'Nenhum node foi carregado. A solução pode estar corrompida.',
-  SOLUTION_NO_PATH: 'Solução não possui caminho de carregamento definido.',
-  
+  NODE_NOT_FOUND: (nodeId: number) => `Node ${nodeId} not found in this solution.`,
+  NODE_LOAD_FAILED: (nodeId: number) => `Failed to load node ${nodeId}.`,
+  NO_NODES_LOADED: 'No nodes were loaded. The solution may be corrupted.',
+  SOLUTION_NO_PATH: 'Solution does not have a loading path defined.',
+
   // Firebase Errors
-  FIREBASE_INIT_ERROR: 'Erro ao inicializar Firebase. Algumas funcionalidades podem não estar disponíveis.',
-  FIREBASE_SYNC_ERROR: 'Falha ao sincronizar dados com o servidor. Os dados foram salvos localmente.',
-  AUTH_ERROR: 'Erro de autenticação. Tente fazer login novamente.',
-  
+  FIREBASE_INIT_ERROR: 'Failed to initialize Firebase. Some features may be unavailable.',
+  FIREBASE_SYNC_ERROR: 'Failed to sync data with the server. Data was saved locally.',
+  AUTH_ERROR: 'Authentication error. Please log in again.',
+
   // Generic Errors
-  UNKNOWN_ERROR: 'Ocorreu um erro inesperado. Tente novamente.',
-  PARSE_ERROR: 'Erro ao processar os dados.',
+  UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
+  PARSE_ERROR: 'Failed to parse data.',
 } as const;
 
 /**

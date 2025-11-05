@@ -26,7 +26,7 @@ export interface FirebaseStats {
   username: string;
   totalSpots: number;
   correctSpots: number;
-  incorrectSpots: number; // Spots errados (para calcular blunders)
+    incorrectSpots: number; // Incorrect spots (used to calculate blunders)
   totalPoints: number;
   tournamentsPlayed: number;
   reachedFinalTable: number;
@@ -37,14 +37,14 @@ export interface FirebaseStats {
     [phase: string]: {
       total: number;
       correct: number;
-      incorrect: number; // Errados por fase
+        incorrect: number; // Incorrect per phase
       points: number;
     };
   };
 }
 
 /**
- * Criar ou atualizar usuário no Firebase
+ * Create or update a user in Firebase
  */
 export async function saveUserToFirebase(userId: string, username: string): Promise<void> {
   try {
@@ -73,7 +73,7 @@ export async function saveUserToFirebase(userId: string, username: string): Prom
       projectId: db.app.options.projectId
     });
     
-    // Mensagens de ajuda específicas por erro
+  // Helpful error messages by error type
     if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
       console.error('🚫 FIREBASE PERMISSION DENIED!');
       console.error('📖 SOLUTION: Update Firestore rules to allow create:');
@@ -91,7 +91,7 @@ export async function saveUserToFirebase(userId: string, username: string): Prom
 }
 
 /**
- * Salvar estatísticas no Firebase
+ * Save statistics to Firebase
  */
 export async function saveStatsToFirebase(
   userId: string,
@@ -105,7 +105,7 @@ export async function saveStatsToFirebase(
     
     const statsRef = doc(db, 'stats', userId);
     
-    // Verificar se já existe
+  // Check if it already exists
     const statsSnap = await getDoc(statsRef);
     
     const pointsToAdd = points !== undefined ? points : (isCorrect ? 1 : 0);
@@ -115,7 +115,7 @@ export async function saveStatsToFirebase(
       const data = statsSnap.data();
       const statsByPhase = data.statsByPhase || {};
       
-      // Atualizar estatísticas por fase se fornecida
+      // Update per-phase statistics if provided
       if (phase) {
         if (!statsByPhase[phase]) {
           statsByPhase[phase] = { total: 0, correct: 0, incorrect: 0, points: 0 };
@@ -126,7 +126,7 @@ export async function saveStatsToFirebase(
         statsByPhase[phase].points += pointsToAdd;
       }
       
-      // Atualizar estatísticas gerais
+      // Update general statistics
       await updateDoc(statsRef, {
         totalSpots: increment(1),
         correctSpots: increment(isCorrect ? 1 : 0),
@@ -136,7 +136,7 @@ export async function saveStatsToFirebase(
         statsByPhase
       });
       
-      // Recalcular accuracy
+      // Recalculate accuracy
       const updatedSnap = await getDoc(statsRef);
       const updatedData = updatedSnap.data();
       const accuracy = (updatedData!.correctSpots / updatedData!.totalSpots) * 100;
@@ -145,7 +145,7 @@ export async function saveStatsToFirebase(
       console.log('✅ Firebase: Stats updated successfully!');
     } else {
       console.log('📝 Firebase: Creating new stats document...');
-      // Criar novas estatísticas
+      // Create new statistics
       const statsByPhase: any = {};
       if (phase) {
         statsByPhase[phase] = {
@@ -156,6 +156,7 @@ export async function saveStatsToFirebase(
         };
       }
       
+    // Created new statistics
       await setDoc(statsRef, {
         userId,
         username,
@@ -193,7 +194,7 @@ export async function saveStatsToFirebase(
 }
 
 /**
- * Buscar top 10 jogadores do Firebase
+ * Fetch top 10 players from Firebase
  */
 export async function getTop10FromFirebase(): Promise<FirebaseStats[]> {
   try {
@@ -225,7 +226,7 @@ export async function getTop10FromFirebase(): Promise<FirebaseStats[]> {
 }
 
 /**
- * Buscar estatísticas de um usuário específico
+ * Fetch statistics for a specific user
  */
 export async function getUserStatsFromFirebase(userId: string): Promise<FirebaseStats | null> {
   try {
@@ -244,7 +245,7 @@ export async function getUserStatsFromFirebase(userId: string): Promise<Firebase
 }
 
 /**
- * Buscar todos os jogadores (para leaderboard completo)
+ * Fetch all players (for full leaderboard)
  */
 export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
   try {
@@ -271,7 +272,7 @@ export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
 }
 
 /**
- * Salvar histórico de mão no Firebase
+ * Save spot history to Firebase
  */
 export async function saveSpotHistoryToFirebase(
   userId: string,
@@ -293,7 +294,7 @@ export async function saveSpotHistoryToFirebase(
 }
 
 /**
- * Carregar histórico de mãos do Firebase
+ * Load spot history from Firebase
  */
 export async function loadSpotHistoryFromFirebase(userId: string): Promise<SpotHistoryEntry[]> {
   try {
@@ -345,7 +346,7 @@ export async function loadSpotHistoryFromFirebase(userId: string): Promise<SpotH
 }
 
 /**
- * Atualizar estatísticas de torneio no Firebase
+ * Update tournament statistics in Firebase
  */
 export async function updateTournamentStatsInFirebase(
   userId: string,

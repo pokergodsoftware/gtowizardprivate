@@ -19,27 +19,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
         setError('');
         setLoading(true);
 
-        // Validações
+        // Validations
         if (!username || !password) {
-            setError('Por favor, preencha todos os campos');
+            setError('Please fill in all fields');
             setLoading(false);
             return;
         }
 
         if (username.length < 3) {
-            setError('Nome de usuário deve ter pelo menos 3 caracteres');
+            setError('Username must be at least 3 characters');
             setLoading(false);
             return;
         }
 
         if (password.length < 6) {
-            setError('Senha deve ter pelo menos 6 caracteres');
+            setError('Password must be at least 6 characters');
             setLoading(false);
             return;
         }
 
         if (!isLogin && password !== confirmPassword) {
-            setError('As senhas não coincidem');
+            setError('Passwords do not match');
             setLoading(false);
             return;
         }
@@ -51,13 +51,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                 const user = users[username];
 
                 if (!user) {
-                    setError('Usuário não encontrado');
+                    setError('User not found');
                     setLoading(false);
                     return;
                 }
 
                 if (user.password !== password) {
-                    setError('Senha incorreta');
+                    setError('Incorrect password');
                     setLoading(false);
                     return;
                 }
@@ -73,7 +73,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                 const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
 
                 if (users[username]) {
-                    setError('Nome de usuário já existe');
+                    setError('Username already exists');
                     setLoading(false);
                     return;
                 }
@@ -109,13 +109,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                     console.warn('⚠️ User saved to localStorage only (not synced to cloud)');
                     console.warn('💡 Check Firebase rules and network connection');
                     console.warn('📖 See DATABASE_DIAGNOSTIC.md for troubleshooting');
-                    // Continua mesmo se Firebase falhar (localStorage como fallback)
+                    // Continue even if Firebase fails (localStorage as fallback)
                 }
 
                 onAuthSuccess(userId, username);
             }
         } catch (err) {
-            setError('Erro ao processar requisição');
+            setError('Failed to process request');
             setLoading(false);
         }
     };
@@ -123,7 +123,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
-                {/* Botão Voltar */}
+                {/* Back button */}
                 {onBack && (
                     <div className="mb-4">
                         <button
@@ -133,12 +133,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            Voltar
+                            Back
                         </button>
                     </div>
                 )}
                 
-                {/* Card de Login/Cadastro */}
+                {/* Login/Register card */}
                 <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8">
                     {/* Logo/Título */}
                     <div className="text-center mb-8">
@@ -148,10 +148,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                             </svg>
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-2">
-                            {isLogin ? 'Bem-vindo de volta!' : 'Criar conta'}
+                            {isLogin ? 'Welcome back!' : 'Create account'}
                         </h1>
                         <p className="text-gray-400">
-                            {isLogin ? 'Entre para continuar treinando' : 'Cadastre-se para começar'}
+                            {isLogin ? 'Sign in to continue training' : 'Sign up to get started'}
                         </p>
                     </div>
 
@@ -159,8 +159,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Username */}
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                                Nome de usuário
+                <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                    Username
                             </label>
                             <input
                                 id="username"
@@ -168,15 +168,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                                placeholder="Digite seu usuário"
+                                placeholder="Enter your username"
                                 disabled={loading}
                             />
                         </div>
 
                         {/* Password */}
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                                Senha
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                    Password
                             </label>
                             <input
                                 id="password"
@@ -184,7 +184,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                                placeholder="Digite sua senha"
+                                placeholder="Enter your password"
                                 disabled={loading}
                             />
                         </div>
@@ -193,7 +193,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                         {!isLogin && (
                             <div>
                                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                                    Confirmar senha
+                                    Confirm password
                                 </label>
                                 <input
                                     id="confirmPassword"
@@ -201,7 +201,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                                    placeholder="Confirme sua senha"
+                                    placeholder="Confirm your password"
                                     disabled={loading}
                                 />
                             </div>
@@ -226,18 +226,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Processando...
+                                    Processing...
                                 </span>
                             ) : (
-                                isLogin ? 'Entrar' : 'Criar conta'
+                                isLogin ? 'Sign in' : 'Create account'
                             )}
                         </button>
                     </form>
 
-                    {/* Toggle entre Login e Cadastro */}
+                    {/* Toggle between Login and Register */}
                     <div className="mt-6 text-center">
                         <p className="text-gray-400">
-                            {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+                            {isLogin ? "Don't have an account?" : 'Already have an account?'}
                             {' '}
                             <button
                                 type="button"
@@ -249,7 +249,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                                 }}
                                 className="text-teal-400 hover:text-teal-300 font-semibold transition-colors"
                             >
-                                {isLogin ? 'Cadastre-se' : 'Faça login'}
+                                {isLogin ? 'Sign up' : 'Sign in'}
                             </button>
                         </p>
                     </div>
@@ -258,7 +258,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                 {/* Informações adicionais */}
                 <div className="mt-6 text-center">
                     <p className="text-gray-500 text-sm">
-                        🔒 Seus dados são armazenados localmente no seu navegador
+                        🔒 Your data is stored locally in your browser
                     </p>
                 </div>
             </div>

@@ -105,7 +105,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     const smallBlind = blinds?.length > 1 ? Math.min(blinds[0], blinds[1]) : (blinds?.[0] / 2 || 0);
     const ante = blinds?.length > 2 ? blinds[2] : 0;
     
-    // Baseline pot (blinds + todas as antes)
+    // Baseline pot (blinds + all antes)
     const baselinePot = calculateTotalPot(smallBlind, bigBlind, ante, numPlayers);
 
     // Precompute player bets using baselinePot so calculatePlayerBet can rely on a non-circular value

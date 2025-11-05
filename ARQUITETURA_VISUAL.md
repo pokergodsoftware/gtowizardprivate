@@ -1,26 +1,26 @@
-# Arquitetura Visual do GTO Poker Range Viewer
+# Visual Architecture of the GTO Poker Range Viewer
 
-## 1. Diagrama de Componentes Principais
+## 1. Main Component Diagram
 
 ```
-App.tsx (Orquestrador)
-├── Estado Global
+App.tsx (Orchestrator)
+├── Global State
 │   ├── solutions: AppData[]
 │   ├── selectedSolutionId: string | null
 │   ├── currentNodeId: number
 │   ├── selectedHand: string | null
 │   └── displayMode: 'bb' | 'chips'
 │
-├── SolutionsLibrary (Tela Inicial)
+├── SolutionsLibrary (Home Screen)
 │   ├── FileUpload
-│   └── Tabela de Soluções
-│       ├── Filtros
-│       ├── Ordenação
-│       └── Seleção
+│   └── Solutions Table
+│       ├── Filters
+│       ├── Sorting
+│       └── Selection
 │
-└── Visualizador Principal
+└── Main Viewer
     ├── Header
-    │   └── PlayerStrategyCard (múltiplos)
+    │   └── PlayerStrategyCard (multiple)
     ├── RangeGrid (13x13)
     │   └── HandCell (169x)
     └── Sidebar
@@ -30,7 +30,7 @@ App.tsx (Orquestrador)
         └── ComboDetail
 ```
 
-## 2. Estrutura de Dados: AppData
+## 2. Data Structure: AppData
 
 ```typescript
 AppData {
@@ -71,55 +71,55 @@ AppData {
 }
 ```
 
-## 3. Fluxo de Navegação
+## 3. Navigation Flow
 
 ```
-Inicialização
+Initialization
     ↓
 SolutionsLibrary
-    ↓ [Seleciona Solução]
-Visualizador (Node 0)
-    ↓ [Clica em Ação]
-Visualizador (Node 3)
-    ↓ [Clica em Mão]
-ComboDetail Atualizado
+    ↓ [Select Solution]
+Viewer (Node 0)
+    ↓ [Click Action]
+Viewer (Node 3)
+    ↓ [Click Hand]
+ComboDetail Updated
 ```
 
-## 4. Cálculo de HandCell
+## 4. HandCell Calculation
 
 ```
 HandData: {played: [0.3, 0.0, 0.7], evs: [0.0, 0.0, 2.5]}
 Actions: [Fold, Call, Raise]
 
-Segmentos:
+Segments:
 ├── 30% Fold (bg-sky-600)
 └── 70% Raise (bg-pink-600)
 
-EV Total: (0.0 * 0.3) + (0.0 * 0.0) + (2.5 * 0.7) = 1.75
+Total EV: (0.0 * 0.3) + (0.0 * 0.0) + (2.5 * 0.7) = 1.75
 
-Renderização:
+Rendering:
 ┌─────────────┐
-│ 30% | 70%   │ ← Gradiente
-│  Azul | Rosa │
-│     AKs      │ ← Texto
+│ 30% | 70%   │ ← Gradient
+│  Blue | Pink │
+│     AKs      │ ← Label
 │     1.75     │
 └─────────────┘
 ```
 
-## 5. Esquema de Cores
+## 5. Color Scheme
 
 ```
-Ação      | Classe         | Cor
+Action    | Class          | Color
 ----------|----------------|------------
-Allin     | bg-red-600     | 🟥 Vermelho
-Raise     | bg-pink-600    | 🟪 Rosa
-Call      | bg-lime-500    | 🟩 Verde
-Fold      | bg-sky-600     | 🟦 Azul
-Check     | bg-gray-500    | ⬜ Cinza
-Check(BB) | bg-lime-500    | 🟩 Verde
+Allin     | bg-red-600     | 🟥 Red
+Raise     | bg-pink-600    | 🟪 Pink
+Call      | bg-lime-500    | 🟩 Green
+Fold      | bg-sky-600     | 🟦 Blue
+Check     | bg-gray-500    | ⬜ Gray
+Check(BB) | bg-lime-500    | 🟩 Green
 ```
 
-## 6. Mapeamento de Posições
+## 6. Position Mapping
 
 ```
 9-Max: [UTG, UTG1, UTG2, LJ, HJ, CO, BTN, SB, BB]
@@ -128,7 +128,7 @@ Check(BB) | bg-lime-500    | 🟩 Verde
 Heads-Up: [BTN, BB]
 ```
 
-## 7. Árvore de Decisão
+## 7. Decision Tree
 
 ```
 Node 0 (BTN)
@@ -139,13 +139,13 @@ Node 0 (BTN)
             └─ Raise → Node 7
 ```
 
-## 8. Cálculo de ActionsBar
+## 8. ActionsBar Calculation
 
 ```
-Para cada ação:
+For each action:
   Σ(weight * maxCombos * frequency) = total_combos
 
-Exemplo:
+Example:
   Fold:  450 combos → 39.8%
   Raise: 680 combos → 60.2%
 ```

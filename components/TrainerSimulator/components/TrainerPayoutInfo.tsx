@@ -54,8 +54,8 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
                                     key={position}
                                     className="flex items-center justify-between bg-[#23272f] px-1.5 py-0.5 rounded"
                                 >
-                                    <span className="text-gray-300 font-semibold text-[11px]">
-                                        {index === 0 ? '1º-2º' : `${position}º`}
+                                        <span className="text-gray-300 font-semibold text-[11px]">
+                                        {index === 0 ? '1st-2nd' : `${position}th`}
                                     </span>
                                     <span className="text-green-400 font-bold text-[11px]">
                                         ${(prize as number).toFixed(2)}
@@ -64,7 +64,7 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
                             ))
                     ) : (
                         <div className="text-gray-400 text-[11px] text-center py-1 bg-[#23272f] rounded">
-                            Payouts N/A
+                            Payouts unavailable
                         </div>
                     )}
                 </div>

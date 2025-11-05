@@ -14,8 +14,8 @@ import { TrainerHeader, TrainerTable, TrainerFeedback } from './TrainerSimulator
 
 interface TrainerSimulatorProps {
     solutions: AppData[];
-    selectedPhases: string[]; // Agora aceita múltiplas fases
-    selectedSpotTypes: string[]; // Tipos de spots selecionados (Any, RFI, vs Open, etc)
+    selectedPhases: string[]; // Now accepts multiple phases
+    selectedSpotTypes: string[]; // Selected spot types (Any, RFI, vs Open, etc)
     onBack: () => void;
     loadNode: (nodeId: number) => Promise<void>;
     loadNodesForSolution: (solutionId: string, nodeIdsToLoad?: number[]) => Promise<AppData | null>;
@@ -592,7 +592,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                 return;
             }
             
-            console.log('✅ Nodes carregados com sucesso via retorno direto!');
+            console.log('✅ Nodes loaded successfully via direct return!');
             console.log('✅ Nodes size:', loadedSolution.nodes.size);
             currentSolution = loadedSolution;
             retryCount.current = 0; // Reset counter on success
@@ -1608,7 +1608,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     if (!currentSpot) {
         return (
             <div className="flex items-center justify-center h-screen bg-[#1a1d23]">
-                <div className="text-white text-xl">Carregando spot...</div>
+                <div className="text-white text-xl">Loading spot...</div>
             </div>
         );
     }
@@ -1618,7 +1618,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     if (!currentSolution) {
         return (
             <div className="flex items-center justify-center h-screen bg-[#1a1d23]">
-                <div className="text-white text-xl">Erro: Solução não encontrada</div>
+                <div className="text-white text-xl">Error: Solution not found</div>
             </div>
         );
     }
@@ -1627,7 +1627,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     if (!node) {
         return (
             <div className="flex items-center justify-center h-screen bg-[#1a1d23]">
-                <div className="text-white text-xl">Erro ao carregar node</div>
+                <div className="text-white text-xl">Error loading node</div>
             </div>
         );
     }

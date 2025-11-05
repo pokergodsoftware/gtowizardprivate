@@ -1,14 +1,14 @@
 import { getCombosForHand } from './pokerUtils';
 
 /**
- * Sorteia um elemento aleatório de um array
+ * Picks a random element from an array
  */
 export function randomElement<T>(array: T[]): T {
     return array[Math.floor(Math.random() * array.length)];
 }
 
 /**
- * Sorteia um combo de mão aleatório de uma lista de combos
+ * Picks a random combo for a given hand from the list of combos
  */
 export function getRandomCombo(hand: string): string {
     const combos = getCombosForHand(hand);
@@ -17,8 +17,8 @@ export function getRandomCombo(hand: string): string {
 }
 
 /**
- * Sorteia combos únicos para múltiplos jogadores
- * Garante que não há cartas duplicadas
+ * Deals unique combos for multiple players
+ * Ensures there are no duplicate cards
  */
 export function dealRandomCombos(hands: string[]): string[] {
     const usedCards = new Set<string>();
@@ -27,7 +27,7 @@ export function dealRandomCombos(hands: string[]): string[] {
     for (const hand of hands) {
         const combos = getCombosForHand(hand);
         
-        // Filtra combos que não usam cartas já distribuídas
+        // Filter combos that don't use already dealt cards
         const availableCombos = combos.filter(combo => {
             const card1 = combo.substring(0, 2);
             const card2 = combo.substring(2, 4);
@@ -35,7 +35,7 @@ export function dealRandomCombos(hands: string[]): string[] {
         });
 
         if (availableCombos.length === 0) {
-            // Se não há combos disponíveis, retorna vazio
+            // If no combos are available, return an empty string
             dealtCombos.push('');
             continue;
         }
@@ -43,7 +43,7 @@ export function dealRandomCombos(hands: string[]): string[] {
         const selectedCombo = randomElement(availableCombos);
         dealtCombos.push(selectedCombo);
 
-        // Marca as cartas como usadas
+        // Mark the cards as used
         const card1 = selectedCombo.substring(0, 2);
         const card2 = selectedCombo.substring(2, 4);
         usedCards.add(card1);
@@ -54,21 +54,21 @@ export function dealRandomCombos(hands: string[]): string[] {
 }
 
 /**
- * Sorteia uma mão do range do jogador baseado nas frequências
+ * Selects a hand from the player's range based on frequency weights
  */
 export function selectHandFromRange(played: number[]): number {
-    // Calcula a soma total das frequências
+    // Calculate total sum of frequencies
     const total = played.reduce((sum, freq) => sum + freq, 0);
     
     if (total === 0) {
-        // Se não há frequências, retorna índice aleatório
+        // If there are no frequencies, return a random index
         return Math.floor(Math.random() * played.length);
     }
 
-    // Sorteia um número entre 0 e total
+    // Draw a random number between 0 and total
     let random = Math.random() * total;
     
-    // Encontra o índice correspondente
+    // Find the corresponding index
     for (let i = 0; i < played.length; i++) {
         random -= played[i];
         if (random <= 0) {
@@ -80,7 +80,7 @@ export function selectHandFromRange(played: number[]): number {
 }
 
 /**
- * Converte índice de combo para string de mão (ex: 0 -> "AhAs")
+ * Convert combo index to hand string (e.g., 0 -> "AhAs")
  */
 export function comboIndexToString(handName: string, comboIndex: number): string {
     const combos = getCombosForHand(handName);

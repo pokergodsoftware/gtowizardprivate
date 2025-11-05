@@ -39,7 +39,7 @@ export const PotDisplay: React.FC<PotDisplayProps> = ({
                 <div className="bg-black/90 backdrop-blur-sm border border-yellow-500 rounded px-3 py-1 shadow-md">
                     <div className="text-center">
                         <div className="text-yellow-400 font-bold text-xs">
-                            Total Pot : {displayMode === 'bb' 
+                            Total pot: {displayMode === 'bb' 
                                 ? `${(totalPot / bigBlind).toFixed(1)} BB`
                                 : (totalPot / 100).toLocaleString()
                             }

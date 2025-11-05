@@ -60,9 +60,9 @@ export const useSpotGeneration = ({
         return filtered;
     }, [solutions, selectedPhases, playerCountFilter]);
 
-    // Range de EV para HERÓI: -2.0 a +2.0 BB (excluindo -0.07 a +0.07 - muito trivial)
+    // EV range for HERO: -2.0 to +2.0 BB (excluding -0.07 to +0.07 - very trivial)
     const EV_RANGE = { min: -2.0, max: 2.0, excludeMin: -0.07, excludeMax: 0.07 };
-    const MIN_EV_DIFF = 0.05; // Diferença mínima de EV entre ações
+    const MIN_EV_DIFF = 0.05; // Minimum EV difference between actions
 
     /**
      * Get random spot type from selected types
@@ -92,7 +92,7 @@ export const useSpotGeneration = ({
         const suit2 = combo[3];
         
         if (rank1 === rank2) {
-            return `${rank1}${rank2}`; // Par
+            return `${rank1}${rank2}`; // Pair
         } else if (suit1 === suit2) {
             return `${rank1}${rank2}s`; // Suited
         } else {
@@ -107,7 +107,7 @@ export const useSpotGeneration = ({
         const handMatrix = generateHandMatrix();
         const allHands = handMatrix.flat();
         
-        // 1. Filtra mãos jogadas (frequência > 0)
+    // 1. Filter played hands (frequency > 0)
         const playedHands = allHands.filter((handName) => {
             const handData = node.hands[handName];
             if (!handData) return false;
@@ -122,7 +122,7 @@ export const useSpotGeneration = ({
 
         console.log(`✅ Found ${playedHands.length} playable hands in range`);
 
-        // 2. Filtra por range de EV (apenas para HERÓI)
+    // 2. Filter by EV range (only for HERO)
         const difficultHands = playedHands.filter((handName) => {
             const handData = node.hands[handName];
             if (!handData || !handData.evs) return false;
@@ -141,7 +141,7 @@ export const useSpotGeneration = ({
 
         console.log(`🎯 Filtered to ${difficultHands.length} hands (EV: ${EV_RANGE.min} to ${EV_RANGE.max} BB, excluding ${EV_RANGE.excludeMin} to ${EV_RANGE.excludeMax} BB)`);
 
-        // 3. Se não encontrou, pega piores EVs
+    // 3. If none found, take worst EVs
         let handsToUse: string[];
         
         if (difficultHands.length > 0) {
@@ -168,7 +168,7 @@ export const useSpotGeneration = ({
             console.log(`📉 Using ${handsToUse.length} hands with worst EVs`);
         }
 
-        // 4. Filtra mãos marginais
+    // 4. Filter marginal hands
         const nonMarginalHands = handsToUse.filter((handName) => {
             const handData = node.hands[handName];
             if (!handData || !handData.evs) return true;
@@ -186,13 +186,13 @@ export const useSpotGeneration = ({
 
         const finalHandsToUse = nonMarginalHands.length > 0 ? nonMarginalHands : handsToUse;
 
-        // 5. NOVA ABORDAGEM: Pré-filtra TODOS os combos válidos primeiro
-        console.log('🎯 Pre-filtering valid combos with EV in range...');
+    // 5. NEW APPROACH: Pre-filter ALL valid combos first
+    console.log('🎯 Pre-filtering valid combos with EV in range...');
         
         const flatCombos = allCombos.flat();
         const validCombos: Array<{ handName: string; combo: string }> = [];
         
-        // Para cada mão, verifica quais combos passam no filtro de EV
+    // For each hand, check which combos pass the EV filter
         for (const handName of finalHandsToUse) {
             const handData = node.hands[handName];
             if (!handData) continue;
@@ -214,7 +214,7 @@ export const useSpotGeneration = ({
                        (rank1 !== rank2 && `${rank2}${rank1}${comboHand.slice(-1)}` === handName);
             });
             
-            // Verifica se essa mão passa no filtro de EV (apenas HERÓI)
+            // Check if this hand passes the EV filter (only HERO)
             if (isInterestingCombo(handName, '', node, {
                 minPositiveEV: 0.07,
                 maxPositiveEV: 2.00,
@@ -235,20 +235,20 @@ export const useSpotGeneration = ({
             return null;
         }
         
-        // 6. Randomiza entre os combos válidos
+    // 6. Randomize among the valid combos
         const selectedEntry = randomElement(validCombos);
         const { handName: randomHandName, combo: selectedCombo } = selectedEntry;
         
         console.log(`✅ Selected hand: ${randomHandName}`);
         console.log(`✅ Selected combo: ${selectedCombo}`);
         
-        // 7. Verificar EV do combo e mostrar logs detalhados
+    // 7. Check combo EVs and print detailed logs
         const handData = node.hands[randomHandName];
         if (handData && handData.evs) {
             const numActions = node.actions.length;
             
             if (numActions === 2) {
-                // 2 ações: mostrar todos os EVs
+                // 2 actions: show all EVs
                 console.log(`📊 2 Actions - All EVs: [${handData.evs.map(ev => ev.toFixed(2)).join(', ')}]`);
                 const hasValidEV = handData.evs.some(ev => 
                     (ev >= 0.07 && ev <= 2.00) || (ev >= -2.00 && ev <= -0.07)
@@ -256,7 +256,7 @@ export const useSpotGeneration = ({
                 console.log(`   Range: Positive (+0.07 to +2.00) OR Negative (-2.00 to -0.07)`);
                 console.log(`   Status: ${hasValidEV ? '✅ In range' : '❌ Should not happen!'}`);
             } else if (numActions >= 3) {
-                // 3+ ações: encontrar a mais usada
+                // 3+ actions: find the most used action
                 let mostUsedIndex = 0;
                 let maxFreq = handData.played[0] || 0;
                 
@@ -285,7 +285,7 @@ export const useSpotGeneration = ({
      * Main spot generation function
      */
     const generateNewSpot = useCallback(async () => {
-        console.log('🚀 generateNewSpot CALLED');
+                console.log('🚀 generateNewSpot CALLED');
         console.log('📞 Call stack:', new Error().stack?.split('\n').slice(0, 5).join('\n'));
         
         if (isGeneratingSpot.current) {
@@ -376,7 +376,7 @@ export const useSpotGeneration = ({
                 const numPlayers = currentSolution.settings.handdata.stacks.length;
                 const bbPosition = numPlayers - 1;
                 
-                // Carrega nodes 0-5 de uma vez se necessário
+                // Load nodes 0-5 at once if needed
                 if (!currentSolution.nodes.has(1) || !currentSolution.nodes.has(2)) {
                     console.log('📥 Loading RFI nodes 0-5...');
                     const nodesToLoad = [0, 1, 2, 3, 4, 5];
@@ -389,12 +389,12 @@ export const useSpotGeneration = ({
                 // Coleta todos os nós RFI disponíveis
                 const rfiNodes: Array<{ nodeId: number; position: number }> = [];
                 
-                // Verifica nodes 0-20 para encontrar nós RFI
+                // Check nodes 0-20 to find RFI nodes
                 for (let nodeId = 0; nodeId <= 20; nodeId++) {
                     const node = currentSolution.nodes.get(nodeId);
                     if (!node) continue;
                     
-                    // Verifica se é um nó RFI (sem ações anteriores ou só folds antes)
+                    // Check if this is an RFI node (no previous actions or only folds before)
                     const isRFI = !node.sequence || node.sequence.length === 0 || 
                                   node.sequence.every(action => action.type === 'F');
                     
@@ -412,7 +412,7 @@ export const useSpotGeneration = ({
                 
                 console.log(`✅ Found ${rfiNodes.length} RFI nodes:`, rfiNodes);
                 
-                // Sorteia um nó RFI aleatório
+                // Pick a random RFI node
                 const selectedRFI = randomElement(rfiNodes);
                 const heroPosition = selectedRFI.position;
                 const currentNodeId = selectedRFI.nodeId;
@@ -459,7 +459,7 @@ export const useSpotGeneration = ({
                 const bigBlind = Math.max(blinds[0], blinds[1]);
                 const bbPosition = numPlayers - 1;
                 
-                // Carrega nodes 0-10 de uma vez
+                // Load nodes 0-10 at once
                 if (!currentSolution.nodes.has(5)) {
                     console.log('📥 Loading nodes 0-10...');
                     const nodesToLoad = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -469,21 +469,21 @@ export const useSpotGeneration = ({
                     }
                 }
                 
-                // Passo 1: Verificar quais posições têm RFI NÃO all-in
+                // Step 1: Check which positions have RFI that are NOT all-in
                 const rfiNonAllinPositions: Array<{ position: number; nodeId: number; raiseNode: number }> = [];
                 
-                // Varre os primeiros nós para encontrar RFI não all-in
+                // Scan the first nodes to find RFI non-all-in
                 for (let nodeId = 0; nodeId <= 20; nodeId++) {
                     const node = currentSolution.nodes.get(nodeId);
                     if (!node) continue;
                     
-                    // Verifica se é um nó RFI (sem ações anteriores ou só folds antes)
+                    // Check if this is an RFI node (no previous actions or only folds before)
                     const isRFI = !node.sequence || node.sequence.length === 0 || 
                                   node.sequence.every(action => action.type === 'F');
                     
                     if (!isRFI || node.player === bbPosition) continue;
                     
-                    // Verifica se tem raise NÃO all-in
+                    // Check if it has a non-all-in raise
                     const playerStack = currentSolution.settings.handdata.stacks[node.player];
                     
                     for (let i = 0; i < node.actions.length; i++) {
@@ -491,11 +491,11 @@ export const useSpotGeneration = ({
                         
                         if (action.type !== 'R') continue;
                         
-                        // Verifica se é all-in: raise amount >= stack do jogador
+                        // Check if it's all-in: raise amount >= player's stack
                         const isAllIn = action.amount >= playerStack;
                         
                         if (!isAllIn && action.node !== undefined) {
-                            // Verifica se alguma mão joga esse raise
+                            // Check if any hand plays that raise
                             let hasFrequency = false;
                             for (const handName of Object.keys(node.hands)) {
                                 const handData = node.hands[handName];
@@ -526,13 +526,13 @@ export const useSpotGeneration = ({
                 
                 console.log(`✅ Found ${rfiNonAllinPositions.length} positions with RFI non all-in:`, rfiNonAllinPositions);
                 
-                // Passo 2: Sorteia um raiser
+                // Step 2: Pick a random raiser
                 const selectedRaiser = randomElement(rfiNonAllinPositions);
                 const raiserPosition = selectedRaiser.position;
                 
                 console.log(`✅ Selected raiser: Position ${raiserPosition} at node ${selectedRaiser.nodeId}`);
                 
-                // Passo 3: Entra no node do raise
+                // Step 3: Enter the raiser's node
                 let raiseNodeId = selectedRaiser.raiseNode;
                 let currentNode = currentSolution.nodes.get(raiseNodeId);
                 
@@ -545,7 +545,7 @@ export const useSpotGeneration = ({
                 
                 console.log(`✅ Entered raise node ${raiseNodeId}, player: ${currentNode.player}`);
                 
-                // Passo 4: Sorteia hero entre as posições DEPOIS do raiser (até BB)
+                // Step 4: Pick a hero from positions AFTER the raiser (up to BB)
                 const possibleHeroPositions: number[] = [];
                 for (let pos = raiserPosition + 1; pos < numPlayers; pos++) {
                     possibleHeroPositions.push(pos);
@@ -561,10 +561,10 @@ export const useSpotGeneration = ({
                 const heroPosition = randomElement(possibleHeroPositions);
                 console.log(`✅ Hero position: ${heroPosition} (after raiser ${raiserPosition})`);
                 
-                // Passo 5: Registra ações anteriores e navega até o hero
+                // Step 5: Record previous actions and navigate to the hero
                 const villainActions: VillainAction[] = [];
                 
-                // Adiciona ações de fold antes do raiser (se houver)
+                // Add fold actions before the raiser (if any)
                 const flatCombos = allCombos.flat();
                 for (let pos = 0; pos < raiserPosition; pos++) {
                     const randomCombo = randomElement(flatCombos);
@@ -586,7 +586,7 @@ export const useSpotGeneration = ({
                         const blinds = currentSolution.settings.handdata.blinds;
                         let alreadyInvested = 0;
                         
-                        // Verifica quanto o raiser já investiu (blind/ante)
+                        // Check how much the raiser has already invested (blind/ante)
                         if (raiserPosition === numPlayers - 1) { // BB
                             alreadyInvested = Math.max(blinds[0], blinds[1]);
                         } else if (raiserPosition === numPlayers - 2) { // SB

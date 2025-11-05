@@ -40,14 +40,14 @@ export const PayoutPanel: React.FC<PayoutPanelProps> = ({ prizes }) => {
             <div className="flex items-center justify-between mb-2">
                 <h3 className="text-white font-bold text-sm flex items-center gap-1">
                     💰 Payouts
-                    {isDragging && <span className="text-yellow-400 text-xs animate-pulse">movendo...</span>}
+                        {isDragging && <span className="text-yellow-400 text-xs animate-pulse">moving...</span>}
                 </h3>
                 <div className="flex items-center gap-2">
                     {(position.x !== 0 || position.y !== 0) && !isDragging ? (
                         <button
                             onClick={handleResetPosition}
                             className="text-gray-400 hover:text-yellow-400 text-base transition-colors font-bold"
-                            title="Resetar posição"
+                                title="Reset position"
                         >
                             ↺
                         </button>
@@ -67,8 +67,8 @@ export const PayoutPanel: React.FC<PayoutPanelProps> = ({ prizes }) => {
                                 key={position}
                                 className="flex items-center justify-between bg-[#2d3238] px-2.5 py-1.5 rounded"
                             >
-                                <span className="text-gray-300 font-semibold text-sm">
-                                    {index === 0 ? '1º-2º' : `${position}º`}
+                                    <span className="text-gray-300 font-semibold text-sm">
+                                        {index === 0 ? '1st-2nd' : `${position}th`}
                                 </span>
                                 <span className="text-green-400 font-bold text-sm">
                                     ${(prize as number).toFixed(2)}
@@ -77,7 +77,7 @@ export const PayoutPanel: React.FC<PayoutPanelProps> = ({ prizes }) => {
                         ))
                 ) : (
                     <div className="text-gray-400 text-sm text-center py-1.5">
-                        Payouts N/A
+                            Payouts unavailable
                     </div>
                 )}
             </div>

@@ -33,13 +33,13 @@ export const formatBounty = (
     showInDollars: boolean,
     solutionFileName: string
 ): string => {
-    const actualBounty = bounty / 2; // Bounty em dólares (PKO: metade vai para o prêmio)
+    const actualBounty = bounty / 2; // Bounty in dollars (PKO: half goes to the prize pool)
     
     if (showInDollars) {
-        // Modo $: exibir em dólar
+        // $ mode: display in dollars
         return `$${actualBounty.toFixed(2)}`;
     } else {
-        // Modo x: exibir como multiplicador do bounty inicial
+        // x mode: display as multiplier of the initial bounty
         const initialBounty = getInitialBounty(solutionFileName);
         const multiplier = actualBounty / initialBounty;
         return `${multiplier.toFixed(1)}x`;

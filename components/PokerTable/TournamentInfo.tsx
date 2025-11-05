@@ -14,7 +14,7 @@ export const TournamentInfo: React.FC<TournamentInfoProps> = ({
 }) => {
     return (
         <>
-            {/* Tournament Name - Top LEFT corner of table */}
+            {/* Tournament name — top-left corner of table */}
             {tournamentName && (
                 <div className="absolute top-3 left-3 z-40 bg-[#23272f] border-2 border-yellow-400 rounded-lg px-4 py-2 shadow-lg">
                     <div className="text-yellow-400 font-bold text-[15px] whitespace-nowrap">
@@ -23,7 +23,7 @@ export const TournamentInfo: React.FC<TournamentInfoProps> = ({
                 </div>
             )}
             
-            {/* Stage - Top RIGHT corner of table */}
+            {/* Stage — top-right corner of table */}
             {tournamentPhase && (
                 <div className="absolute top-3 right-3 z-40 bg-[#23272f] border-2 border-teal-400 rounded-lg px-4 py-2 shadow-lg">
                     <div className="text-teal-400 font-bold text-[15px] whitespace-nowrap">

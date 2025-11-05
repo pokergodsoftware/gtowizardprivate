@@ -1,11 +1,11 @@
-# Diagnóstico: Spots 40-20 Faltando no R2
+# Diagnosis: Missing 40-20 Spots on R2
 
-## Problema Identificado
+## Identified Problem
 
-**Local**: 14 spots na pasta `spots/40-20/`
-**Vercel/R2**: 0 spots (todos faltando!)
+**Local**: 14 spots in folder `spots/40-20/`
+**Vercel/R2**: 0 spots (all missing)
 
-## Spots Faltando
+## Missing Spots
 
 1. speed32_12
 2. speed32_13
@@ -22,42 +22,42 @@
 13. speed50_4
 14. speed50_5
 
-## Causa Provável
+## Probable Cause
 
-Os spots de 40-20 nunca foram enviados para o Cloudflare R2 durante o upload inicial, ou foram deletados acidentalmente.
+The 40-20 spots were never uploaded to Cloudflare R2 during the initial upload, or they were accidentally deleted.
 
-O `solutions-metadata.json` **contém** as 14 entradas, mas os arquivos físicos não estão no bucket R2.
+The `solutions-metadata.json` **contains** the 14 entries, but the physical files are not in the R2 bucket.
 
-## Solução
+## Fix
 
-### Opção 1: Script Automático (RECOMENDADO)
+### Option 1: Automated Script (RECOMMENDED)
 
-Execute o script batch criado:
+Run the provided batch script:
 
 ```powershell
 .\upload-40-20-spots.bat
 ```
 
-Este script faz upload de:
-- `settings.json` de cada spot
-- `equity.json` de cada spot  
-- Todos os arquivos `nodes/*.json` de cada spot
+This script uploads:
+- `settings.json` for each spot
+- `equity.json` for each spot
+- All `nodes/*.json` files for each spot
 
-⏱️ **Tempo estimado**: 15-30 minutos (dependendo do número de nodes)
+⏱️ **Estimated time**: 15-30 minutes (depending on number of nodes)
 
-### Opção 2: Upload Manual por Spot
+### Option 2: Manual Upload per Spot
 
 ```powershell
-# Exemplo para speed32_12
+# Example for speed32_12
 wrangler r2 object put gto-wizard-spots/spots/40-20/speed32_12/settings.json --file=./spots/40-20/speed32_12/settings.json
 wrangler r2 object put gto-wizard-spots/spots/40-20/speed32_12/equity.json --file=./spots/40-20/speed32_12/equity.json
 
-# Upload de nodes (um por um)
+# Upload nodes (one by one)
 wrangler r2 object put gto-wizard-spots/spots/40-20/speed32_12/nodes/0.json --file=./spots/40-20/speed32_12/nodes/0.json
-# ... repetir para cada node
+# ... repeat for each node
 ```
 
-### Opção 3: Upload com Script PowerShell
+### Option 3: PowerShell Upload Script
 
 ```powershell
 $spots = @("speed32_12", "speed32_13", "speed32_15", "speed32_16", "speed32_17", "speed32_18", "speed32_2d", "speed32_5d", "speed32_6d", "speed50_1", "speed50_2", "speed50_3", "speed50_4", "speed50_5")
@@ -65,7 +65,7 @@ $spots = @("speed32_12", "speed32_13", "speed32_15", "speed32_16", "speed32_17",
 foreach ($spot in $spots) {
     Write-Host "Uploading $spot..." -ForegroundColor Cyan
     
-    # Settings e Equity
+    # Settings and Equity
     wrangler r2 object put "gto-wizard-spots/spots/40-20/$spot/settings.json" --file="./spots/40-20/$spot/settings.json"
     wrangler r2 object put "gto-wizard-spots/spots/40-20/$spot/equity.json" --file="./spots/40-20/$spot/equity.json"
     
@@ -75,52 +75,52 @@ foreach ($spot in $spots) {
         wrangler r2 object put "gto-wizard-spots/spots/40-20/$spot/nodes/$nodeName" --file="./spots/40-20/$spot/nodes/$nodeName"
     }
     
-    Write-Host "✓ $spot concluído" -ForegroundColor Green
+    Write-Host "✓ $spot completed" -ForegroundColor Green
 }
 ```
 
-## Verificação Pós-Upload
+## Post-upload Verification
 
-Aguarde 5-10 minutos para propagação do CDN, depois teste:
+Wait 5-10 minutes for CDN propagation, then test:
 
 ```powershell
-# Testar um spot
+# Test a spot
 Invoke-WebRequest -Uri "https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/spots/40-20/speed32_12/settings.json" -Method Head
 
-# Se retornar 200 OK, está funcionando!
+# If it returns 200 OK, it's working!
 ```
 
-Ou acesse o Vercel:
-1. Vá para https://gtowizardprivate.vercel.app
-2. Clique em "Solutions Library"
-3. Procure categoria "40~20% left"
-4. Deve mostrar 14 spots
+Or check via Vercel:
+1. Go to https://gtowizardprivate.vercel.app
+2. Click "Solutions Library"
+3. Look for category "40~20% left"
+4. It should show 14 spots
 
-## Prevenção Futura
+## Prevention
 
-Para evitar esse problema no futuro:
+To avoid this in the future:
 
-1. **Sempre verifique após upload**:
+1. **Always verify after upload**:
    ```powershell
-   # Testar se spot está acessível
+   # Test if spot is accessible
    Invoke-WebRequest -Uri "https://pub-27b29c1ed40244eb8542637289be3cf7.r2.dev/spots/{category}/{spot}/settings.json" -Method Head
    ```
 
-2. **Use scripts de verificação** antes de considerar upload completo
+2. **Use verification scripts** before considering an upload complete
 
-3. **Mantenha backup local** dos spots (já está fazendo isso!)
+3. **Keep local backups** of spots (you're already doing this!)
 
-4. **Documente uploads** em arquivo de log
+4. **Log uploads** for auditing
 
 ## Status
 
-- [ ] Upload iniciado
-- [ ] Upload concluído
-- [ ] Aguardando propagação CDN (5-10 min)
-- [ ] Testado no Vercel
-- [ ] Confirmado: 14 spots visíveis
+- [ ] Upload started
+- [ ] Upload completed
+- [ ] Waiting for CDN propagation (5-10 min)
+- [ ] Tested on Vercel
+- [ ] Confirmed: 14 spots visible
 
 ---
 
-**Data**: 5 de novembro de 2025
-**Responsável**: [Seu nome]
+**Date**: November 5, 2025
+**Owner**: [Your name]

@@ -1,113 +1,113 @@
 # GTO Poker Range Viewer
 
-Uma aplicação React/TypeScript para visualizar e analisar soluções de poker GTO (Game Theory Optimal).
+A React/TypeScript application to view and analyze GTO (Game Theory Optimal) poker solutions.
 
-## ⚡ Nova Versão 2.0 - Lazy Loading
+## ⚡ New Version 2.0 - Lazy Loading
 
-A aplicação agora usa **carregamento sob demanda** (lazy loading) para máxima performance:
-- ✅ Inicialização instantânea (<2s)
-- ✅ Carrega apenas o necessário
-- ✅ Sem sobrecarga do navegador
-- ✅ Suporta 12.000+ nodes sem problemas
+The app now uses **lazy loading** for maximum performance:
+- ✅ Instant startup (<2s)
+- ✅ Loads only what's needed
+- ✅ No unnecessary browser overhead
+- ✅ Supports 12,000+ nodes without issues
 
-Veja [LAZY_LOADING.md](./LAZY_LOADING.md) para detalhes técnicos.
+See [LAZY_LOADING.md](./LAZY_LOADING.md) for technical details.
 
 ## 🚀 Quick Start
 
-### Pré-requisitos
-- Node.js (v18 ou superior)
-- Windows (para os scripts batch) ou ambiente Unix-like
+### Prerequisites
+- Node.js (v18 or higher)
+- Windows (for batch scripts) or a Unix-like environment
 
-### Instalação
+### Installation
 
-1. **Clone o repositório**
+1. **Clone the repository**
    ```bash
    git clone <repo-url>
    cd WizardPrivadoo
    ```
 
-2. **Instale as dependências**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. **Configure os arquivos estáticos**
+3. **Prepare static files**
    ```bash
    # Windows
    .\generate_index.bat
    
-   # Ou manualmente
+   # Or manually
    node generate_solutions.cjs
    .\setup_public.bat
    ```
 
-4. **Inicie o servidor de desenvolvimento**
+4. **Start the dev server**
    ```bash
    npm run dev
    ```
 
-5. **Acesse a aplicação**
-   - Abra http://localhost:3000 no navegador
+5. **Open the app**
+   - Go to http://localhost:3000 in your browser
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 WizardPrivadoo/
-├── spots/              # Soluções de poker (settings, equity, nodes)
-├── public/             # Arquivos estáticos servidos pelo Vite (gerado)
-├── components/         # Componentes React
-├── lib/               # Utilitários e lógica de negócio
-├── App.tsx            # Componente principal
-├── solutions.json     # Manifesto de soluções (gerado)
-└── generate_index.bat # Script de setup
+├── spots/              # Poker solutions (settings, equity, nodes)
+├── public/             # Static files served by Vite (generated)
+├── components/         # React components
+├── lib/                # Utilities and business logic
+├── App.tsx             # Main component
+├── solutions.json      # Solutions manifest (generated)
+└── generate_index.bat  # Setup script
 ```
 
-## 📚 Documentação
+## 📚 Documentation
 
-- [ANALISE_PROJETO.md](./ANALISE_PROJETO.md) - Análise detalhada da arquitetura
-- [ARQUITETURA_VISUAL.md](./ARQUITETURA_VISUAL.md) - Diagramas e fluxos visuais
-- [COMO_ADICIONAR_SPOTS.md](./COMO_ADICIONAR_SPOTS.md) - Como adicionar novas soluções
+- [ANALISE_PROJETO.md](./ANALISE_PROJETO.md) - Detailed architecture analysis
+- [ARQUITETURA_VISUAL.md](./ARQUITETURA_VISUAL.md) - Visual diagrams and flows
+- [COMO_ADICIONAR_SPOTS.md](./COMO_ADICIONAR_SPOTS.md) - How to add new solutions
 
-## 🔧 Scripts Disponíveis
+## 🔧 Available Scripts
 
-- `npm run dev` - Inicia servidor de desenvolvimento
-- `npm run build` - Cria build de produção
-- `npm run preview` - Preview da build de produção
-- `node generate_solutions.cjs` - Gera solutions.json
-- `.\setup_public.bat` - Configura pasta public
+- `npm run dev` - Start development server
+- `npm run build` - Create production build
+- `npm run preview` - Preview production build
+- `node generate_solutions.cjs` - Generate solutions.json
+- `.\setup_public.bat` - Prepare the public folder
 
 ## ⚠️ Troubleshooting
 
-### Erro 404: solutions.json not found
-Execute `generate_index.bat` para criar a estrutura necessária.
+### Error 404: solutions.json not found
+Run `generate_index.bat` to create the required structure.
 
-### Erro: Failed to fetch / ERR_INSUFFICIENT_RESOURCES
-**Causa:** Muitos nodes tentando carregar simultaneamente.
+### Error: Failed to fetch / ERR_INSUFFICIENT_RESOURCES
+**Cause:** Too many nodes being loaded simultaneously.
 
-**Solução:** O script agora limita automaticamente a 50 nodes por solução. Execute:
+**Fix:** The generator script now limits to 50 nodes per solution. Run:
 ```bash
 .\generate_index.bat
 ```
 
-Veja [SOLUCAO_ERROS.md](./SOLUCAO_ERROS.md) para detalhes.
+See [SOLUCAO_ERROS.md](./SOLUCAO_ERROS.md) for details.
 
-### Spots não carregam
-1. Verifique se `public/spots` existe (junction)
-2. Execute `setup_public.bat`
-3. Reinicie o servidor
+### Spots not loading
+1. Verify `public/spots` exists (junction)
+2. Run `setup_public.bat`
+3. Restart the dev server
 
-Veja [COMO_ADICIONAR_SPOTS.md](./COMO_ADICIONAR_SPOTS.md) para mais detalhes.
+See [COMO_ADICIONAR_SPOTS.md](./COMO_ADICIONAR_SPOTS.md) for more details.
 
 ## 🎯 Funcionalidades
 
-- ✅ Visualização de ranges 13x13 com gradientes de frequência
-- ✅ Navegação interativa na árvore de decisão
-- ✅ Análise detalhada de combos específicos
-- ✅ Visualização da mesa de poker
-- ✅ Frequências agregadas por ação
-- ✅ Suporte a múltiplas fases de torneio
-- ✅ Toggle entre BB e chips
-- ✅ Upload de novas soluções
+- ✅ 13x13 range visualization with frequency gradients
+- ✅ Interactive decision-tree navigation
+- ✅ Detailed combo analysis
+- ✅ Poker table visualization
+- ✅ Aggregated frequencies by action
+- ✅ Support for multiple tournament phases
+- ✅ Toggle between BB and chips
+- ✅ Upload new solutions
 
 ## 🛠️ Tecnologias
 
@@ -116,6 +116,6 @@ Veja [COMO_ADICIONAR_SPOTS.md](./COMO_ADICIONAR_SPOTS.md) para mais detalhes.
 - Vite
 - Tailwind CSS
 
-## 📝 Licença
+## 📝 License
 
-Privado
+Private

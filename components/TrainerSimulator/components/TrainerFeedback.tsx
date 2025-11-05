@@ -87,7 +87,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
     return (
         <div className="bg-[#23272f] rounded-lg p-2.5 max-w-4xl mx-auto">
             <div className="space-y-1.5">
-                {/* Mensagem de resultado */}
+                {/* Result message */}
                 {(() => {
                     const handData = node.hands[currentSpot.playerHandName];
                     console.log('🔍 TrainerFeedback handData check:', {
@@ -103,9 +103,9 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                         });
                         return (
                             <div className="bg-red-500/20 border-2 border-red-500 rounded-lg p-4 text-center">
-                                <div className="text-red-400 font-bold text-xl mb-2">❌ ERRO</div>
+                                <div className="text-red-400 font-bold text-xl mb-2">❌ ERROR</div>
                                 <div className="text-white text-sm">
-                                    Mão "{currentSpot.playerHandName}" não encontrada no nó.
+                                    Hand "{currentSpot.playerHandName}" not found in node.
                                 </div>
                                 <div className="text-gray-400 text-xs mt-2">
                                     Combos: {currentSpot.playerHand} | Node: {currentSpot.nodeId}
@@ -115,7 +115,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     }
                     
                     const userActionIndex = node.actions.findIndex((a, idx) => {
-                        // Para timeout, a ação é sempre Fold
+                        // For timeout, the action is always Fold
                         if (userAction?.includes('TIMEOUT')) {
                             return a.type === 'F';
                         }
@@ -138,7 +138,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                         ? userActionIndex === gtoActionIndex
                         : userActionFreq > 0;
                     
-                    // Verificar se foi timeout
+                    // Check if it was a timeout
                     const isTimeout = userAction?.includes('TIMEOUT') || false;
                     
                     return (
@@ -150,9 +150,9 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                 {isTimeout ? '⏰ TIMEOUT' : isCorrect ? 'CORRECT' : 'MISTAKE'}
                             </div>
                             
-                            {/* Botões MARK HAND e STUDY */}
+                            {/* MARK HAND and STUDY buttons */}
                             <div className="flex gap-3">
-                                {/* Botão MARK HAND */}
+                                {/* MARK HAND button */}
                                 <button
                                     onClick={async () => {
                                         if (isHandMarked) {
@@ -170,7 +170,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                     {isHandMarked ? '⭐ MARKED' : '☆ MARK HAND'}
                                 </button>
                                 
-                                {/* Botão STUDY */}
+                                {/* STUDY button */}
                                 <button
                                     onClick={onStudy}
                                     className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg font-black text-xl tracking-wider transition-all shadow-lg border-2 border-purple-400/50 whitespace-nowrap"
@@ -182,7 +182,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     );
                 })()}
 
-                {/* Cards horizontais estilo GTO Wizard */}
+                {/* Horizontal cards - GTO Wizard style */}
                 <div className={`grid ${
                     node.actions.length <= 2 ? 'grid-cols-2 gap-3' :
                     node.actions.length === 3 ? 'grid-cols-3 gap-2' :
@@ -190,7 +190,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                 }`}>
                     {(() => {
                         const handData = node.hands[currentSpot.playerHandName];
-                        if (!handData) return <div className="text-red-400 col-span-3">Erro: Dados da mão não encontrados</div>;
+                        if (!handData) return <div className="text-red-400 col-span-3">Error: Hand data not found</div>;
                         
                         return node.actions.map((action, actionIndex) => {
                             const freq = handData.played[actionIndex] || 0;
@@ -211,7 +211,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                             }
                             
                             const isUserChoice = (() => {
-                                // Para timeout, a ação é sempre Fold
+                                // For timeout, the action is always Fold
                                 if (userAction?.includes('TIMEOUT')) {
                                     return action.type === 'F';
                                 }
@@ -229,21 +229,21 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                             const isGTO = freq === maxFreq && freq > 0;
                             const hasFreq = freq > 0;
                             
-                            // Lógica de validação: Pure Strategy vs Mixed Strategy
+                            // Validation logic: Pure Strategy vs Mixed Strategy
                             const isPureStrategy = maxFreq >= 0.90;
                             const gtoActionIndex = handData.played.indexOf(maxFreq);
                             
-                            // Determinar se a escolha do usuário está correta
+                            // Determine whether the user's choice is correct
                             const isCorrectChoice = isUserChoice && (() => {
                                 if (isPureStrategy) {
-                                    // Pure strategy: apenas a ação GTO (maior frequência)
+                                    // Pure strategy: only the GTO action (highest frequency)
                                     return actionIndex === gtoActionIndex;
                                 } else if (node.actions.length === 2) {
-                                    // 2 ações: aceita apenas a ação com maior EV
+                                    // 2 actions: accept only the action with the highest EV
                                     const maxEV = Math.max(...handData.evs);
                                     return ev >= maxEV - 0.001; // Tolerância para float
                                 } else {
-                                    // 3+ ações (mixed strategy): qualquer ação com freq > 0
+                                    // 3+ actions (mixed strategy): any action with freq > 0
                                     return hasFreq;
                                 }
                             })();
@@ -283,7 +283,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     })()}
                 </div>
 
-                {/* Barra de progresso colorida */}
+                {/* Colored progress bar */}
                 {(() => {
                     const handData = node.hands[currentSpot.playerHandName];
                     if (!handData) return null;
@@ -355,26 +355,26 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                 {/* Tournament Results - Show when tournament ends - COMPACT VERSION */}
                 {tournamentComplete && (
                     <div className="mt-3 p-4 bg-gray-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700">
-                        {/* Título Compacto */}
+                        {/* Compact Title */}
                         <div className="text-center mb-4">
-                            {tournamentComplete.isBusted ? (
-                                <>
-                                    <div className="text-4xl mb-2">💥</div>
-                                    <h2 className="text-2xl font-bold text-red-400">BUSTED!</h2>
-                                    <p className="text-sm text-gray-400 mt-1">Torneio encerrado</p>
-                                </>
+                                    {tournamentComplete.isBusted ? (
+                                        <>
+                                            <div className="text-4xl mb-2">💥</div>
+                                            <h2 className="text-2xl font-bold text-red-400">BUSTED!</h2>
+                                            <p className="text-sm text-gray-400 mt-1">Tournament ended</p>
+                                        </>
                             ) : (
                                 <>
                                     <div className="text-4xl mb-2">🏆</div>
-                                    <h2 className="text-2xl font-bold text-yellow-400">COMPLETO!</h2>
-                                    <p className="text-sm text-gray-400 mt-1">{tournamentComplete.totalHandsPlayed} mãos jogadas</p>
+                                    <h2 className="text-2xl font-bold text-yellow-400">COMPLETE!</h2>
+                                        <p className="text-sm text-gray-400 mt-1">{tournamentComplete.totalHandsPlayed} hands played</p>
                                 </>
                             )}
                         </div>
 
-                        {/* Progresso por Estágio - Formato Candle (Vertical) - EXPANDIDO */}
+                        {/* Stage Progress - Candle (Vertical) Format - EXPANDED */}
                         <div className="mb-3">
-                            <h3 className="text-white font-bold mb-3 text-sm">Progresso por Estágio</h3>
+                            <h3 className="text-white font-bold mb-3 text-sm">Stage Progress</h3>
                             <div 
                                 className="flex gap-2 overflow-x-auto pb-2"
                                 style={{
@@ -387,21 +387,21 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                                   (index === tournamentComplete.currentStageIndex && tournamentComplete.isComplete);
                                     const current = index === tournamentComplete.currentStageIndex && !tournamentComplete.isComplete;
                                     
-                                    // Obter estatísticas do estágio
+                                    // Get stage statistics
                                     const stageStat = tournamentComplete.stageStats[index];
                                     const stageHandsPlayed = stageStat?.handsPlayed || 0;
                                     const stageLivesLost = stageStat?.livesLost || 0;
                                     
-                                    // Se não jogou nenhuma mão neste estágio, não renderiza
+                                    // If no hands were played in this stage, don't render
                                     if (stageHandsPlayed === 0 && !current) {
                                         return null;
                                     }
                                     
-                                    // Calcular performance
+                                    // Calculate performance
                                     const stageHands = stage.handsToPlay;
                                     const progress = reached ? 100 : (current ? (stageHandsPlayed / stageHands) * 100 : 0);
                                     
-                                    // Calcular score do estágio
+                                    // Calculate stage score
                                     const stageScore = stageHandsPlayed > 0 
                                         ? ((stageHandsPlayed - stageLivesLost) / stageHandsPlayed * 100).toFixed(0)
                                         : '0';
@@ -438,7 +438,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                             key={`${stage.phase}-${index}`}
                                             className={`flex flex-col items-center min-w-[90px] ${bgColor} rounded-lg p-3 border`}
                                         >
-                                            {/* Ícone de status no topo */}
+                                            {/* Status icon at top */}
                                             <div className={`text-2xl mb-2 ${statusColor} font-bold`}>
                                                 {statusIcon}
                                             </div>
@@ -454,7 +454,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                                                 />
                                             </div>
                                             
-                                            {/* Nome do estágio */}
+                                            {/* Stage name */}
                                             <div className="text-xs text-white font-bold text-center leading-tight max-w-[86px] line-clamp-2 mb-1">
                                                 {stage.displayName.replace('Field', '').replace('Table', 'T').replace('-handed', 'p')}
                                             </div>
@@ -486,28 +486,28 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                             <div className="bg-teal-500/10 rounded-lg p-3 text-center border border-teal-500/30">
                                 <div className="text-teal-400 text-xs mb-1 font-semibold">Correct Moves</div>
                                 <div className="text-3xl font-bold text-teal-400">{(tournamentComplete.totalHandsPlayed - tournamentComplete.mistakes).toFixed(1)}</div>
-                                <div className="text-[10px] text-gray-400 mt-1">de {tournamentComplete.totalHandsPlayed} jogadas</div>
+                                <div className="text-[10px] text-gray-400 mt-1">of {tournamentComplete.totalHandsPlayed} hands</div>
                             </div>
                             <div className="bg-teal-500/10 rounded-lg p-3 text-center border border-teal-500/30">
                                 <div className="text-teal-400 text-xs mb-1 font-semibold">Score</div>
                                 <div className="text-3xl font-bold text-teal-400">{tournamentComplete.accuracy}%</div>
-                                <div className="text-[10px] text-gray-400 mt-1">precisão geral</div>
+                                <div className="text-[10px] text-gray-400 mt-1">overall accuracy</div>
                             </div>
                         </div>
 
-                        {/* Botões */}
+                        {/* Buttons */}
                         <div className="flex gap-2">
                             <button
                                 onClick={onBack}
                                 className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold text-sm transition-all"
                             >
-                                Voltar ao Menu
+                                Back to Menu
                             </button>
                             <button
                                 onClick={tournamentComplete.onRestart}
                                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold text-sm transition-all"
                             >
-                                Jogar Novamente
+                                Play Again
                             </button>
                         </div>
                     </div>

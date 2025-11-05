@@ -1,8 +1,8 @@
-# 📝 Spot History (Practiced Hands) - Correção de Erros
+# 📝 Spot History (Practiced Hands) - Bug Fixes
 
-## ❌ Erro Identificado
+## ❌ Error Identified
 
-Ao clicar em **"Practiced Hand History"** no Vercel, aparece o erro:
+When clicking **"Practiced Hand History"** on the Vercel site, the following error appears:
 
 ```
 Error loading spot history from Firebase: 
@@ -12,39 +12,39 @@ Failed to load history from Firebase, using localStorage:
 FirebaseError: Missing or insufficient permissions.
 ```
 
-## 🔍 Causa do Problema
+## 🔍 Root Cause
 
-O erro ocorre por **duas razões**:
+The error happens for **two reasons**:
 
-1. **Regras do Firestore bloqueando leitura** da coleção `spotHistory`
-2. **Falta de índice composto** para query `where('userId') + orderBy('timestamp')`
+1. **Firestore rules blocking read access** to the `spotHistory` collection
+2. **Missing composite index** for the query `where('userId') + orderBy('timestamp')`
 
-## ✅ Solução Completa
+## ✅ Complete Fix
 
-### 1. Atualizar Regras do Firestore
+### 1. Update Firestore Rules
 
-Acesse Firebase Console → Firestore Database → **Regras** e atualize:
+Open Firebase Console → Firestore Database → **Rules** and update:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // COLEÇÃO: users
+  // COLLECTION: users
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if true;
       allow update: if request.auth != null && request.auth.uid == userId;
     }
     
-    // COLEÇÃO: stats (para leaderboard)
+    // COLLECTION: stats (for leaderboard)
     match /stats/{userId} {
-      allow read: if true;  // Público
+      allow read: if true;  // Public
       allow create: if true;
       allow update: if true;
     }
     
-    // COLEÇÃO: spotHistory (para practiced hands)
+  // COLLECTION: spotHistory (for practiced hands)
     match /spotHistory/{historyId} {
       // ✅ MUDANÇA CRÍTICA: Permitir leitura pública
       allow read: if true;
@@ -54,15 +54,15 @@ service cloud.firestore {
 }
 ```
 
-**⚠️ Nota de Segurança**: Estamos usando `allow read: if true` porque o sistema usa autenticação local (localStorage) e não Firebase Authentication. Se implementar Firebase Auth futuramente, mude para:
+**⚠️ Security Note**: We're using `allow read: if true` because the system relies on local authentication (localStorage) and not Firebase Authentication. If you implement Firebase Auth in the future, change to:
 
 ```javascript
 allow read: if request.auth != null && resource.data.userId == request.auth.uid;
 ```
 
-### 2. Criar Índice Composto
+### 2. Create Composite Index
 
-A query `loadSpotHistoryFromFirebase()` usa:
+The query `loadSpotHistoryFromFirebase()` uses:
 ```typescript
 query(
   collection(db, 'spotHistory'), 
@@ -74,27 +74,27 @@ query(
 
 Isso requer um **índice composto**.
 
-#### Método Automático (Recomendado):
+#### Automatic Method (Recommended):
 
-1. Acesse o site e clique em **"Practiced Hand History"**
-2. Abra DevTools (F12) → Console
-3. Procure por erro: `The query requires an index. You can create it here: [LINK]`
-4. **Clique no link** no erro
-5. Revise o índice e clique em **"Criar índice"**
-6. Aguarde 2-5 minutos para construção
+1. Open the site and click **"Practiced Hand History"**
+2. Open DevTools (F12) → Console
+3. Look for the error: `The query requires an index. You can create it here: [LINK]`
+4. **Click the link** in the error
+5. Review the index and click **"Create index"**
+6. Wait 2-5 minutes for the index to build
 
-#### Método Manual:
+#### Manual Method:
 
-1. Firebase Console → Firestore Database → **Índices**
-2. Clique em **"Criar índice"**
+1. Firebase Console → Firestore Database → **Indexes**
+2. Click **"Create index"**
 3. Configure:
-   - **Coleção**: `spotHistory`
-   - **Campo 1**: `userId` → **Crescente** (Ascending)
-   - **Campo 2**: `timestamp` → **Decrescente** (Descending)
-4. Clique em **"Criar"**
-5. Aguarde construção (status muda para "Enabled")
+  - **Collection**: `spotHistory`
+  - **Field 1**: `userId` → **Ascending**
+  - **Field 2**: `timestamp` → **Descending**
+4. Click **"Create"**
+5. Wait for build (status changes to "Enabled")
 
-### 3. Verificar Estrutura dos Dados
+### 3. Verify Data Structure
 
 Certifique-se que os documentos em `spotHistory` têm esta estrutura:
 
@@ -117,37 +117,37 @@ Certifique-se que os documentos em `spotHistory` têm esta estrutura:
 }
 ```
 
-## 🧪 Como Testar
+## 🧪 How to Test
 
-### Teste 1: Verificar se há dados no Firebase
+### Test 1: Verify Firebase has data
 
-1. Firebase Console → Firestore Database → Dados
-2. Procure pela coleção `spotHistory`
-3. Deve haver documentos com a estrutura acima
+1. Firebase Console → Firestore Database → Data
+2. Look for the `spotHistory` collection
+3. Documents should match the structure above
 
-**Se não houver dados:**
-- Jogue alguns spots no trainer
-- Verifique se aparecem na coleção
+**If no documents appear:**
+- Play some spots in the trainer
+- Verify entries appear in the collection
 
-### Teste 2: Testar Practiced Hands
+### Test 2: Test Practiced Hands UI
 
-1. Acesse o trainer no site
-2. Clique em **"Practiced Hand History"**
-3. Abra DevTools (F12) → Console
-4. Procure pelos logs:
-   ```
-   🔄 Loading spot history from Firebase for user: user_xxx
-   ✅ Loaded 15 spot history entries from Firebase
-   ```
+1. Open the trainer in the site
+2. Click **"Practiced Hand History"**
+3. Open DevTools (F12) → Console
+4. Look for logs like:
+  ```
+  🔄 Loading spot history from Firebase for user: user_xxx
+  ✅ Loaded 15 spot history entries from Firebase
+  ```
 
-### Teste 3: Testar localStorage fallback
+### Test 3: Test localStorage fallback
 
-Se Firebase falhar, o sistema deve usar localStorage:
+If Firebase fails, the system should fallback to localStorage and log:
 ```
 ⚠️ Failed to load history from Firebase, using localStorage
 ```
 
-## 🐛 Erros Comuns e Soluções
+## 🐛 Common Errors & Fixes
 
 ### Erro: "Missing or insufficient permissions"
 **Causa**: Regras do Firestore bloqueando leitura  
@@ -173,31 +173,31 @@ Se Firebase falhar, o sistema deve usar localStorage:
 localStorage.removeItem('poker_history_' + userId);
 ```
 
-## 📊 Fluxo de Dados Atualizado
+## 📊 Updated Data Flow
 
 ```
-Usuário joga spot
-      ↓
-TrainerSimulator chama saveSpotResult()
-      ↓
+User plays a spot
+  ↓
+TrainerSimulator calls saveSpotResult()
+  ↓
 statsUtils.saveSpotHistory()
-      ↓
-Salva no localStorage (cache local)
-      ↓
+  ↓
+Saves to localStorage (local cache)
+  ↓
 firebaseService.saveSpotHistoryToFirebase()
-      ↓
+  ↓
 Firestore collection 'spotHistory'
-      ↓
-UserProfile.tsx carrega via loadSpotHistory()
-      ↓
-Tenta Firebase primeiro (com where + orderBy)
-      ↓
-Fallback para localStorage se falhar
-      ↓
-Exibe na tabela SpotHistory
+  ↓
+UserProfile.tsx loads via loadSpotHistory()
+  ↓
+Tries Firebase first (with where + orderBy)
+  ↓
+Falls back to localStorage if Firebase fails
+  ↓
+Displays in the SpotHistory table
 ```
 
-## 🔧 Melhorias Implementadas no Código
+## 🔧 Code Improvements Implemented
 
 ### `src/firebase/firebaseService.ts`
 
@@ -244,26 +244,26 @@ const historyKey = `poker_history_${userId}`;
 const storedHistory = localStorage.getItem(historyKey);
 ```
 
-## 📋 Checklist de Configuração
+## 📋 Configuration Checklist
 
-- [ ] Regras do Firestore atualizadas com `allow read: if true` para `spotHistory`
-- [ ] Índice composto criado (`userId` + `timestamp`)
-- [ ] Índice com status "Enabled" (aguardar construção)
-- [ ] Testado "Practiced Hand History" sem erros
-- [ ] Logs mostram carregamento do Firebase
-- [ ] Dados aparecem corretamente na tabela
+- [ ] Firestore rules updated to allow reads for `spotHistory` (temporarily)
+- [ ] Composite index created (`userId` + `timestamp`)
+- [ ] Index status is "Enabled" (wait for build)
+- [ ] Practiced Hand History tested without errors
+- [ ] Logs show Firebase loading
+- [ ] Data displays correctly in the table
 
-## 🚀 Deploy em Produção
+## 🚀 Production Deploy
 
-Após configurar:
+After configuration:
 
-1. **Commit e push** das mudanças de código (já feitas)
-2. **Configure regras e índices** no Firebase Console
-3. **Aguarde deploy automático** no Vercel
-4. **Teste em produção**:
-   - Crie usuário novo
-   - Jogue spots
-   - Verifique "Practiced Hand History"
+1. **Commit and push** code changes (already done)
+2. **Configure rules and indexes** in Firebase Console
+3. **Wait for the automatic deploy** on Vercel
+4. **Test in production**:
+  - Create a new user
+  - Play some spots
+  - Verify "Practiced Hand History"
 
 ## 📚 Documentos Relacionados
 
@@ -273,5 +273,5 @@ Após configurar:
 
 ---
 
-**Última atualização:** 04/11/2025  
-**Status:** ✅ Código corrigido - Aguardando configuração Firebase
+**Last updated:** 04/11/2025  
+**Status:** ✅ Code fixed - Waiting for Firebase configuration

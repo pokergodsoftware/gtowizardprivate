@@ -230,7 +230,7 @@ export const SolutionsLibrary: React.FC<SolutionsLibraryProps> = ({ solutions, o
                         onClick={onBack}
                         className="px-4 py-2 bg-[#2d3238] hover:bg-[#353a42] text-white rounded-lg transition-colors"
                     >
-                        ← Voltar
+                        ← Back
                     </button>
                 )}
                 <div>

@@ -73,7 +73,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />   
                         </svg>
-                        <span className="font-semibold">Voltar</span>
+                        <span className="font-semibold">Back</span>
                     </button>
 
                     {/* Phase Display */}
@@ -81,7 +81,7 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                         {selectedPhases.length === 1 ? (
                             <span>📊 {selectedPhases[0]}</span>
                         ) : (
-                            <span>📊 {selectedPhases.length} Fases Selecionadas</span>
+                            <span>📊 {selectedPhases.length} Selected phases</span>
                         )}
                     </h1>
 
@@ -97,15 +97,15 @@ export const TrainerHeader: React.FC<TrainerHeaderProps> = ({
                         <div className="text-blue-400 font-bold text-2xl">{stats.totalQuestions}</div>
                     </div>
 
-                    {/* Acertos */}
+                    {/* Correct */}
                     <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
-                        <div className="text-green-400 text-[20px] mb-0.5">Acertos</div>
+                        <div className="text-green-400 text-[20px] mb-0.5">Correct</div>
                         <div className="text-green-400 font-bold text-2xl">{stats.correctAnswers}</div>
                     </div>
 
-                    {/* Erros */}
+                    {/* Mistakes */}
                     <div className="bg-red-500/10 rounded-lg p-1.5 text-center border border-red-500/30">
-                        <div className="text-red-400 text-[20px] mb-0.5">Erros</div>
+                        <div className="text-red-400 text-[20px] mb-0.5">Mistakes</div>
                         <div className="text-red-400 font-bold text-2xl">{errors}</div>
                     </div>
 
