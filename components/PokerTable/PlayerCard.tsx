@@ -22,7 +22,7 @@ interface PlayerCardProps {
     isCurrentPlayer: boolean;
     isBB: boolean;
     isSB: boolean;
-    isBTN: boolean;
+    isDealer: boolean;
     isRaiser: boolean;
     isShover: boolean;
     isMultiwayShover: boolean;
@@ -94,19 +94,13 @@ PlayerAvatar.displayName = 'PlayerAvatar';
 interface PlayerInfoProps {
     position: string;
     stack: string;
-    isBTN: boolean;
+    isDealer: boolean;
     onToggleDisplayMode?: () => void;
 }
 
-const PlayerInfo: React.FC<PlayerInfoProps> = React.memo(({ position, stack, isBTN, onToggleDisplayMode }) => (
+const PlayerInfo: React.FC<PlayerInfoProps> = ({ position, stack, isDealer, onToggleDisplayMode }) => {
+    return (
     <div className="relative z-10 rounded-xl overflow-hidden ring-1 ring-gray-600 min-w-[60px]">
-        {/* Button (D) symbol - positioned beside card */}
-        {isBTN && (
-            <div className="absolute -left-6 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-white border border-gray-700 shadow-md flex items-center justify-center z-10">
-                <span className="text-gray-900 font-black text-[9px]">D</span>
-            </div>
-        )}
-        
         {/* Card hero style - position and stack */}
         <div className="bg-black/90 backdrop-blur-sm rounded-b-lg px-2.5 py-1 border border-gray-600">
             <div className="text-center">
@@ -120,7 +114,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = React.memo(({ position, stack, isB
             </div>
         </div>
     </div>
-));
+)};
 
 PlayerInfo.displayName = 'PlayerInfo';
 
@@ -224,7 +218,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = React.memo(({
     isCurrentPlayer,
     isBB,
     isSB,
-    isBTN,
+    isDealer,
     isRaiser,
     isShover,
     isMultiwayShover,
@@ -279,6 +273,16 @@ export const PlayerCard: React.FC<PlayerCardProps> = React.memo(({
 
     return (
         <div className={getPlayerCardClasses(shouldShowTransparent)}>
+            {/* Dealer button - positioned absolutely outside the card */}
+            {isDealer && (
+                <div 
+                    className="absolute -left-8 top-[50%] transform -translate-y-1/2 w-8 h-8 rounded-full bg-white border-2 border-black shadow-2xl flex items-center justify-center"
+                    style={{ zIndex: 9999 }}
+                >
+                    <span className="text-black font-black text-sm">D</span>
+                </div>
+            )}
+            
             {/* Action badges */}
             <PlayerBadges badges={badges} />
             
@@ -302,7 +306,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = React.memo(({
             <PlayerInfo 
                 position={position}
                 stack={formattedStack}
-                isBTN={isBTN}
+                isDealer={isDealer}
                 onToggleDisplayMode={onToggleDisplayMode}
             />
         </div>

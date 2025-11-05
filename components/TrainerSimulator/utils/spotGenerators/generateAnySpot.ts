@@ -72,11 +72,17 @@ function getActionName(
     if (action.type === 'F') {
         return { name: 'Fold' };
     } else if (action.type === 'C') {
+        // Check if Call results in 0 stack (all-in)
+        const isAllin = action.amount >= playerStack;
+        if (isAllin) {
+            return { name: 'Allin', amount: action.amount };
+        }
         return { name: 'Call', amount: action.amount };
     } else if (action.type === 'X') {
         return { name: 'Check' };
     } else if (action.type === 'R') {
-        const isAllin = action.amount > (playerStack * 0.5);
+        // Check if Raise results in 0 stack (all-in)
+        const isAllin = action.amount >= playerStack;
         
         if (isAllin) {
             return { name: 'Allin', amount: action.amount };

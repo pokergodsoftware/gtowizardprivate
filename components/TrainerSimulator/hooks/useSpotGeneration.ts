@@ -483,11 +483,8 @@ export const useSpotGeneration = ({
                         
                         if (action.type !== 'R') continue;
                         
-                        // Verifica se NÃO é all-in
-                        // É all-in se o raise amount é >= 95% do stack OU se deixa menos de 1 BB
-                        const remainingStack = playerStack - action.amount;
-                        const remainingBB = remainingStack / bigBlind;
-                        const isAllIn = action.amount >= playerStack * 0.95 || remainingBB < 1.0;
+                        // Verifica se é all-in: raise amount >= stack do jogador
+                        const isAllIn = action.amount >= playerStack;
                         
                         if (!isAllIn && action.node !== undefined) {
                             // Verifica se alguma mão joga esse raise
@@ -769,13 +766,22 @@ export const useSpotGeneration = ({
                             if (selectedAction.type === 'F') {
                                 actionName = 'Fold';
                             } else if (selectedAction.type === 'C') {
-                                actionName = 'Call';
+                                const villainStack = workingSolution.settings.handdata.stacks[villainPosition];
+                                // Check if Call results in 0 stack (all-in)
+                                const isAllin = selectedAction.amount >= villainStack;
+                                
+                                if (isAllin) {
+                                    actionName = 'Allin';
+                                } else {
+                                    actionName = 'Call';
+                                }
                                 actionAmount = selectedAction.amount;
                             } else if (selectedAction.type === 'X') {
                                 actionName = 'Check';
                             } else if (selectedAction.type === 'R') {
                                 const villainStack = workingSolution.settings.handdata.stacks[villainPosition];
-                                const isAllin = selectedAction.amount > (villainStack * 0.5);
+                                // Check if Raise results in 0 stack (all-in)
+                                const isAllin = selectedAction.amount >= villainStack;
                                 
                                 if (isAllin) {
                                     actionName = 'Allin';

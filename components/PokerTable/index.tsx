@@ -93,10 +93,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     const { getPlayerPosition, getPlayerAngle } = usePlayerPositions();
     
-    // Identify SB, BB and BTN
+    // Identify SB, BB and Dealer/Button
     const bbPosition = numPlayers - 1;
     const sbPosition = numPlayers === 2 ? 0 : numPlayers - 2;
-    const btnPosition = numPlayers === 2 ? 0 : numPlayers - 3;
+    // Dealer/Button is one position before SB (counter-clockwise in index terms)
+    // In poker: BTN → SB → BB (clockwise around table)
+    const dealerPosition = numPlayers === 2 
+        ? 1  // In heads-up, dealer/button is BB (position 1)
+        : (sbPosition - 1 + numPlayers) % numPlayers;  // BTN is before SB
+    
     const smallBlind = blinds?.length > 1 ? Math.min(blinds[0], blinds[1]) : (blinds?.[0] / 2 || 0);
     const ante = blinds?.length > 2 ? blinds[2] : 0;
     
@@ -133,7 +138,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     const bounty = bounties?.[index] || 0;
                     const isBB = index === bbPosition;
                     const isSB = index === sbPosition;
-                    const isBTN = index === btnPosition;
+                    const isDealer = index === dealerPosition;
                     const isRaiser = spotType === 'vs Open' && raiserPosition !== undefined && index === raiserPosition;
                     const isShover = spotType === 'vs Shove' && raiserPosition !== undefined && index === raiserPosition;
                     const isMultiwayShover = spotType === 'vs Multiway shove' && shoverPositions !== undefined && shoverPositions.includes(index);
@@ -221,7 +226,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                 isCurrentPlayer={isCurrentPlayer}
                                 isBB={isBB}
                                 isSB={isSB}
-                                isBTN={isBTN}
+                                isDealer={isDealer}
                                 isRaiser={isRaiser}
                                 isShover={isShover}
                                 isMultiwayShover={isMultiwayShover}
@@ -246,6 +251,18 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     bigBlind={bigBlind}
                     displayMode={displayMode}
                 />
+                
+                {/* Dealer button for Hero (when hero is dealer) - positioned to the left of hero's cards */}
+                {heroPosition === dealerPosition && (
+                    <div 
+                        className="absolute bottom-[18%] left-1/2 transform -translate-x-1/2 -translate-x-24"
+                        style={{ zIndex: 100 }}
+                    >
+                        <div className="w-8 h-8 rounded-full bg-white border-2 border-black shadow-2xl flex items-center justify-center">
+                            <span className="text-black font-black text-sm">D</span>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
