@@ -33,7 +33,7 @@ interface TrainerTableProps {
     playerHandName: string;
     displayMode: 'bb' | 'chips';
     showBountyInDollars: boolean;
-    showFeedback: boolean;
+    userAction?: string | null;
     tournamentMode: boolean;
     timeLeft?: number;
     spotType: string;
@@ -57,7 +57,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
     playerHandName,
     displayMode,
     showBountyInDollars,
-    showFeedback,
+    userAction,
     tournamentMode,
     timeLeft,
     spotType,
@@ -136,11 +136,11 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                 />
             
                 {/* Ações disponíveis - Estilo GGPoker (à direita do hero) */}
-                {!showFeedback && (
+                {!userAction && (
                     <div className={`absolute bottom-9 left-1/2 transform flex z-30 justify-center items-center ${
-                        node.actions.length <= 2 ? 'translate-x-[55%] gap-2' :
-                        node.actions.length === 3 ? 'translate-x-[45%] gap-1.5' :
-                        'translate-x-[35%] gap-1'
+                        node.actions.length <= 2 ? 'translate-x-[55%] gap-3' :
+                        node.actions.length === 3 ? 'translate-x-[45%] gap-2' :
+                        'translate-x-[35%] gap-1.5'
                     }`}>
                         {node.actions.map((action, index) => {
                             // Converte tipo para nome (incluindo valor para Raise)
@@ -179,7 +179,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                     key={`${actionName}-${index}`}
                                     onClick={() => onCheckAnswer(actionName)}
                                     className={`
-                                        relative rounded-lg font-bold text-white
+                                        relative rounded-xl font-bold text-white
                                         ${bgColor}
                                         ${buttonSize}
                                         transition-all duration-200
@@ -342,7 +342,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                             </div>
                             
                             {/* Timebank bar (apenas modo torneio) - FORA e ABAIXO do quadrado, colado */}
-                            {tournamentMode && !showFeedback && timeLeft !== undefined && (
+                            {tournamentMode && !userAction && timeLeft !== undefined && (
                                 <div className="w-[120px] px-2.5 mt-0.5">
                                     <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
                                         <div 

@@ -18,7 +18,6 @@ import type { SpotSimulation } from '../types';
  */
 
 interface TrainerFeedbackProps {
-    show: boolean;
     currentSpot: SpotSimulation;
     node: NodeData;
     userAction: string | null;
@@ -32,10 +31,27 @@ interface TrainerFeedbackProps {
     onUnmarkHand: () => void;
     onNextSpot: () => void;
     onStudy: () => void;
+    // Tournament result props
+    tournamentComplete?: {
+        isBusted: boolean;
+        isComplete: boolean;
+        totalHandsPlayed: number;
+        mistakes: number;
+        accuracy: string;
+        stages: Array<{
+            phase: string;
+            handsToPlay: number;
+            displayName: string;
+            playerCount?: number;
+        }>;
+        currentStageIndex: number;
+        handsPlayedInStage: number;
+        onRestart: () => void;
+    };
+    onBack: () => void;
 }
 
 export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
-    show,
     currentSpot,
     node,
     userAction,
@@ -48,20 +64,16 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
     onMarkHand,
     onUnmarkHand,
     onNextSpot,
-    onStudy
+    onStudy,
+    tournamentComplete,
+    onBack
 }) => {
     console.log('🎨 TrainerFeedback render:', {
-        show,
         hasSpot: !!currentSpot,
         hasNode: !!node,
         userAction,
         handName: currentSpot?.playerHandName
     });
-    
-    if (!show) {
-        console.log('⚠️ TrainerFeedback: show=false, not rendering');
-        return null;
-    }
 
     return (
         <div className="bg-[#23272f] rounded-lg p-2.5 max-w-4xl mx-auto">
@@ -189,9 +201,21 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                             // Lógica de validação: Pure Strategy vs Mixed Strategy
                             const isPureStrategy = maxFreq >= 0.90;
                             const gtoActionIndex = handData.played.indexOf(maxFreq);
-                            const isCorrectChoice = isUserChoice && (isPureStrategy 
-                                ? actionIndex === gtoActionIndex
-                                : hasFreq);
+                            
+                            // Determinar se a escolha do usuário está correta
+                            const isCorrectChoice = isUserChoice && (() => {
+                                if (isPureStrategy) {
+                                    // Pure strategy: apenas a ação GTO (maior frequência)
+                                    return actionIndex === gtoActionIndex;
+                                } else if (node.actions.length === 2) {
+                                    // 2 ações: aceita apenas a ação com maior EV
+                                    const maxEV = Math.max(...handData.evs);
+                                    return ev >= maxEV - 0.001; // Tolerância para float
+                                } else {
+                                    // 3+ ações (mixed strategy): qualquer ação com freq > 0
+                                    return hasFreq;
+                                }
+                            })();
                             const isWrongChoice = isUserChoice && !isCorrectChoice;
                             
                             return (
@@ -281,7 +305,7 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                 })()}
 
                 {/* Next Hand button - only show if auto-advance is OFF */}
-                {!autoAdvance && (
+                {!autoAdvance && !tournamentComplete && (
                     <button
                         onClick={onNextSpot}
                         className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white px-4 py-2.5 rounded font-bold text-sm transition-all shadow-lg uppercase tracking-wide"
@@ -290,10 +314,108 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                     </button>
                 )}
                 
-                {/* Auto-advance message - only show if auto-advance is ON */}
-                {autoAdvance && (
+                {/* Auto-advance message - only show if auto-advance is ON and tournament not complete */}
+                {autoAdvance && !tournamentComplete && (
                     <div className="w-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 px-4 py-2.5 rounded font-bold text-sm text-center">
                         Auto-advancing in 5s...
+                    </div>
+                )}
+                
+                {/* Tournament Results - Show when tournament ends */}
+                {tournamentComplete && (
+                    <div className="mt-6 p-6 bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700">
+                        {/* Título */}
+                        <div className="text-center mb-6">
+                            {tournamentComplete.isBusted ? (
+                                <>
+                                    <div className="text-5xl mb-3">💥</div>
+                                    <h2 className="text-3xl font-bold text-red-400 mb-1">BUSTED!</h2>
+                                    <p className="text-gray-400">Você cometeu 10 erros</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-5xl mb-3">🏆</div>
+                                    <h2 className="text-3xl font-bold text-yellow-400 mb-1">TORNEIO COMPLETO!</h2>
+                                    <p className="text-gray-400">Parabéns! Você completou todas as 45 mãos</p>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Estatísticas */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
+                                <div className="text-gray-400 text-xs mb-1">Mãos Jogadas</div>
+                                <div className="text-2xl font-bold text-white">{tournamentComplete.totalHandsPlayed}</div>
+                            </div>
+                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
+                                <div className="text-gray-400 text-xs mb-1">Precisão</div>
+                                <div className="text-2xl font-bold text-green-400">{tournamentComplete.accuracy}%</div>
+                            </div>
+                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
+                                <div className="text-gray-400 text-xs mb-1">Acertos</div>
+                                <div className="text-2xl font-bold text-green-400">
+                                    {(tournamentComplete.totalHandsPlayed - tournamentComplete.mistakes).toFixed(1)}
+                                </div>
+                            </div>
+                            <div className="bg-gray-900/50 rounded-lg p-4 text-center">
+                                <div className="text-gray-400 text-xs mb-1">Erros</div>
+                                <div className="text-2xl font-bold text-red-400">{tournamentComplete.mistakes.toFixed(1)}</div>
+                            </div>
+                        </div>
+
+                        {/* Progresso por Estágio */}
+                        <div className="mb-6">
+                            <h3 className="text-white font-bold mb-3 text-sm">Estágio Alcançado</h3>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {tournamentComplete.stages.map((stage, index) => {
+                                    const reached = index < tournamentComplete.currentStageIndex || 
+                                                  (index === tournamentComplete.currentStageIndex && tournamentComplete.isComplete);
+                                    const current = index === tournamentComplete.currentStageIndex && !tournamentComplete.isComplete;
+                                    
+                                    return (
+                                        <div 
+                                            key={`${stage.phase}-${index}`}
+                                            className={`flex items-center justify-between p-2 rounded-lg text-xs ${
+                                                reached 
+                                                    ? 'bg-green-500/20 border border-green-500/50'
+                                                    : current
+                                                        ? 'bg-yellow-500/20 border border-yellow-500/50'
+                                                        : 'bg-gray-700/20 border border-gray-600/50'
+                                            }`}
+                                        >
+                                            <span className={`font-bold ${
+                                                reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
+                                            }`}>
+                                                {stage.displayName}
+                                            </span>
+                                            <span className={`text-xs ${
+                                                reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
+                                            }`}>
+                                                {reached ? '✓ Completo' : 
+                                                 current ? `${tournamentComplete.handsPlayedInStage}/${stage.handsToPlay}` : 
+                                                 `0/${stage.handsToPlay}`}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Botões */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onBack}
+                                className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold text-sm transition-all"
+                            >
+                                Voltar ao Menu
+                            </button>
+                            <button
+                                onClick={tournamentComplete.onRestart}
+                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold text-sm transition-all"
+                            >
+                                Jogar Novamente
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

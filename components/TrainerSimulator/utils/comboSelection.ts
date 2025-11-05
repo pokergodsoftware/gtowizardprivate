@@ -19,9 +19,9 @@ import type { NodeData } from '../../../types';
 export interface ComboSelectionConfig {
     /** Minimum positive EV (default: 0.07) */
     minPositiveEV?: number;
-    /** Maximum positive EV (default: 1.00) */
+    /** Maximum positive EV (default: 2.00) */
     maxPositiveEV?: number;
-    /** Minimum negative EV (default: -1.00) */
+    /** Minimum negative EV (default: -2.00) */
     minNegativeEV?: number;
     /** Maximum negative EV (default: -0.07) */
     maxNegativeEV?: number;
@@ -29,8 +29,8 @@ export interface ComboSelectionConfig {
 
 const DEFAULT_CONFIG: Required<ComboSelectionConfig> = {
     minPositiveEV: 0.07,
-    maxPositiveEV: 1.00,
-    minNegativeEV: -1.00,
+    maxPositiveEV: 2.00,
+    minNegativeEV: -2.00,
     maxNegativeEV: -0.07
 };
 
@@ -40,26 +40,26 @@ const DEFAULT_CONFIG: Required<ComboSelectionConfig> = {
  * NEW LOGIC:
  * 
  * **2 Actions Available:**
- * - Check if EV is in POSITIVE range (+0.07 to +1.00)
- * - OR check if EV is in NEGATIVE range (-1.00 to -0.07)
+ * - Check if EV is in POSITIVE range (+0.07 to +2.00)
+ * - OR check if EV is in NEGATIVE range (-2.00 to -0.07)
  * 
  * **3+ Actions Available:**
  * - Find the MOST USED action (highest frequency)
  * - Check if that action's EV is in POSITIVE or NEGATIVE range
  * 
  * This filters out:
- * - Near-zero EV spots (-0.06 to +0.06) - too marginal
- * - Extreme EV spots (< -1.00 or > +1.00) - too obvious
+ * - Near-zero EV spots (-0.06 to +0.06) - too marginal/trivial
+ * - Extreme EV spots (< -2.00 or > +2.00) - out of training range
  * 
  * Examples that PASS:
  * - 2 actions: Fold EV: -0.15, Raise EV: 0.50 ✅ (positive range)
  * - 2 actions: Fold EV: 0.10, Call EV: -0.20 ✅ (negative range)
- * - 3 actions: Most used is Raise (60%) with EV: 0.80 ✅ (positive range)
- * - 3 actions: Most used is Fold (50%) with EV: -0.50 ✅ (negative range)
+ * - 3 actions: Most used is Raise (60%) with EV: 1.80 ✅ (positive range)
+ * - 3 actions: Most used is Fold (50%) with EV: -1.50 ✅ (negative range)
  * 
  * Examples that FAIL:
- * - 2 actions: All EVs between -0.06 and +0.06 ❌ (too marginal)
- * - 3 actions: Most used action EV: 2.50 ❌ (too high)
+ * - 2 actions: All EVs between -0.06 and +0.06 ❌ (too trivial)
+ * - 3 actions: Most used action EV: 2.50 ❌ (out of range)
  * - 3 actions: Most used action EV: 0.05 ❌ (too low positive)
  * 
  * @param handName - Name of the hand (e.g., "AKo")

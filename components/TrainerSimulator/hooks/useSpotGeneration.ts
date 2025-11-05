@@ -60,8 +60,8 @@ export const useSpotGeneration = ({
         return filtered;
     }, [solutions, selectedPhases, playerCountFilter]);
 
-    // Range fixo de EV: -0.5 a +1.5 BB
-    const EV_RANGE = { min: -0.5, max: 1.5 };
+    // Range de EV para HERÓI: -2.0 a +2.0 BB (excluindo -0.07 a +0.07 - muito trivial)
+    const EV_RANGE = { min: -2.0, max: 2.0, excludeMin: -0.07, excludeMax: 0.07 };
     const MIN_EV_DIFF = 0.05; // Diferença mínima de EV entre ações
 
     /**
@@ -122,7 +122,7 @@ export const useSpotGeneration = ({
 
         console.log(`✅ Found ${playedHands.length} playable hands in range`);
 
-        // 2. Filtra por range de EV
+        // 2. Filtra por range de EV (apenas para HERÓI)
         const difficultHands = playedHands.filter((handName) => {
             const handData = node.hands[handName];
             if (!handData || !handData.evs) return false;
@@ -131,10 +131,15 @@ export const useSpotGeneration = ({
             if (validEvs.length < 2) return false;
             
             const maxEv = Math.max(...validEvs);
-            return maxEv >= EV_RANGE.min && maxEv <= EV_RANGE.max;
+            
+            // Range: -2.0 a +2.0, mas exclui a zona trivial (-0.07 a +0.07)
+            const inRange = maxEv >= EV_RANGE.min && maxEv <= EV_RANGE.max;
+            const notTrivial = maxEv < EV_RANGE.excludeMin || maxEv > EV_RANGE.excludeMax;
+            
+            return inRange && notTrivial;
         });
 
-        console.log(`🎯 Filtered to ${difficultHands.length} hands (EV: ${EV_RANGE.min} to ${EV_RANGE.max} BB)`);
+        console.log(`🎯 Filtered to ${difficultHands.length} hands (EV: ${EV_RANGE.min} to ${EV_RANGE.max} BB, excluding ${EV_RANGE.excludeMin} to ${EV_RANGE.excludeMax} BB)`);
 
         // 3. Se não encontrou, pega piores EVs
         let handsToUse: string[];
@@ -209,11 +214,11 @@ export const useSpotGeneration = ({
                        (rank1 !== rank2 && `${rank2}${rank1}${comboHand.slice(-1)}` === handName);
             });
             
-            // Verifica se essa mão passa no filtro de EV
+            // Verifica se essa mão passa no filtro de EV (apenas HERÓI)
             if (isInterestingCombo(handName, '', node, {
                 minPositiveEV: 0.07,
-                maxPositiveEV: 1.00,
-                minNegativeEV: -1.00,
+                maxPositiveEV: 2.00,
+                minNegativeEV: -2.00,
                 maxNegativeEV: -0.07
             })) {
                 // Adiciona todos os combos dessa mão
@@ -246,9 +251,9 @@ export const useSpotGeneration = ({
                 // 2 ações: mostrar todos os EVs
                 console.log(`📊 2 Actions - All EVs: [${handData.evs.map(ev => ev.toFixed(2)).join(', ')}]`);
                 const hasValidEV = handData.evs.some(ev => 
-                    (ev >= 0.07 && ev <= 1.00) || (ev >= -1.00 && ev <= -0.07)
+                    (ev >= 0.07 && ev <= 2.00) || (ev >= -2.00 && ev <= -0.07)
                 );
-                console.log(`   Range: Positive (+0.07 to +1.00) OR Negative (-1.00 to -0.07)`);
+                console.log(`   Range: Positive (+0.07 to +2.00) OR Negative (-2.00 to -0.07)`);
                 console.log(`   Status: ${hasValidEV ? '✅ In range' : '❌ Should not happen!'}`);
             } else if (numActions >= 3) {
                 // 3+ ações: encontrar a mais usada
@@ -266,9 +271,9 @@ export const useSpotGeneration = ({
                 const mostUsedAction = node.actions[mostUsedIndex].type;
                 console.log(`📊 3+ Actions - Most used: ${mostUsedAction} (${(maxFreq * 100).toFixed(1)}%)`);
                 console.log(`   EV of most used: ${mostUsedEV.toFixed(2)}`);
-                console.log(`   Range: Positive (+0.07 to +1.00) OR Negative (-1.00 to -0.07)`);
+                console.log(`   Range: Positive (+0.07 to +2.00) OR Negative (-2.00 to -0.07)`);
                 
-                const inRange = (mostUsedEV >= 0.07 && mostUsedEV <= 1.00) || (mostUsedEV >= -1.00 && mostUsedEV <= -0.07);
+                const inRange = (mostUsedEV >= 0.07 && mostUsedEV <= 2.00) || (mostUsedEV >= -2.00 && mostUsedEV <= -0.07);
                 console.log(`   Status: ${inRange ? '✅ In range' : '❌ Should not happen!'}`);
             }
         }

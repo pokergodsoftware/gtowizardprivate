@@ -19,6 +19,23 @@ interface TrainerSimulatorProps {
     tournamentMode?: boolean; // Se true, está no modo torneio
     onSpotResult?: (isCorrect: boolean, livesLost?: number) => void; // Callback para modo torneio (agora com livesLost)
     playerCountFilter?: number; // Filtro opcional por número de jogadores (para Final Table)
+    // Tournament result props (quando torneio termina)
+    tournamentComplete?: {
+        isBusted: boolean;
+        isComplete: boolean;
+        totalHandsPlayed: number;
+        mistakes: number;
+        accuracy: string;
+        stages: Array<{
+            phase: string;
+            handsToPlay: number;
+            displayName: string;
+            playerCount?: number;
+        }>;
+        currentStageIndex: number;
+        handsPlayedInStage: number;
+        onRestart: () => void;
+    };
 }
 
 export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({ 
@@ -32,7 +49,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     tournamentPhase,
     tournamentMode = false,
     onSpotResult,
-    playerCountFilter
+    playerCountFilter,
+    tournamentComplete,
 }) => {
     // ============================================================
     // PHASE 8 REFACTORING: Using extracted hooks and components
@@ -56,7 +74,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     
     // Local UI state (user interaction)
     const [userAction, setUserAction] = useState<string | null>(null);
-    const [showFeedback, setShowFeedback] = useState(false);
     const [isHandMarked, setIsHandMarked] = useState(false);
     const [isLoadingNextHand, setIsLoadingNextHand] = useState(false);
     const [lastActionResult, setLastActionResult] = useState<{
@@ -64,17 +81,12 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         ev?: number;
     } | null>(null);
     
-    // Debug: Monitor showFeedback changes
-    useEffect(() => {
-        console.log('🔄 showFeedback changed to:', showFeedback);
-    }, [showFeedback]);
-    
     // ============================================================
     // Callback for timebank expiration
     // ============================================================
     
     const handleTimeExpired = useCallback(() => {
-        if (!currentSpot || showFeedback) return;
+        if (!currentSpot || userAction) return; // Se já respondeu, ignora timeout
         
         // Use solution from currentSpot (has all nodes loaded)
         const currentSolution = currentSpot.solution;
@@ -92,7 +104,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         if (foldActionIndex === -1) {
             // Não tem Fold disponível - marca como erro
             setUserAction('Fold (TIMEOUT)');
-            setShowFeedback(true);
             
             const actualPhase = currentSpot.solution.tournamentPhase;
             updateStats(false, actualPhase, 0);
@@ -135,7 +146,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         
         // Marca a ação como Fold (Timeout)
         setUserAction('Fold (TIMEOUT)');
-        setShowFeedback(true);
         
         // Determinar se é "correto" para estatísticas
         const isCorrect = isActionCorrect(foldEvaluation.quality);
@@ -162,7 +172,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         if (onSpotResult) {
             onSpotResult(foldEvaluation.livesLost === 0, foldEvaluation.livesLost);
         }
-    }, [userId, updateStats, onSpotResult, showFeedback]); // Dependencies for callback (currentSpot captured in closure)
+    }, [userId, updateStats, onSpotResult, userAction]); // Dependencies for callback (currentSpot captured in closure)
     
     // Custom hook for spot generation (orchestrates spot generators)
     const { currentSpot, generateNewSpot, isGenerating } = useSpotGeneration({
@@ -177,7 +187,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     const { timeLeft, stopAudios } = useTimebank({
         tournamentMode,
         currentSpot,
-        showFeedback,
+        userAction,
         onTimeExpired: handleTimeExpired
     });
     
@@ -215,17 +225,9 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         }
     }, []); // Run once on mount
 
-    // Reset feedback when component mounts (tournament mode)
-    useEffect(() => {
-        if (tournamentMode) {
-            setShowFeedback(false);
-            setUserAction(null);
-        }
-    }, []); // Run once on mount
-
     // Auto-advance when toggle is activated AFTER already answering
     useEffect(() => {
-        if (autoAdvance && showFeedback && userAction) {
+        if (autoAdvance && userAction) {
             const delay = tournamentMode ? 5000 : 2500;
             const timer = setTimeout(() => {
                 nextSpot();
@@ -233,7 +235,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
             
             return () => clearTimeout(timer);
         }
-    }, [autoAdvance, showFeedback, userAction, tournamentMode]); // Watch all relevant states
+    }, [autoAdvance, userAction, tournamentMode]); // Watch all relevant states
 
     // Cleanup audio on unmount only
     useEffect(() => {
@@ -319,7 +321,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         stopAudios();
         
         setUserAction(actionName);
-        setShowFeedback(true);
         console.log('✅ Feedback should now be visible');
         
         // Armazenar resultado para usar no mark hand
@@ -376,7 +377,6 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         await new Promise(resolve => setTimeout(resolve, 100));
         
         setUserAction(null);
-        setShowFeedback(false);
         setIsHandMarked(false);
         setLastActionResult(null);
         stopAudios();
@@ -511,7 +511,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                         playerHandName={currentSpot.playerHandName}
                         displayMode={displayMode}
                         showBountyInDollars={showBountyInDollars}
-                        showFeedback={showFeedback}
+                        userAction={userAction}
                         tournamentMode={tournamentMode}
                         timeLeft={timeLeft}
                         spotType={currentSpot.spotType}
@@ -527,9 +527,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                     />
 
                     {/* Feedback Modal: Results and next spot button */}
-                    {showFeedback && (
+                    {userAction && (
                         <TrainerFeedback
-                            show={showFeedback}
                             currentSpot={currentSpot}
                             node={node}
                             userAction={userAction}
@@ -543,6 +542,8 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                             onUnmarkHand={handleUnmarkHand}
                             onNextSpot={nextSpot}
                             onStudy={handleStudy}
+                            tournamentComplete={tournamentComplete}
+                            onBack={onBack}
                         />
                     )}
                     

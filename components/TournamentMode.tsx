@@ -6,7 +6,7 @@ interface TournamentModeProps {
     solutions: AppData[];
     onBack: () => void;
     loadNode: (nodeId: number) => Promise<void>;
-    loadNodesForSolution: (solutionId: string) => Promise<void>;
+    loadNodesForSolution: (solutionId: string, nodeIdsToLoad?: number[]) => Promise<AppData | null>;
     userId: string;
 }
 
@@ -47,7 +47,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [mistakes, setMistakes] = useState(0); // Pode ser fracionado (0.5)
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
-    const [showingResult, setShowingResult] = useState(false);
     const [spotKey, setSpotKey] = useState(0); // Chave para forçar remontagem do TrainerSimulator
 
     const currentStage = TOURNAMENT_STAGES[currentStageIndex];
@@ -66,7 +65,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
             if (newMistakes >= MAX_MISTAKES) {
                 console.log('💀 BUSTED! Reached max mistakes');
                 setIsBusted(true);
-                setShowingResult(true);
                 return;
             }
         } else {
@@ -85,7 +83,6 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
             // Verificar se completou o torneio
             if (currentStageIndex >= TOURNAMENT_STAGES.length - 1) {
                 setIsComplete(true);
-                setShowingResult(true);
             } else {
                 // Avançar para próximo estágio após um pequeno delay
                 setTimeout(() => {
@@ -99,115 +96,21 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         // pelo TrainerSimulator se autoAdvance estiver ativo
     };
 
-    // Tela de resultado final
-    if (showingResult) {
-        const accuracy = totalHandsPlayed > 0 
-            ? ((totalHandsPlayed - mistakes) / totalHandsPlayed * 100).toFixed(1)
-            : '0.0';
+    // Calcular accuracy para passar ao TrainerSimulator
+    const accuracy = totalHandsPlayed > 0 
+        ? ((totalHandsPlayed - mistakes) / totalHandsPlayed * 100).toFixed(1)
+        : '0.0';
 
-        return (
-            <div className="flex flex-col items-center justify-center h-screen bg-[#1a1d23] p-8">
-                <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-12 max-w-2xl w-full">
-                    {/* Título */}
-                    <div className="text-center mb-8">
-                        {isBusted ? (
-                            <>
-                                <div className="text-6xl mb-4">💥</div>
-                                <h1 className="text-4xl font-bold text-red-400 mb-2">BUSTED!</h1>
-                                <p className="text-gray-400 text-lg">Você cometeu {MAX_MISTAKES} erros</p>
-                            </>
-                        ) : (
-                            <>
-                                <div className="text-6xl mb-4">🏆</div>
-                                <h1 className="text-4xl font-bold text-yellow-400 mb-2">TORNEIO COMPLETO!</h1>
-                                <p className="text-gray-400 text-lg">Parabéns! Você completou todas as {TOTAL_HANDS} mãos</p>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Estatísticas */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-gray-900/50 rounded-xl p-6 text-center">
-                            <div className="text-gray-400 text-sm mb-2">Mãos Jogadas</div>
-                            <div className="text-3xl font-bold text-white">{totalHandsPlayed}</div>
-                        </div>
-                        <div className="bg-gray-900/50 rounded-xl p-6 text-center">
-                            <div className="text-gray-400 text-sm mb-2">Precisão</div>
-                            <div className="text-3xl font-bold text-green-400">{accuracy}%</div>
-                        </div>
-                        <div className="bg-gray-900/50 rounded-xl p-6 text-center">
-                            <div className="text-gray-400 text-sm mb-2">Acertos</div>
-                            <div className="text-3xl font-bold text-green-400">{totalHandsPlayed - mistakes}</div>
-                        </div>
-                        <div className="bg-gray-900/50 rounded-xl p-6 text-center">
-                            <div className="text-gray-400 text-sm mb-2">Erros</div>
-                            <div className="text-3xl font-bold text-red-400">{mistakes}</div>
-                        </div>
-                    </div>
-
-                    {/* Progresso por Estágio */}
-                    <div className="mb-8">
-                        <h3 className="text-white font-bold mb-4">Estágio Alcançado</h3>
-                        <div className="space-y-2">
-                            {TOURNAMENT_STAGES.map((stage, index) => {
-                                const reached = index < currentStageIndex || (index === currentStageIndex && isComplete);
-                                const current = index === currentStageIndex && !isComplete;
-                                
-                                return (
-                                    <div 
-                                        key={stage.phase}
-                                        className={`flex items-center justify-between p-3 rounded-lg ${
-                                            reached 
-                                                ? 'bg-green-500/20 border border-green-500/50'
-                                                : current
-                                                    ? 'bg-yellow-500/20 border border-yellow-500/50'
-                                                    : 'bg-gray-700/20 border border-gray-600/50'
-                                        }`}
-                                    >
-                                        <span className={`font-bold ${
-                                            reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
-                                        }`}>
-                                            {stage.displayName}
-                                        </span>
-                                        <span className={`text-sm ${
-                                            reached ? 'text-green-400' : current ? 'text-yellow-400' : 'text-gray-500'
-                                        }`}>
-                                            {reached ? '✓ Completo' : current ? `${handsPlayedInStage}/${stage.handsToPlay}` : `0/${stage.handsToPlay}`}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Botões */}
-                    <div className="flex gap-4">
-                        <button
-                            onClick={onBack}
-                            className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
-                        >
-                            Voltar ao Menu
-                        </button>
-                        <button
-                            onClick={() => {
-                                setCurrentStageIndex(0);
-                                setHandsPlayedInStage(0);
-                                setTotalHandsPlayed(0);
-                                setMistakes(0);
-                                setIsBusted(false);
-                                setIsComplete(false);
-                                setShowingResult(false);
-                                setSpotKey(prev => prev + 1);
-                            }}
-                            className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all"
-                        >
-                            Jogar Novamente
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // Função para reiniciar torneio
+    const handleRestartTournament = () => {
+        setCurrentStageIndex(0);
+        setHandsPlayedInStage(0);
+        setTotalHandsPlayed(0);
+        setMistakes(0);
+        setIsBusted(false);
+        setIsComplete(false);
+        setSpotKey(prev => prev + 1);
+    };
 
     // Tela de jogo
     return (
@@ -282,6 +185,19 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                     tournamentMode={true}
                     onSpotResult={handleSpotResult}
                     playerCountFilter={currentStage.playerCount}
+                    tournamentComplete={
+                        isBusted || isComplete ? {
+                            isBusted,
+                            isComplete,
+                            totalHandsPlayed,
+                            mistakes,
+                            accuracy,
+                            stages: TOURNAMENT_STAGES,
+                            currentStageIndex,
+                            handsPlayedInStage,
+                            onRestart: handleRestartTournament
+                        } : undefined
+                    }
                 />
             </div>
         </div>

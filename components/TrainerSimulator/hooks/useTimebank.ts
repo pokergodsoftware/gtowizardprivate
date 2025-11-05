@@ -12,7 +12,7 @@ import type { SpotSimulation } from '../types.ts';
 export interface UseTimebankProps {
     tournamentMode: boolean;
     currentSpot: SpotSimulation | null;
-    showFeedback: boolean;
+    userAction: string | null;
     onTimeExpired: () => void;
 }
 
@@ -31,7 +31,7 @@ export interface UseTimebankReturn {
 export const useTimebank = ({
     tournamentMode,
     currentSpot,
-    showFeedback,
+    userAction,
     onTimeExpired
 }: UseTimebankProps): UseTimebankReturn => {
     const [timeLeft, setTimeLeft] = useState(15); // 15 seconds
@@ -66,12 +66,12 @@ export const useTimebank = ({
     
     // Reset timebank when new spot is generated
     useEffect(() => {
-        if (currentSpot && !showFeedback && tournamentMode) {
+        if (currentSpot && !userAction && tournamentMode) {
             setTimeLeft(15);
             setHasPlayedTimebank1(false);
             setHasPlayedTimebank2(false);
         }
-    }, [currentSpot, showFeedback, tournamentMode]);
+    }, [currentSpot, userAction, tournamentMode]);
     
     // Function to play audio file
     const playBeep = (alertNumber: 1 | 2) => {
@@ -88,7 +88,7 @@ export const useTimebank = ({
     
     // Timebank countdown timer (only in tournament mode)
     useEffect(() => {
-        if (!tournamentMode || showFeedback || !currentSpot) {
+        if (!tournamentMode || userAction || !currentSpot) {
             return;
         }
         
@@ -119,7 +119,7 @@ export const useTimebank = ({
         }, 1000);
         
         return () => clearInterval(interval);
-    }, [tournamentMode, showFeedback, currentSpot, hasPlayedTimebank1, hasPlayedTimebank2, onTimeExpired]);
+    }, [tournamentMode, userAction, currentSpot, hasPlayedTimebank1, hasPlayedTimebank2, onTimeExpired]);
 
     // Function to stop all audio playback
     const stopAudios = useCallback(() => {

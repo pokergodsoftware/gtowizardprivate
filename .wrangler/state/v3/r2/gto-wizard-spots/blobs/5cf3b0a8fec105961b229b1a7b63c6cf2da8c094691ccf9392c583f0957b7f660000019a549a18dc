@@ -168,10 +168,28 @@
     "nodeCount": 529
   },
   {
+    "path": "./spots/60-40/speed50_15",
+    "fileName": "60~40% left - 6p 11bb (speed50_15)",
+    "tournamentPhase": "60~40% left",
+    "nodeCount": 89
+  },
+  {
+    "path": "./spots/60-40/speed50_new1",
+    "fileName": "60~40% left - 6p 12bb (speed50_new1)",
+    "tournamentPhase": "60~40% left",
+    "nodeCount": 68
+  },
+  {
     "path": "./spots/60-40/speed32_8",
     "fileName": "60~40% left - 6p 14bb (speed32_8)",
     "tournamentPhase": "60~40% left",
     "nodeCount": 137
+  },
+  {
+    "path": "./spots/60-40/speed50_new2",
+    "fileName": "60~40% left - 6p 15bb (speed50_new2)",
+    "tournamentPhase": "60~40% left",
+    "nodeCount": 82
   },
   {
     "path": "./spots/60-40/speed50_10",
@@ -180,22 +198,22 @@
     "nodeCount": 131
   },
   {
-    "path": "./spots/60-40/speed50_7",
-    "fileName": "60~40% left - 6p 17bb (speed50_7)",
+    "path": "./spots/60-40/speed50_11",
+    "fileName": "60~40% left - 6p 17bb (speed50_11)",
     "tournamentPhase": "60~40% left",
-    "nodeCount": 97
+    "nodeCount": 105
   },
   {
-    "path": "./spots/60-40/speed50_8",
-    "fileName": "60~40% left - 6p 17bb (speed50_8)",
+    "path": "./spots/60-40/speed50_12",
+    "fileName": "60~40% left - 6p 17bb (speed50_12)",
     "tournamentPhase": "60~40% left",
-    "nodeCount": 193
+    "nodeCount": 160
   },
   {
-    "path": "./spots/60-40/speed50_9",
-    "fileName": "60~40% left - 6p 17bb (speed50_9)",
+    "path": "./spots/60-40/speed50_16",
+    "fileName": "60~40% left - 6p 17bb (speed50_16)",
     "tournamentPhase": "60~40% left",
-    "nodeCount": 559
+    "nodeCount": 181
   },
   {
     "path": "./spots/60-40/speed32_1",
@@ -252,6 +270,18 @@
     "nodeCount": 350
   },
   {
+    "path": "./spots/60-40/speed50_13",
+    "fileName": "60~40% left - 6p 22bb (speed50_13)",
+    "tournamentPhase": "60~40% left",
+    "nodeCount": 1091
+  },
+  {
+    "path": "./spots/60-40/speed50_14",
+    "fileName": "60~40% left - 6p 22bb (speed50_14)",
+    "tournamentPhase": "60~40% left",
+    "nodeCount": 210
+  },
+  {
     "path": "./spots/60-40/speed50_5",
     "fileName": "60~40% left - 6p 23bb (speed50_5)",
     "tournamentPhase": "60~40% left",
@@ -300,6 +330,30 @@
     "nodeCount": 522
   },
   {
+    "path": "./spots/40-20/speed50_3",
+    "fileName": "40~20% left - 6p 15bb (speed50_3)",
+    "tournamentPhase": "40~20% left",
+    "nodeCount": 126
+  },
+  {
+    "path": "./spots/40-20/speed50_4",
+    "fileName": "40~20% left - 6p 15bb (speed50_4)",
+    "tournamentPhase": "40~20% left",
+    "nodeCount": 244
+  },
+  {
+    "path": "./spots/40-20/speed50_1",
+    "fileName": "40~20% left - 6p 17bb (speed50_1)",
+    "tournamentPhase": "40~20% left",
+    "nodeCount": 280
+  },
+  {
+    "path": "./spots/40-20/speed50_2",
+    "fileName": "40~20% left - 6p 17bb (speed50_2)",
+    "tournamentPhase": "40~20% left",
+    "nodeCount": 130
+  },
+  {
     "path": "./spots/40-20/speed32_18",
     "fileName": "40~20% left - 6p 21bb (speed32_18)",
     "tournamentPhase": "40~20% left",
@@ -310,6 +364,12 @@
     "fileName": "40~20% left - 6p 21bb (speed32_6d)",
     "tournamentPhase": "40~20% left",
     "nodeCount": 409
+  },
+  {
+    "path": "./spots/40-20/speed50_5",
+    "fileName": "40~20% left - 6p 23bb (speed50_5)",
+    "tournamentPhase": "40~20% left",
+    "nodeCount": 557
   },
   {
     "path": "./spots/40-20/speed32_12",

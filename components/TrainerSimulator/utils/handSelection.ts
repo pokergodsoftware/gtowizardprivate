@@ -37,7 +37,8 @@ export function getPlayedHands(node: NodeData): string[] {
  * Filters hands by EV range suitable for training difficult spots
  * 
  * Keeps hands where:
- * - EV is between -0.5 BB and +1.5 BB (challenging range)
+ * - EV is between -2.00 BB and +2.00 BB (challenging range)
+ * - Excludes "trivial" range between -0.07 and +0.07 BB (too easy/neutral)
  * - Has at least 2 valid actions (creates decision complexity)
  * 
  * @param node - Current decision tree node
@@ -61,8 +62,11 @@ export function filterHandsByEV(node: NodeData, handNames: string[]): string[] {
         const validEvs = handData.evs.filter((_, idx) => handData.played[idx] > 0);
         const bestEv = Math.max(...validEvs);
 
-        // Keep hands with EV between -0.5 BB and +1.5 BB
-        return bestEv >= -0.5 && bestEv <= 1.5;
+        // Keep hands with EV between -2.00 and +2.00 BB, but exclude neutral range (-0.07 to +0.07)
+        const inRange = bestEv >= -2.0 && bestEv <= 2.0;
+        const notTrivial = bestEv < -0.07 || bestEv > 0.07;
+        
+        return inRange && notTrivial;
     });
 }
 
@@ -239,9 +243,9 @@ export function selectTrainingHands(node: NodeData): string[] {
         return [];
     }
     
-    // 2. Filter by EV range (-0.5 to +1.5 BB)
+    // 2. Filter by EV range (-2.0 to +2.0 BB, excluding -0.07 to +0.07)
     const difficultHands = filterHandsByEV(node, playedHands);
-    console.log(`🎯 Hands in EV range [-0.5, +1.5] with 2+ actions: ${difficultHands.length}`);
+    console.log(`🎯 Hands in EV range [-2.0, +2.0] (excluding trivial -0.07 to +0.07) with 2+ actions: ${difficultHands.length}`);
     
     // 3. Filter non-marginal decisions (EV diff > 0.05)
     const marginalHands = filterNonMarginalHands(node, difficultHands);
