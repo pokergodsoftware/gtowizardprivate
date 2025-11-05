@@ -12,7 +12,7 @@ export interface Action {
 
 export interface VillainAction {
   position: number;
-  action: string; // 'Fold', 'Call', 'Raise X', 'Allin'
+  action: string; // 'Fold', 'Call', 'Raise X', 'All-in'
   amount?: number; // Bet amount (if applicable)
   combo?: string; // Hand combo used by villain (e.g., "AhKd")
 }

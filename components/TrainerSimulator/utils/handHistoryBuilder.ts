@@ -23,7 +23,7 @@ const getStreetName = (street: number): 'Preflop' | 'Flop' | 'Turn' | 'River' =>
 };
 
 /**
- * Get action description (Fold, Call, Raise 2.5BB, Allin, etc)
+ * Get action description (Fold, Call, Raise 2.5BB, All-in, etc)
  */
 const getActionDescription = (
     action: Action,
@@ -158,6 +158,15 @@ export const buildHandHistory = (
         const playerName = playerPositions[playerIndex] || `P${playerIndex + 1}`;
         const playerStack = stacks[playerIndex];
         
+        console.log(`  📊 ${playerName} action:`, {
+            type: actionTaken.type,
+            amount: actionTaken.amount,
+            playerStack,
+            amountBB: (actionTaken.amount / 100) / (bigBlind / 100),
+            stackBB: (playerStack / 100) / (bigBlind / 100),
+            ratio: (actionTaken.amount / playerStack).toFixed(3)
+        });
+        
         // Build action description
         const actionDescription = getActionDescription(
             actionTaken,
@@ -172,6 +181,12 @@ export const buildHandHistory = (
             amountBB = actionTaken.amount / 100 / (displayMode === 'bb' ? bigBlind / 100 : bigBlind);
         }
         
+        // Update stack after action (reduce by amount committed)
+        // This ensures subsequent players see correct stacks for all-in detection
+        if (actionTaken.type === 'R' || actionTaken.type === 'C') {
+            stacks[playerIndex] = Math.max(0, stacks[playerIndex] - actionTaken.amount);
+        }
+        
         // Add to history
         actions.push({
             position: playerIndex,
@@ -183,7 +198,7 @@ export const buildHandHistory = (
             timestamp: Date.now() + i * 100 // Stagger for animations
         });
         
-        console.log(`  ${playerName}: ${actionDescription} (Street: ${currentStreet})`);
+        console.log(`  ${playerName}: ${actionDescription} (Street: ${currentStreet}, Remaining stack: ${stacks[playerIndex]})`);
     }
     
     return {

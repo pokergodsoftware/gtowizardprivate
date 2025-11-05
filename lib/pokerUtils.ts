@@ -42,7 +42,7 @@ export const getActionColor = (
         : false;
 
     // Cores inspiradas no GTO Wizard
-    if (actionName.includes('Allin')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
+    if (actionName.includes('All-in')) return 'bg-[#d946ef]'; // Magenta vibrante para All-in (como GTO Wizard)
     if (actionName.startsWith('Raise')) return 'bg-[#f97316]'; // Laranja para Raise
     if (actionName.startsWith('Fold')) return 'bg-[#0ea5e9]'; // Azul cyan para Fold
     if (actionName.startsWith('Call')) return 'bg-[#10b981]'; // Verde para Call
@@ -81,9 +81,13 @@ export const getActionName = (
     const actionAmountBB = adjustedBigBlind > 0 ? (action.amount / 100) / adjustedBigBlind : 0;
     const playerStackBB = adjustedBigBlind > 0 ? (playerStack / 100) / adjustedBigBlind : 0;
     
-    // A raise is considered "Allin" if it commits at least 95% of the player's stack
-    // This catches both exact all-ins and raises that exceed the stack
-    const isAllIn = action.type === 'R' && playerStackBB > 0 && actionAmountBB >= playerStackBB * 0.95;
+    // An action (Raise or Call) is considered "All-in" if it commits at least 90% of the player's stack
+    // OR if the remaining stack is less than 0.5 BB (essentially all-in)
+    // This catches both exact all-ins and actions that exceed the stack
+    const remainingStackBB = playerStackBB - actionAmountBB;
+    const isAllIn = (action.type === 'R' || action.type === 'C') && 
+                    playerStackBB > 0 && 
+                    (actionAmountBB >= playerStackBB * 0.90 || remainingStackBB < 0.5);
     
     // New logic: Check if the raise is an all-in against a shorter-stacked opponent.
     let isOpponentAllIn = false;
@@ -117,9 +121,25 @@ export const getActionName = (
                     formattedSize = action.amount.toString();
                 }
             }
-            if(isAllIn || isOpponentAllIn) return `Allin ${formattedSize}`;
+            if(isAllIn || isOpponentAllIn) return `All-in ${formattedSize}`;
             return `Raise ${formattedSize}`;
-        case 'C': return 'Call';
+        case 'C': 
+            // Check if call is all-in
+            if (isAllIn) {
+                let formattedSize: string;
+                if (displayMode === 'chips') {
+                    formattedSize = formatChips(action.amount / 100);
+                } else {
+                    if (adjustedBigBlind > 0) {
+                        const callSizeBB = ((action.amount / 100) / adjustedBigBlind).toFixed(1);
+                        formattedSize = callSizeBB.endsWith('.0') ? callSizeBB.slice(0, -2) : callSizeBB;
+                    } else {
+                        formattedSize = action.amount.toString();
+                    }
+                }
+                return `All-in ${formattedSize}`;
+            }
+            return 'Call';
         case 'X': return 'Check';
         default: return action.type;
     }
