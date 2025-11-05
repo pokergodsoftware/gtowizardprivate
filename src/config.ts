@@ -41,3 +41,11 @@ export function getTrainerAssetUrl(filename: string): string {
   // Fallback para arquivos locais
   return `/trainer/${filename}`;
 }
+
+// Função helper para metadata - SEMPRE usa arquivo local servido pelo Vercel
+// (metadata está versionado no git para sincronização automática)
+export function getMetadataUrl(filename: string): string {
+  // Sempre usa arquivo local, tanto em dev quanto em produção
+  // O Vercel serve este arquivo do próprio deploy
+  return `/${filename}`;
+}

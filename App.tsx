@@ -9,7 +9,7 @@ import { RangeGrid } from './components/RangeGrid.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { LoadingOverlay } from './components/LoadingOverlay.tsx';
 import { VersionBadge } from './components/VersionBadge.tsx';
-import { getResourceUrl } from './config.ts';
+import { getResourceUrl, getMetadataUrl } from './src/config.ts';
 import { decodeUrlState, updateUrl, createUrlStateFromSolution, findSolutionByPath } from './lib/urlUtils.ts';
 import { ERROR_MESSAGES, AppError, ErrorType, getUserMessage, retryFetch } from './lib/errorMessages.ts';
 import { appCache, CACHE_KEYS, CACHE_DURATION } from './lib/cache.ts';
@@ -158,7 +158,7 @@ const App: React.FC = () => {
         
         try {
             const metadataRes = await retryFetch(
-                getResourceUrl('solutions-metadata.json'),
+                getMetadataUrl('solutions-metadata.json'),
                 { signal: abortController.signal }
             );
             
