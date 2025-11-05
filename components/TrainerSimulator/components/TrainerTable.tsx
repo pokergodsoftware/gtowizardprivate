@@ -5,6 +5,7 @@ import { TrainerPayoutInfo } from './TrainerPayoutInfo';
 import { HandHistoryPanel } from './HandHistoryPanel';
 import { useHandHistory } from '../hooks/useHandHistory';
 import { getInitialBounty } from '../utils/trainerHelpers';
+import { getTrainerAssetUrl } from '../../../src/config';
 import type { AppData, NodeData } from '../../../types';
 import type { VillainAction } from '../types';
 
@@ -189,7 +190,7 @@ export const TrainerTable: React.FC<TrainerTableProps> = ({
                                         overflow-hidden
                                     `}
                                     style={{
-                                        backgroundImage: 'url(./trainer/action_button.png)',
+                                        backgroundImage: `url(${getTrainerAssetUrl('action_button.png')})`,
                                         backgroundSize: 'cover',
                                         backgroundPosition: 'center'
                                     }}
