@@ -132,6 +132,8 @@ export async function saveStatsToFirebase(
         correctSpots: increment(isCorrect ? 1 : 0),
         incorrectSpots: increment(isCorrect ? 0 : 1),
         totalPoints: increment(pointsToAdd),
+        // Always keep username in sync on updates to avoid missing names in stats docs
+        username,
         lastUpdated: new Date().toISOString(),
         statsByPhase
       });
@@ -141,7 +143,8 @@ export async function saveStatsToFirebase(
       const updatedData = updatedSnap.data();
       const accuracy = (updatedData!.correctSpots / updatedData!.totalSpots) * 100;
       
-      await updateDoc(statsRef, { accuracy });
+  // Also ensure username remains present when updating accuracy
+  await updateDoc(statsRef, { accuracy, username });
       console.log('✅ Firebase: Stats updated successfully!');
     } else {
       console.log('📝 Firebase: Creating new stats document...');
