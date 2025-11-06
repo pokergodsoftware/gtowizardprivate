@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getTrainerAssetUrl } from '../src/config';
 import type { AppData } from '../types.ts';
 import { TrainerSimulator } from './TrainerSimulator.tsx';
 import { recordTournamentPlayed, recordReachedFinalTable, recordCompletedTournament } from '../utils/statsUtils.ts';
@@ -274,7 +275,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                 {Array.from({ length: Math.min(fullHearts, maxHeartsToShow) }).map((_, i) => (
                                     <img
                                         key={`heart-full-${i}`}
-                                        src="/trainer/heart.png"
+                                        src={getTrainerAssetUrl('heart.png')}
                                         alt="heart"
                                         className="w-4 h-4"
                                         aria-hidden="true"
@@ -283,7 +284,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                 {hasHalfHeart && fullHearts < maxHeartsToShow && (
                                     <img
                                         key={`heart-half`}
-                                        src="/trainer/heart.png"
+                                        src={getTrainerAssetUrl('heart.png')}
                                         alt="half-heart"
                                         className="w-4 h-4 opacity-60"
                                         aria-hidden="true"
