@@ -155,7 +155,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     {getMedalIcon(2)}
                                 </div>
                                 <h3 className="text-white font-bold text-lg text-center mb-2 truncate">
-                                    {leaderboard[1].username}
+                                    {leaderboard[1].username || leaderboard[1].userId || '<unknown>'}
                                 </h3>
                                 <div className="text-center">
                                     <div className="text-3xl font-bold text-yellow-400 mb-1">
@@ -177,7 +177,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     {getMedalIcon(1)}
                                 </div>
                                 <h3 className="text-white font-bold text-xl text-center mb-2 truncate">
-                                    {leaderboard[0].username}
+                                    {leaderboard[0].username || leaderboard[0].userId || '<unknown>'}
                                 </h3>
                                 <div className="text-center">
                                     <div className="text-4xl font-bold text-white mb-1">
@@ -199,7 +199,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                     {getMedalIcon(3)}
                                 </div>
                                 <h3 className="text-white font-bold text-lg text-center mb-2 truncate">
-                                    {leaderboard[2].username}
+                                    {leaderboard[2].username || leaderboard[2].userId || '<unknown>'}
                                 </h3>
                                 <div className="text-center">
                                     <div className="text-3xl font-bold text-yellow-400 mb-1">
@@ -256,7 +256,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ currentUserId, onBack 
                                                 <h3 className={`font-bold text-lg truncate ${
                                                     isCurrentUser ? 'text-teal-400' : 'text-white'
                                                 }`}>
-                                                    {entry.username}
+                                                    {entry.username || entry.userId || '<unknown>'}
                                                 </h3>
                                                 {isCurrentUser && (
                                                     <span className="bg-teal-500/20 text-teal-400 text-xs font-bold px-2 py-1 rounded">

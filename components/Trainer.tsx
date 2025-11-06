@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { auth } from '../src/firebase/config';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { AppData } from '../types.ts';
 import { TrainerSimulator } from './TrainerSimulator.tsx';
 import { TournamentMode } from './TournamentMode.tsx';
@@ -42,19 +44,36 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
     const [selectedSpotTypes, setSelectedSpotTypes] = useState<string[]>(['Any']); // Any by default
     const [viewMode, setViewMode] = useState<ViewMode>('modeSelection');
 
-    // Check if the user is already logged in
+    // Listen for Firebase auth state changes; fall back to localStorage for legacy users
     useEffect(() => {
-        const storedUser = localStorage.getItem('poker_current_user');
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser);
-                setCurrentUser(user);
+        const unsub = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const uid = user.uid;
+                const username = (user.displayName || user.email || '').toString();
+                setCurrentUser({ userId: uid, username });
                 setIsAuthenticated(true);
-                } catch (err) {
-                console.error('Error loading user:', err);
-                localStorage.removeItem('poker_current_user');
+            } else {
+                // No firebase user - try legacy localStorage
+                const storedUser = localStorage.getItem('poker_current_user');
+                if (storedUser) {
+                    try {
+                        const u = JSON.parse(storedUser);
+                        setCurrentUser(u);
+                        setIsAuthenticated(true);
+                    } catch (err) {
+                        console.error('Error loading user from localStorage:', err);
+                        localStorage.removeItem('poker_current_user');
+                        setCurrentUser(null);
+                        setIsAuthenticated(false);
+                    }
+                } else {
+                    setCurrentUser(null);
+                    setIsAuthenticated(false);
+                }
             }
-        }
+        });
+
+        return () => unsub();
     }, []);
 
     // Callback de autenticação bem-sucedida
@@ -64,7 +83,13 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
     };
 
     // Logout
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            // Try sign out from Firebase (if used)
+            await signOut(auth);
+        } catch (e) {
+            // ignore: may not be signed in with Firebase
+        }
         localStorage.removeItem('poker_current_user');
         setCurrentUser(null);
         setIsAuthenticated(false);

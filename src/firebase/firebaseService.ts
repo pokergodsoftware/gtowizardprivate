@@ -204,11 +204,30 @@ export async function getTop10FromFirebase(): Promise<FirebaseStats[]> {
     const querySnapshot = await getDocs(q);
     
     const top10: FirebaseStats[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as FirebaseStats;
+    // querySnapshot.forEach is synchronous; convert to array so we can await per-doc lookups
+    for (const docSnap of querySnapshot.docs) {
+      const data = docSnap.data() as FirebaseStats;
+      // If username missing in stats doc, try to resolve from users collection
+      if (!data.username) {
+        try {
+          const userRef = doc(db, 'users', data.userId || docSnap.id);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData: any = userSnap.data();
+            data.username = userData.username || userData.displayName || userData.name || '<unknown>';
+            console.log('  🔁 Resolved username from users collection:', data.username);
+          } else {
+            data.username = '<unknown>';
+            console.warn('  ⚠️ No user document found for userId:', data.userId || docSnap.id);
+          }
+        } catch (err) {
+          console.warn('  ⚠️ Error resolving username for userId:', data.userId || docSnap.id, err);
+          data.username = '<unknown>';
+        }
+      }
       console.log('  📊', data.username, '-', data.totalPoints, 'points');
       top10.push(data);
-    });
+    }
     
     console.log(`✅ Loaded ${top10.length} players from Firebase`);
     return top10;
@@ -255,9 +274,27 @@ export async function getAllPlayersFromFirebase(): Promise<FirebaseStats[]> {
     const querySnapshot = await getDocs(q);
     
     const players: FirebaseStats[] = [];
-    querySnapshot.forEach((doc) => {
-      players.push(doc.data() as FirebaseStats);
-    });
+    for (const docSnap of querySnapshot.docs) {
+      const data = docSnap.data() as FirebaseStats;
+      if (!data.username) {
+        try {
+          const userRef = doc(db, 'users', data.userId || docSnap.id);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData: any = userSnap.data();
+            data.username = userData.username || userData.displayName || userData.name || '<unknown>';
+            console.log('  🔁 Resolved username from users collection for', data.userId, ':', data.username);
+          } else {
+            data.username = '<unknown>';
+            console.warn('  ⚠️ No user document found for userId:', data.userId || docSnap.id);
+          }
+        } catch (err) {
+          console.warn('  ⚠️ Error resolving username for userId:', data.userId || docSnap.id, err);
+          data.username = '<unknown>';
+        }
+      }
+      players.push(data);
+    }
     
     console.log(`✅ Loaded ${players.length} total players from Firebase`);
     return players;

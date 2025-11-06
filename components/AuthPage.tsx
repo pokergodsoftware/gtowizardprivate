@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
+// NOTE: We use the browser's Web Crypto API to hash passwords before storing them locally.
+// This avoids saving plain-text passwords in localStorage while keeping the change low-risk
+// and dependency-free. For production, use a secure server-side auth (e.g., Firebase Auth).
+
+async function hashPassword(password: string): Promise<string> {
+    const enc = new TextEncoder();
+    const data = enc.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 import { saveUserToFirebase } from '../src/firebase/firebaseService';
+import { auth } from '../src/firebase/config';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 interface AuthPageProps {
     onAuthSuccess: (userId: string, username: string) => void;
@@ -45,10 +58,54 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
         }
 
         try {
+            // Normalize username for storage/lookup to avoid case/whitespace mismatches
+            const normalizedUsername = username.trim().toLowerCase();
+            // Helper to convert a nickname into a pseudo-email for Firebase Auth
+            const makePseudoEmail = (name: string) => {
+                const n = name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                const safe = n || `user_${Date.now()}`;
+                return `${safe}@local.gto`;
+            };
             if (isLogin) {
                 // Login
-                const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
-                const user = users[username];
+                const email = makePseudoEmail(username);
+
+                // Try Firebase Auth first (pseudo-email)
+                try {
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    const uid = cred.user.uid;
+                    const displayName = cred.user.displayName || username;
+
+                    // Best-effort: ensure Firestore has a user doc
+                    try { await saveUserToFirebase(uid, displayName); } catch (e) { /* ignore */ }
+
+                    localStorage.setItem('poker_current_user', JSON.stringify({ userId: uid, username: displayName }));
+                    onAuthSuccess(uid, displayName);
+                    return;
+                } catch (fbErr: any) {
+                    // If Firebase says user doesn't exist, we'll try legacy localStorage fallback.
+                    if (!(fbErr?.code === 'auth/user-not-found')) {
+                        setError(fbErr?.message || 'Sign-in failed');
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                // LocalStorage fallback (legacy users)
+                const usersRaw = localStorage.getItem('poker_users') || '{}';
+                const parsed = JSON.parse(usersRaw);
+                const users: Record<string, any> = {};
+                Object.keys(parsed).forEach((k) => {
+                    const nk = k.trim().toLowerCase();
+                    if (!users[nk]) {
+                        users[nk] = {
+                            ...parsed[k],
+                            usernameOriginal: parsed[k].usernameOriginal || k
+                        };
+                    }
+                });
+
+                const user = users[normalizedUsername];
 
                 if (!user) {
                     setError('User not found');
@@ -56,63 +113,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess, onBack }) => 
                     return;
                 }
 
-                if (user.password !== password) {
+                // Compare hashed password for legacy entry
+                const hashedInput = await hashPassword(password);
+                if (user.password !== hashedInput) {
                     setError('Incorrect password');
                     setLoading(false);
                     return;
                 }
 
-                // Login bem-sucedido
-                localStorage.setItem('poker_current_user', JSON.stringify({
-                    userId: user.id,
-                    username: username
-                }));
-                onAuthSuccess(user.id, username);
+                const displayName = user.usernameOriginal || username;
+                localStorage.setItem('poker_current_user', JSON.stringify({ userId: user.id, username: displayName }));
+                onAuthSuccess(user.id, displayName);
             } else {
                 // Cadastro
-                const users = JSON.parse(localStorage.getItem('poker_users') || '{}');
+                // Register using Firebase Auth (pseudo-email)
+                try {
+                    const cred = await createUserWithEmailAndPassword(auth, makePseudoEmail(username), password);
+                    const uid = cred.user.uid;
 
-                if (users[username]) {
-                    setError('Username already exists');
+                    try { await updateProfile(cred.user, { displayName: username }); } catch (upErr) { /* ignore */ }
+                    try { await saveUserToFirebase(uid, username); } catch (e) { /* ignore */ }
+
+                    localStorage.setItem('poker_current_user', JSON.stringify({ userId: uid, username }));
+                    onAuthSuccess(uid, username);
+                    return;
+                } catch (fbCreateErr: any) {
+                    if (fbCreateErr?.code === 'auth/email-already-in-use') {
+                        setError('Nickname already taken. Try another.');
+                    } else {
+                        setError(fbCreateErr?.message || 'Registration failed');
+                    }
                     setLoading(false);
                     return;
                 }
-
-                // Criar novo usuário
-                const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                users[username] = {
-                    id: userId,
-                    password: password,
-                    createdAt: new Date().toISOString()
-                };
-
-                localStorage.setItem('poker_users', JSON.stringify(users));
-                localStorage.setItem('poker_current_user', JSON.stringify({
-                    userId: userId,
-                    username: username
-                }));
-
-                // Salvar usuário no Firebase
-                try {
-                    console.log('🔄 Attempting to save user to Firebase...', { userId, username });
-                    await saveUserToFirebase(userId, username);
-                    console.log('✅ ☁️ User saved to Firebase successfully!');
-                    console.log('📊 Firebase Status: SYNCED ✓');
-                } catch (firebaseError: any) {
-                    console.error('❌ FIREBASE ERROR - Failed to save user:', {
-                        error: firebaseError,
-                        message: firebaseError?.message,
-                        code: firebaseError?.code,
-                        userId,
-                        username
-                    });
-                    console.warn('⚠️ User saved to localStorage only (not synced to cloud)');
-                    console.warn('💡 Check Firebase rules and network connection');
-                    console.warn('📖 See DATABASE_DIAGNOSTIC.md for troubleshooting');
-                    // Continue even if Firebase fails (localStorage as fallback)
-                }
-
-                onAuthSuccess(userId, username);
             }
         } catch (err) {
             setError('Failed to process request');
