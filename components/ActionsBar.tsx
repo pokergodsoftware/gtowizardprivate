@@ -69,7 +69,7 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({ currentNode, bigBlind, s
   const actionStats = actionStatsRaw.map(stat => ({
     ...stat,
     frequency: totalActionCombos > 0 ? (stat.comboCount / totalActionCombos) * 100 : 0,
-  })).filter(stat => stat.frequency > 0.01);
+  }));
 
 
   return (

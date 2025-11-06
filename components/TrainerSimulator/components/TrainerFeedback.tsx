@@ -84,6 +84,9 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
         };
     }, []);
 
+    // Tooltip for tournament chart points
+    const [tooltip, setTooltip] = React.useState<{ x: number; y: number; content: string } | null>(null);
+
     return (
         <div className="bg-[#23272f] rounded-lg p-2.5 max-w-4xl mx-auto">
             <div className="space-y-1.5">
@@ -372,112 +375,122 @@ export const TrainerFeedback: React.FC<TrainerFeedbackProps> = ({
                             )}
                         </div>
 
-                        {/* Stage Progress - Candle (Vertical) Format - EXPANDED */}
+                        {/* Stage Progress — Chart view (per-tournament) */}
                         <div className="mb-3">
-                            <h3 className="text-white font-bold mb-3 text-sm">Stage Progress</h3>
-                            <div 
-                                className="flex gap-2 overflow-x-auto pb-2"
-                                style={{
-                                    scrollbarWidth: 'thin',
-                                    scrollbarColor: '#4b5563 #1f2937'
-                                }}
-                            >
-                                {tournamentComplete.stages.map((stage, index) => {
-                                    const reached = index < tournamentComplete.currentStageIndex || 
-                                                  (index === tournamentComplete.currentStageIndex && tournamentComplete.isComplete);
-                                    const current = index === tournamentComplete.currentStageIndex && !tournamentComplete.isComplete;
-                                    
-                                    // Get stage statistics
-                                    const stageStat = tournamentComplete.stageStats[index];
-                                    const stageHandsPlayed = stageStat?.handsPlayed || 0;
-                                    const stageLivesLost = stageStat?.livesLost || 0;
-                                    
-                                    // If no hands were played in this stage, don't render
-                                    if (stageHandsPlayed === 0 && !current) {
-                                        return null;
-                                    }
-                                    
-                                    // Calculate performance
-                                    const stageHands = stage.handsToPlay;
-                                    const progress = reached ? 100 : (current ? (stageHandsPlayed / stageHands) * 100 : 0);
-                                    
-                                    // Calculate stage score
-                                    const stageScore = stageHandsPlayed > 0 
-                                        ? ((stageHandsPlayed - stageLivesLost) / stageHandsPlayed * 100).toFixed(0)
-                                        : '0';
-                                    
-                                    // Definir cor baseado no status
-                                    let statusColor = '';
-                                    let statusIcon = '';
-                                    let barColorFrom = '';
-                                    let barColorTo = '';
-                                    let bgColor = '';
-                                    
-                                    if (reached) {
-                                        statusColor = 'text-teal-400';
-                                        statusIcon = '✓';
-                                        barColorFrom = '#14b8a6'; // teal-500
-                                        barColorTo = '#0d9488';   // teal-600
-                                        bgColor = 'bg-teal-500/10 border-teal-500/30';
-                                    } else if (current) {
-                                        statusColor = 'text-yellow-400';
-                                        statusIcon = '⚠';
-                                        barColorFrom = '#eab308'; // yellow-500
-                                        barColorTo = '#ca8a04';   // yellow-600
-                                        bgColor = 'bg-yellow-500/10 border-yellow-500/30';
-                                    } else {
-                                        statusColor = 'text-gray-500';
-                                        statusIcon = '○';
-                                        barColorFrom = '#4b5563'; // gray-600
-                                        barColorTo = '#374151';   // gray-700
-                                        bgColor = 'bg-gray-700/10 border-gray-600/30';
-                                    }
-                                    
-                                    return (
-                                        <div 
-                                            key={`${stage.phase}-${index}`}
-                                            className={`flex flex-col items-center min-w-[90px] ${bgColor} rounded-lg p-3 border`}
+                            <h3 className="text-white font-bold mb-3 text-sm">Stage Performance (This Tournament)</h3>
+                            <div className="overflow-x-auto -mx-4 px-4">
+                                <div className="bg-gray-700/50 rounded-xl p-6 border border-gray-600 relative">
+                                    {(() => {
+                                        // Build phases data from the tournamentComplete payload
+                                        const phasesAll = tournamentComplete.stages.map((stage, idx) => {
+                                            const stat = tournamentComplete.stageStats[idx] || { handsPlayed: 0, livesLost: 0 };
+                                            const total = stat.handsPlayed || 0;
+                                            const livesLost = stat.livesLost || 0;
+                                            const correct = Math.max(0, total - livesLost);
+                                            const accuracy = total > 0 ? (correct / total) * 100 : 0;
+                                            return {
+                                                key: `${stage.phase}-${idx}`,
+                                                // Build labelTop: replace Field/Table with abbreviations, convert '-handed' to 'p'
+                                                // and remove leading 'Final' so labels like 'Final Table (7-handed)' become 'FT (7p)'.
+                                                labelTop: (() => {
+                                                    let s = stage.displayName.replace('Field', '').replace('Table', 'FT').replace('-handed', 'p').trim();
+                                                    if (/^Final\b/i.test(s)) s = s.replace(/^Final\s*/i, '').trim();
+                                                    return s;
+                                                })(),
+                                                labelBottom: `${correct}/${total}`,
+                                                accuracy,
+                                                points: correct,
+                                                total,
+                                                correct
+                                            };
+                                        });
+
+                                        // Exclude stages where the user didn't respond (total === 0)
+                                        const phases = phasesAll.filter(p => p.total > 0);
+
+                                        // If no stages have data, show a friendly message
+                                        if (phases.length === 0) {
+                                            return (
+                                                <div className="text-center text-gray-400 py-6">No stage data available for this tournament.</div>
+                                            );
+                                        }
+
+                                        // Chart sizing and padding (adapted from UserProfile)
+                                        const pointRadius = 5;
+                                        const chartHeight = 360;
+                                        const paddingLeft = 80;
+                                        const paddingRight = 80;
+                                        // Increase per-phase horizontal spacing by 25% over the current 60px (60 * 1.25 = 75)
+                                        const chartWidth = Math.max(600, paddingLeft + paddingRight + phases.length * 60);
+                                        const paddingTop = 28;
+                                        const paddingBottom = 96;
+                                        const plotHeight = chartHeight - paddingTop - paddingBottom;
+
+                                        const yFor = (value: number) => paddingTop + (1 - value / 100) * plotHeight;
+
+                                        const points = phases.map((p, i) => {
+                                            const step = (chartWidth - paddingLeft - paddingRight) / Math.max(1, phases.length - 1);
+                                            const x = paddingLeft + step * i;
+                                            const y = yFor(p.accuracy);
+                                            return { x, y, ...p };
+                                        });
+
+                                        const linePath = points.map(pt => `${pt.x},${pt.y}`).join(' ');
+
+                                        return (
+                                            <svg width={chartWidth} height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="mx-auto">
+                                                {[0,25,50,75,100].map(t => {
+                                                    const y = yFor(t);
+                                                    const yLabelX = Math.max(8, paddingLeft - 56);
+                                                    return (
+                                                        <g key={t}>
+                                                            <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="#374151" strokeWidth={1} opacity={0.6} />
+                                                            <text x={yLabelX} y={y + 6} fill="#9ca3af" fontSize={15}>{t}%</text>
+                                                        </g>
+                                                    );
+                                                })}
+
+                                                {points.map((pt) => (
+                                                    <g key={pt.key}>
+                                                        <line x1={pt.x} y1={chartHeight - paddingBottom + 6} x2={pt.x} y2={chartHeight - paddingBottom + 2} stroke="#4b5563" strokeWidth={1} />
+                                                        {/* Labels: font sizes reduced by 50% */}
+                                                        <text x={pt.x} y={chartHeight - paddingBottom + 28} fill="#cbd5e1" fontSize={13} fontWeight={600} textAnchor="middle">{pt.labelTop}</text>
+                                                        <text x={pt.x} y={chartHeight - paddingBottom + 52} fill="#9ca3af" fontSize={12} textAnchor="middle">{pt.labelBottom}</text>
+                                                    </g>
+                                                ))}
+
+                                                <polyline points={linePath} fill="none" stroke="#60a5fa" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+
+                                                {points.map(pt => (
+                                                    <g key={`pt-${pt.key}`}>
+                                                        <circle
+                                                            cx={pt.x}
+                                                            cy={pt.y}
+                                                            r={pointRadius}
+                                                            fill="#1f2937"
+                                                            stroke="#60a5fa"
+                                                            strokeWidth={2}
+                                                            style={{ cursor: 'pointer' }}
+                                                            onMouseEnter={() => setTooltip({ x: pt.x, y: pt.y, content: `${pt.labelTop}: ${pt.accuracy.toFixed(1)}% — ${pt.correct}/${pt.total} pts` })}
+                                                            onMouseLeave={() => setTooltip(null)}
+                                                        />
+                                                        <text x={pt.x} y={pt.y - 12} fill="#fff" fontSize={16} fontWeight={700} textAnchor="middle">{pt.accuracy.toFixed(0)}%</text>
+                                                    </g>
+                                                ))}
+                                            </svg>
+                                        );
+                                    })()}
+
+                                    {/* Tooltip (absolute within wrapper) */}
+                                    {tooltip && (
+                                        <div
+                                            className="absolute z-50 bg-gray-900 text-white text-sm rounded px-3 py-2 shadow-lg pointer-events-none"
+                                            style={{ left: tooltip.x, top: Math.max(8, tooltip.y - 48), transform: 'translateX(-50%)' }}
                                         >
-                                            {/* Status icon at top */}
-                                            <div className={`text-2xl mb-2 ${statusColor} font-bold`}>
-                                                {statusIcon}
-                                            </div>
-                                            
-                                            {/* Barra vertical (candle) - EXPANDIDA */}
-                                            <div className="relative w-12 h-64 bg-gray-800 rounded-full overflow-hidden border border-gray-700/50 mb-3">
-                                                <div 
-                                                    className="absolute bottom-0 left-0 right-0 transition-all duration-500 ease-out"
-                                                    style={{
-                                                        height: `${progress}%`,
-                                                        background: `linear-gradient(to top, ${barColorTo}, ${barColorFrom})`
-                                                    }}
-                                                />
-                                            </div>
-                                            
-                                            {/* Stage name */}
-                                            <div className="text-xs text-white font-bold text-center leading-tight max-w-[86px] line-clamp-2 mb-1">
-                                                {stage.displayName.replace('Field', '').replace('Table', 'T').replace('-handed', 'p')}
-                                            </div>
-                                            
-                                            {/* Progresso */}
-                                            <div className={`text-xs ${statusColor} font-bold mb-2`}>
-                                                {reached ? '✓' : current ? `${stageHandsPlayed}/${stageHands}` : `0/${stageHands}`}
-                                            </div>
-                                            
-                                            {/* Lives Lost (vermelho) */}
-                                            <div className="text-center mb-1">
-                                                <div className="text-[9px] text-red-400 font-semibold">Lives Lost</div>
-                                                <div className="text-sm text-red-400 font-bold">{stageLivesLost.toFixed(1)}</div>
-                                            </div>
-                                            
-                                            {/* Score % (verde) */}
-                                            <div className="text-center">
-                                                <div className="text-[9px] text-teal-400 font-semibold">Score</div>
-                                                <div className="text-sm text-teal-400 font-bold">{stageScore}%</div>
-                                            </div>
+                                            {tooltip.content}
                                         </div>
-                                    );
-                                })}
+                                    )}
+                                </div>
                             </div>
                         </div>
 

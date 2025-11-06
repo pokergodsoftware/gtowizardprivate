@@ -124,6 +124,12 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         ? ((totalHandsPlayed - mistakes) / totalHandsPlayed * 100).toFixed(1)
         : '0.0';
 
+    // Calcular vidas restantes e preparação dos ícones de coração
+    const livesRemaining = Math.max(0, MAX_MISTAKES - mistakes);
+    const fullHearts = Math.floor(livesRemaining);
+    const hasHalfHeart = (livesRemaining - fullHearts) >= 0.5;
+    const maxHeartsToShow = 10; // Limita quantos ícones desenhar para evitar overflow
+
     // Calcular estatísticas do estágio atual
     const stageMistakes = mistakes - stageMistakesAtStart;
     const stageAccuracy = handsPlayedInStage > 0
@@ -262,7 +268,33 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                     </div>
                     <div className="bg-yellow-500/10 rounded-lg p-1.5 text-center border border-yellow-500/30">
                         <div className="text-yellow-400 text-[20px] mb-0.5">Lives</div>
-                        <div className="text-yellow-400 font-bold text-2xl">{(MAX_MISTAKES - mistakes).toFixed(1)}</div>
+                        <div className="flex flex-col items-center">
+                            {/* Hearts row (top) */}
+                            <div className="flex items-center gap-1 mb-1" aria-label={`Lives remaining: ${livesRemaining.toFixed(1)}`}>
+                                {Array.from({ length: Math.min(fullHearts, maxHeartsToShow) }).map((_, i) => (
+                                    <img
+                                        key={`heart-full-${i}`}
+                                        src="/trainer/heart.png"
+                                        alt="heart"
+                                        className="w-4 h-4"
+                                        aria-hidden="true"
+                                    />
+                                ))}
+                                {hasHalfHeart && fullHearts < maxHeartsToShow && (
+                                    <img
+                                        key={`heart-half`}
+                                        src="/trainer/heart.png"
+                                        alt="half-heart"
+                                        className="w-4 h-4 opacity-60"
+                                        aria-hidden="true"
+                                        style={{ clipPath: 'inset(0 50% 0 0)' }}
+                                    />
+                                )}
+                            </div>
+
+                            {/* Numeric value below, 50% smaller font than before */}
+                            <div className="text-yellow-400 font-bold text-xl">{livesRemaining.toFixed(1)}</div>
+                        </div>
                     </div>
                 </div>
             </div>
