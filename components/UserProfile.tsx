@@ -31,6 +31,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
     const [history, setHistory] = useState<SpotHistoryEntry[]>([]);
     const [markedHands, setMarkedHands] = useState<MarkedHand[]>([]);
     const [markedHandIds, setMarkedHandIds] = useState<Set<string>>(new Set());
+    // Tooltip state for chart points
+    const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
 
     useEffect(() => {
         loadUserStats();
@@ -352,37 +354,133 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                             <p className="text-gray-500 text-sm mt-2">Start training to see your statistics!</p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {sortedPhases.map(([phase, phaseStatsRaw]) => {
-                                const phaseStats = phaseStatsRaw as { total: number; correct: number; points: number };
-                                const accuracy = getPhaseAccuracy(phase);
-                                const accuracyNum = parseFloat(accuracy || '0');
-                                
+                        // Line chart view: SVG based, lightweight, no external deps
+                        <div>
+                            {(() => {
+                                // Map phases into the exact requested ordering and labels
+                                const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
+                                // Preferred sequence (expected phase keys and display labels)
+                                // Use the exact phase keys that `saveSpotResult` writes (or their normalized form)
+                                const preferred = [
+                                    { expectedKey: '100~60% left', top: '100-60% left', bottom: 'Early Game' },
+                                    { expectedKey: '60-40% left', top: '60-40% left', bottom: 'Mid Game' },
+                                    { expectedKey: '40-20% left', top: '40-20% left', bottom: 'Late Game' },
+                                    { expectedKey: 'Near bubble', top: 'Near bubble', bottom: '' },
+                                    { expectedKey: '3 tables', top: '3 tables', bottom: '' },
+                                    { expectedKey: '2 tables', top: '2 tables', bottom: '' },
+                                    { expectedKey: 'Final table', top: 'Final table', bottom: '' },
+                                ];
+
+                                // Build mapping normalized -> original key
+                                const normalizedToKey: Record<string, string> = {};
+                                Object.keys(stats.statsByPhase).forEach(k => {
+                                    normalizedToKey[normalize(k)] = k;
+                                });
+
+                                // Build ordered phases array following the preferred list. If a preferred phase isn't present in stats, include it with zeros.
+                                const phases = preferred.map(p => {
+                                    const lookup = normalize(p.expectedKey);
+                                    const originalKey = normalizedToKey[lookup];
+                                    const phaseStats = originalKey ? (stats.statsByPhase[originalKey] as { total: number; correct: number; points: number }) : { total: 0, correct: 0, points: 0 };
+                                    const accuracy = originalKey ? parseFloat(getPhaseAccuracy(originalKey) || '0') : 0;
+                                    return {
+                                        key: originalKey || lookup,
+                                        labelTop: p.top,
+                                        labelBottom: p.bottom,
+                                        accuracy,
+                                        points: phaseStats?.points || 0,
+                                        total: phaseStats?.total || 0,
+                                        correct: phaseStats?.correct || 0,
+                                    };
+                                });
+
+                                // Chart sizing and padding
+                                const pointRadius = 5;
+                                const chartHeight = 450; // increased by 50% to accommodate larger text and more vertical space
+                                // Extra left padding prevents the first X-label from being clipped
+                                const paddingLeft = 64;
+                                // increase right padding so the last X-label doesn't get clipped
+                                const paddingRight = 96;
+                                const chartWidth = Math.max(600, paddingLeft + paddingRight + phases.length * 120);
+                                const paddingTop = 28;
+                                // increase bottom padding to avoid clipping of multi-line X labels
+                                const paddingBottom = 96;
+                                const plotHeight = chartHeight - paddingTop - paddingBottom;
+
+                                const yFor = (value: number) => paddingTop + (1 - value / 100) * plotHeight;
+
+                                const points = phases.map((p, i) => {
+                                    const step = (chartWidth - paddingLeft - paddingRight) / Math.max(1, phases.length - 1);
+                                    const x = paddingLeft + step * i;
+                                    const y = yFor(p.accuracy);
+                                    return { x, y, ...p };
+                                });
+
+                                const linePath = points.map(pt => `${pt.x},${pt.y}`).join(' ');
+
                                 return (
-                                    <div key={phase} className="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-white font-bold text-lg">{phase}</h3>
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-teal-400 font-bold">{phaseStats.points.toFixed(1)} pts</span>
-                                                <span className={`font-bold ${accuracyNum >= 70 ? 'text-green-400' : accuracyNum >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                    {accuracy}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1 bg-gray-600 rounded-full h-3 overflow-hidden">
-                                                <div 
-                                                    className={`h-full transition-all duration-500 ${accuracyNum >= 70 ? 'bg-green-500' : accuracyNum >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                    style={{ width: `${accuracyNum}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-gray-400 text-sm font-semibold min-w-[80px] text-right">
-                                                {phaseStats.correct}/{phaseStats.total} spots
-                                            </span>
+                                    <div className="overflow-x-auto -mx-4 px-4">
+                                        <div className="bg-gray-700/50 rounded-xl p-6 border border-gray-600 relative">
+                                            <svg width={chartWidth} height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="mx-auto">
+                                                {/* Horizontal grid lines and Y labels */}
+                                                {[0,25,50,75,100].map(t => {
+                                                    const y = yFor(t);
+                                                    return (
+                                                        <g key={t}>
+                                                            <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="#374151" strokeWidth={1} opacity={0.6} />
+                                                            <text x={Math.max(8, paddingLeft - 16)} y={y + 6} fill="#9ca3af" fontSize={15}>{t}%</text>
+                                                        </g>
+                                                    );
+                                                })}
+
+                                                {/* X labels and small vertical ticks */}
+                                                {points.map((pt, i) => (
+                                                    <g key={pt.key}>
+                                                        <line x1={pt.x} y1={chartHeight - paddingBottom + 6} x2={pt.x} y2={chartHeight - paddingBottom + 2} stroke="#4b5563" strokeWidth={1} />
+                                                        <text x={pt.x} y={chartHeight - paddingBottom + 28} fill="#cbd5e1" fontSize={18} fontWeight={600} textAnchor="middle">{pt.labelTop}</text>
+                                                        {pt.labelBottom ? (
+                                                            <text x={pt.x} y={chartHeight - paddingBottom + 52} fill="#9ca3af" fontSize={17} textAnchor="middle">{pt.labelBottom}</text>
+                                                        ) : (
+                                                            <text x={pt.x} y={chartHeight - paddingBottom + 52} fill="#9ca3af" fontSize={17} textAnchor="middle">{pt.correct}/{pt.total} • {pt.points.toFixed(1)}pts</text>
+                                                        )}
+                                                    </g>
+                                                ))}
+
+                                                {/* Polyline area (optional subtle fill) */}
+                                                <polyline points={linePath} fill="none" stroke="#60a5fa" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+
+                                                {/* Points */}
+                                                {points.map(pt => (
+                                                    <g key={pt.key}>
+                                                        <circle
+                                                            cx={pt.x}
+                                                            cy={pt.y}
+                                                            r={pointRadius}
+                                                            fill="#1f2937"
+                                                            stroke="#60a5fa"
+                                                            strokeWidth={2}
+                                                            style={{ cursor: 'pointer' }}
+                                                            onMouseEnter={() => setTooltip({ x: pt.x, y: pt.y, content: `${pt.labelTop}${pt.labelBottom ? ' — ' + pt.labelBottom : ''}: ${pt.accuracy.toFixed(1)}% — ${pt.correct}/${pt.total} • ${pt.points.toFixed(1)}pts` })}
+                                                            onMouseLeave={() => setTooltip(null)}
+                                                        />
+                                                        <text x={pt.x} y={pt.y - 12} fill="#fff" fontSize={17} fontWeight={700} textAnchor="middle">{pt.accuracy.toFixed(0)}%</text>
+                                                    </g>
+                                                ))}
+                                            </svg>
+                                            {/* Tooltip (absolute within wrapper) */}
+                                            {tooltip && (
+                                                <div
+                                                    className="absolute z-50 bg-gray-900 text-white text-sm rounded px-3 py-2 shadow-lg pointer-events-none"
+                                                    style={{ left: tooltip.x, top: Math.max(8, tooltip.y - 48), transform: 'translateX(-50%)' }}
+                                                >
+                                                    {tooltip.content}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
-                            })}
+                            })()}
                         </div>
                     )}
                 </div>
