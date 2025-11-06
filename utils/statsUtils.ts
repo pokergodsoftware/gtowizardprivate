@@ -4,7 +4,12 @@ import {
     saveSpotHistoryToFirebase, 
     loadSpotHistoryFromFirebase,
     getUserStatsFromFirebase,
-    updateTournamentStatsInFirebase
+    updateTournamentStatsInFirebase,
+    saveMarkedHandToFirebase,
+    removeMarkedHandFromFirebase,
+    loadMarkedHandsFromFirebase,
+    resetUserStatsInFirebase,
+    deleteSpotHistoryFromFirebase
 } from '../src/firebase/firebaseService';
 
 interface UserStats {
@@ -34,24 +39,38 @@ export async function saveSpotResult(
     points?: number
 ): Promise<void> {
     try {
-    // If username wasn't provided, try to read it from localStorage
-        if (!username) {
-            const currentUser = localStorage.getItem('poker_current_user');
-            if (currentUser) {
-                const userData = JSON.parse(currentUser);
-                username = userData.username;
-            }
+        // Calculate points (1 point per correct answer)
+        const finalPoints = points !== undefined ? points : (isCorrect ? 1 : 0);
+
+        // Save stats directly to Firebase (Firebase is the single source of truth)
+        try {
+            console.log('🔄 Saving stats to Firebase...', { userId, username, isCorrect, phase, points: finalPoints });
+            await saveStatsToFirebase(userId, username || '', isCorrect, phase, finalPoints);
+            console.log('✅ Stats saved to Firebase successfully');
+        } catch (firebaseError: any) {
+            console.error('❌ FIREBASE ERROR - Failed to save stats to Firebase:', firebaseError);
+            // Surface the error but do not use localStorage fallback (we want to rely only on Firebase)
+            throw firebaseError;
         }
-        
+    } catch (err) {
+        console.error('Error saving statistics:', err);
+    }
+}
+
+/**
+ * Record that the user has played a full tournament.
+ * This function increments the local cached stats.tournamentsPlayed and
+ * attempts to update the cloud stats counter as well.
+ */
+export async function recordTournamentPlayed(userId: string): Promise<void> {
+    try {
         const userStatsKey = `poker_stats_${userId}`;
         const storedStats = localStorage.getItem(userStatsKey);
-        
+
         let stats: UserStats;
-        
         if (storedStats) {
             stats = JSON.parse(storedStats);
         } else {
-            // Initialize empty stats
             stats = {
                 totalSpots: 0,
                 correctSpots: 0,
@@ -63,78 +82,97 @@ export async function saveSpotResult(
             };
         }
 
-    // Calculate points (1 point per correct answer)
-        const finalPoints = points !== undefined ? points : (isCorrect ? 1 : 0);
-
-    // Update global statistics
-        stats.totalSpots++;
-        if (isCorrect) {
-            stats.correctSpots++;
-        }
-        stats.totalPoints += finalPoints;
-
-    // Tournament-related statistics
-        if (phase) {
-            // If it's the first phase of the tournament, count as a tournament played
-            if (phase === '100~60% left') {
-                stats.tournamentsPlayed++;
-            }
-            // If it's the final table, count as final table reached
-            if (phase === 'Final table') {
-                stats.reachedFinalTable++;
-            }
-            // If it's the last phase (e.g., final table and correct), count as tournament completed
-            if (phase === 'Final table' && isCorrect) {
-                stats.completedTournaments++;
-            }
-        }
-
-    // Update statistics per phase
-        if (!stats.statsByPhase[phase]) {
-            stats.statsByPhase[phase] = { total: 0, correct: 0, points: 0 };
-        }
-        stats.statsByPhase[phase].total++;
-        if (isCorrect) {
-            stats.statsByPhase[phase].correct++;
-        }
-        stats.statsByPhase[phase].points += finalPoints;
-
-    // Save to localStorage (local backup)
+        stats.tournamentsPlayed = (stats.tournamentsPlayed || 0) + 1;
         localStorage.setItem(userStatsKey, JSON.stringify(stats));
+        console.log(`🏆 Tournament recorded locally for ${userId}. Total tournamentsPlayed=${stats.tournamentsPlayed}`);
 
-    console.log(`📊 Stats saved for user ${userId}:`, {
-            username: username || 'NO USERNAME',
-            isCorrect,
-            phase,
-            points: finalPoints,
-            totalPoints: stats.totalPoints,
-            accuracy: ((stats.correctSpots / stats.totalSpots) * 100).toFixed(1) + '%'
-        });
-
-        // Also try to save to Firebase
-        if (username) {
-            try {
-                console.log('🔄 Syncing stats to Firebase...', { userId, username, isCorrect, phase, points: finalPoints });
-                await saveStatsToFirebase(userId, username, isCorrect, phase, finalPoints);
-                console.log('✅ ☁️ Stats synced to Firebase successfully!');
-            } catch (firebaseError: any) {
-                console.error('❌ FIREBASE ERROR - Failed to sync stats:', {
-                    error: firebaseError,
-                    message: firebaseError?.message,
-                    code: firebaseError?.code,
-                    userId,
-                    phase
-                });
-                console.warn('⚠️ Stats saved to localStorage only (not synced to cloud)');
-                console.warn('📖 See DATABASE_DIAGNOSTIC.md for troubleshooting');
-                // Do not fail when Firebase is offline
-            }
-        } else {
-            console.warn('⚠️ Username not found! Stats not synced to Firebase');
-            console.warn('💡 Ensure the user is logged in before playing spots');
+        // Try to update Firebase aggregate counter
+        try {
+            await updateTournamentStatsInFirebase(userId, { tournamentsPlayed: 1 });
+            console.log('✅ Tournament counter incremented in Firebase');
+        } catch (firebaseError) {
+            console.warn('⚠️ Could not update tournamentsPlayed in Firebase:', firebaseError);
         }
     } catch (err) {
-        console.error('Error saving statistics:', err);
+        console.error('Error recording tournament played:', err);
+    }
+}
+
+/**
+ * Record that the user has reached the Final Table in the current tournament.
+ * This should be called once per tournament when the user first reaches a Final Table stage.
+ */
+export async function recordReachedFinalTable(userId: string): Promise<void> {
+    try {
+        const userStatsKey = `poker_stats_${userId}`;
+        const storedStats = localStorage.getItem(userStatsKey);
+
+        let stats: UserStats;
+        if (storedStats) {
+            stats = JSON.parse(storedStats);
+        } else {
+            stats = {
+                totalSpots: 0,
+                correctSpots: 0,
+                totalPoints: 0,
+                tournamentsPlayed: 0,
+                reachedFinalTable: 0,
+                completedTournaments: 0,
+                statsByPhase: {}
+            };
+        }
+
+        stats.reachedFinalTable = (stats.reachedFinalTable || 0) + 1;
+        localStorage.setItem(userStatsKey, JSON.stringify(stats));
+        console.log(`🏁 Reached Final Table recorded locally for ${userId}. Total reachedFinalTable=${stats.reachedFinalTable}`);
+
+        try {
+            await updateTournamentStatsInFirebase(userId, { reachedFinalTable: 1 });
+            console.log('✅ reachedFinalTable incremented in Firebase');
+        } catch (firebaseError) {
+            console.warn('⚠️ Could not update reachedFinalTable in Firebase:', firebaseError);
+        }
+    } catch (err) {
+        console.error('Error recording reached final table:', err);
+    }
+}
+
+/**
+ * Record that the user has completed a tournament (answered all hands).
+ * This should be called once when the tournament is completed normally (not busted).
+ */
+export async function recordCompletedTournament(userId: string): Promise<void> {
+    try {
+        const userStatsKey = `poker_stats_${userId}`;
+        const storedStats = localStorage.getItem(userStatsKey);
+
+        let stats: UserStats;
+        if (storedStats) {
+            stats = JSON.parse(storedStats);
+        } else {
+            stats = {
+                totalSpots: 0,
+                correctSpots: 0,
+                totalPoints: 0,
+                tournamentsPlayed: 0,
+                reachedFinalTable: 0,
+                completedTournaments: 0,
+                statsByPhase: {}
+            };
+        }
+
+        stats.completedTournaments = (stats.completedTournaments || 0) + 1;
+        localStorage.setItem(userStatsKey, JSON.stringify(stats));
+        console.log(`🏆 Completed Tournament recorded locally for ${userId}. Total completedTournaments=${stats.completedTournaments}`);
+
+        try {
+            await updateTournamentStatsInFirebase(userId, { completedTournaments: 1 });
+            console.log('✅ completedTournaments incremented in Firebase');
+        } catch (firebaseError) {
+            console.warn('⚠️ Could not update completedTournaments in Firebase:', firebaseError);
+        }
+    } catch (err) {
+        console.error('Error recording completed tournament:', err);
     }
 }
 
@@ -290,9 +328,8 @@ export async function loadSpotHistory(userId: string): Promise<SpotHistoryEntry[
  */
 export function clearSpotHistory(userId: string): void {
     try {
-        const historyKey = `poker_history_${userId}`;
-        localStorage.removeItem(historyKey);
-        console.log(`🗑️ History cleared for user ${userId}`);
+        // Delete/mark history entries in Firebase
+        deleteSpotHistoryFromFirebase(userId).then(() => console.log(`🗑️ History cleared in Firebase for user ${userId}`)).catch(err => console.error('Error clearing history in Firebase:', err));
     } catch (err) {
         console.error('Error clearing history:', err);
     }
@@ -320,19 +357,9 @@ export interface MarkedHand {
  */
 export async function saveMarkedHand(userId: string, markedHand: MarkedHand): Promise<void> {
     try {
-        const markedKey = `marked_hands_${userId}`;
-        const stored = localStorage.getItem(markedKey);
-        let markedHands: MarkedHand[] = stored ? JSON.parse(stored) : [];
-        
-    // Check if it already exists (by unique id)
-        const exists = markedHands.find(h => h.id === markedHand.id);
-        if (!exists) {
-            markedHands.push(markedHand);
-            localStorage.setItem(markedKey, JSON.stringify(markedHands));
-            console.log('⭐ Marked hand saved:', markedHand);
-        }
-        
-        // TODO: Also save to Firebase when implemented
+        // Save marked hand to Firebase
+        await saveMarkedHandToFirebase(userId, markedHand);
+        console.log('⭐ Marked hand saved to Firebase:', markedHand);
     } catch (err) {
         console.error('Error saving marked hand:', err);
     }
@@ -343,16 +370,8 @@ export async function saveMarkedHand(userId: string, markedHand: MarkedHand): Pr
  */
 export async function removeMarkedHand(userId: string, handId: string): Promise<void> {
     try {
-        const markedKey = `marked_hands_${userId}`;
-        const stored = localStorage.getItem(markedKey);
-        if (!stored) return;
-        
-        let markedHands: MarkedHand[] = JSON.parse(stored);
-        markedHands = markedHands.filter(h => h.id !== handId);
-        localStorage.setItem(markedKey, JSON.stringify(markedHands));
-        console.log('❌ Marked hand removed:', handId);
-        
-        // TODO: Also remove from Firebase when implemented
+        await removeMarkedHandFromFirebase(userId, handId);
+        console.log('❌ Marked hand removal requested in Firebase for:', handId);
     } catch (err) {
         console.error('Error removing marked hand:', err);
     }
@@ -363,17 +382,23 @@ export async function removeMarkedHand(userId: string, handId: string): Promise<
  */
 export async function loadMarkedHands(userId: string): Promise<MarkedHand[]> {
     try {
-        const markedKey = `marked_hands_${userId}`;
-        const stored = localStorage.getItem(markedKey);
-        
-        if (stored) {
-            const markedHands: MarkedHand[] = JSON.parse(stored);
-            console.log(`📖 Loaded ${markedHands.length} marked hands from localStorage`);
-            return markedHands;
-        }
-        
-        // TODO: Try loading from Firebase when implemented
-        return [];
+        const items = await loadMarkedHandsFromFirebase(userId);
+        // Map firebase items to MarkedHand if necessary
+        const markedHands: MarkedHand[] = items.map((i: any) => ({
+            id: i.id,
+            timestamp: i.timestamp,
+            solutionPath: i.solutionPath,
+            nodeId: i.nodeId,
+            hand: i.hand,
+            combo: i.combo,
+            position: i.position,
+            playerAction: i.playerAction,
+            isCorrect: i.isCorrect,
+            ev: i.ev,
+            phase: i.phase
+        }));
+        console.log(`📖 Loaded ${markedHands.length} marked hands from Firebase`);
+        return markedHands;
     } catch (err) {
         console.error('Error loading marked hands:', err);
         return [];
@@ -383,14 +408,10 @@ export async function loadMarkedHands(userId: string): Promise<MarkedHand[]> {
 /**
  * Check if a hand is marked
  */
-export function isHandMarked(userId: string, handId: string): boolean {
+export async function isHandMarked(userId: string, handId: string): Promise<boolean> {
     try {
-        const markedKey = `marked_hands_${userId}`;
-        const stored = localStorage.getItem(markedKey);
-        if (!stored) return false;
-        
-        const markedHands: MarkedHand[] = JSON.parse(stored);
-        return markedHands.some(h => h.id === handId);
+        const marked = await loadMarkedHands(userId);
+        return marked.some(h => h.id === handId);
     } catch (err) {
         console.error('Error checking marked hand:', err);
         return false;

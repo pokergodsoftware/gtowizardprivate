@@ -37,6 +37,10 @@ interface TrainerSimulatorProps {
         stageStats: Record<number, { handsPlayed: number; livesLost: number }>;
         onRestart: () => void;
     };
+
+    // Optional hook for parent to intercept Next Hand requests.
+    // If it returns false (or resolves to false), TrainerSimulator will NOT proceed to the next spot.
+    onRequestNextSpot?: () => boolean | Promise<boolean>;
 }
 
 export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({ 
@@ -52,6 +56,7 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
     onSpotResult,
     playerCountFilter,
     tournamentComplete,
+    onRequestNextSpot,
 }) => {
     // ============================================================
     // PHASE 8 REFACTORING: Using extracted hooks and components
@@ -238,8 +243,21 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
         if (autoAdvance && userAction) {
             const delay = tournamentMode ? 5000 : 2500;
             console.log(`⏰ Setting auto-advance timer for ${delay}ms`);
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
                 console.log('⏰ Auto-advance timer fired!');
+                // Allow parent to intercept Next Spot (e.g., to show stage transition)
+                try {
+                    if (onRequestNextSpot) {
+                        const res = await onRequestNextSpot();
+                        if (res === false) {
+                            console.log('⏸️ Parent intercepted auto-advance; not advancing');
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error calling onRequestNextSpot:', err);
+                }
+
                 nextSpot();
             }, delay);
             
@@ -584,7 +602,21 @@ export const TrainerSimulator: React.FC<TrainerSimulatorProps> = ({
                             onSetIsHandMarked={setIsHandMarked}
                             onMarkHand={handleMarkHand}
                             onUnmarkHand={handleUnmarkHand}
-                            onNextSpot={nextSpot}
+                            onNextSpot={async () => {
+                                try {
+                                    if (onRequestNextSpot) {
+                                        const res = await onRequestNextSpot();
+                                        if (res === false) {
+                                            console.log('⏸️ Parent intercepted NEXT HAND; not advancing');
+                                            return;
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Error calling onRequestNextSpot:', err);
+                                }
+
+                                await nextSpot();
+                            }}
                             onStudy={handleStudy}
                             tournamentComplete={tournamentComplete}
                             onBack={onBack}

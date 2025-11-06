@@ -52,9 +52,10 @@ export const useTrainerStats = (): UseTrainerStatsReturn => {
                 totalQuestions: prev.totalQuestions + 1,
                 correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
                 score: prev.score + points,
-                tournamentsPlayed: phase === '100~60% left' 
-                    ? prev.tournamentsPlayed + 1 
-                    : prev.tournamentsPlayed,
+                // tournamentsPlayed is no longer incremented per-question here.
+                // Tournament completions should be recorded once when the tournament
+                // finishes (busted or completed all hands).
+                tournamentsPlayed: prev.tournamentsPlayed,
                 reachedFinalTable: phase === 'Final table' 
                     ? prev.reachedFinalTable + 1 
                     : prev.reachedFinalTable,

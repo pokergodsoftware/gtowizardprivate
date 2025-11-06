@@ -399,7 +399,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                 const pointRadius = 5;
                                 const chartHeight = 450; // increased by 50% to accommodate larger text and more vertical space
                                 // Extra left padding prevents the first X-label from being clipped
-                                const paddingLeft = 64;
+                                // Increased so first column doesn't sit too close to the Y-axis labels
+                                const paddingLeft = 96;
                                 // increase right padding so the last X-label doesn't get clipped
                                 const paddingRight = 96;
                                 const chartWidth = Math.max(600, paddingLeft + paddingRight + phases.length * 120);
@@ -426,10 +427,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ userId, username, onBa
                                                 {/* Horizontal grid lines and Y labels */}
                                                 {[0,25,50,75,100].map(t => {
                                                     const y = yFor(t);
+                                                    // Increase horizontal gap between Y labels and plotted data
+                                                    // Use a larger offset so labels don't collide with data points (esp. near low values)
+                                                    const yLabelX = Math.max(8, paddingLeft - 56);
                                                     return (
                                                         <g key={t}>
                                                             <line x1={paddingLeft} y1={y} x2={chartWidth - paddingRight} y2={y} stroke="#374151" strokeWidth={1} opacity={0.6} />
-                                                            <text x={Math.max(8, paddingLeft - 16)} y={y + 6} fill="#9ca3af" fontSize={15}>{t}%</text>
+                                                            <text x={yLabelX} y={y + 6} fill="#9ca3af" fontSize={15}>{t}%</text>
                                                         </g>
                                                     );
                                                 })}

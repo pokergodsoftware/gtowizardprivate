@@ -379,3 +379,103 @@ export async function updateTournamentStatsInFirebase(
     throw error;
   }
 }
+
+/**
+ * Save a marked hand to Firebase (collection: markedHands)
+ */
+export async function saveMarkedHandToFirebase(userId: string, markedHand: any): Promise<void> {
+  try {
+    const markedRef = collection(db, 'markedHands');
+    await addDoc(markedRef, { ...markedHand, userId, createdAt: new Date().toISOString() });
+    console.log('✅ Marked hand saved to Firebase');
+  } catch (error) {
+    console.error('❌ Error saving marked hand to Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Remove a marked hand by its id (client-generated id field)
+ */
+export async function removeMarkedHandFromFirebase(userId: string, handId: string): Promise<void> {
+  try {
+    const markedRef = collection(db, 'markedHands');
+    const q = query(markedRef, where('userId', '==', userId), where('id', '==', handId));
+    const querySnapshot = await getDocs(q);
+    const deletions = querySnapshot.docs.map(docRef => docRef.ref);
+    for (const ref of deletions) {
+      await updateDoc(ref, { deletedAt: new Date().toISOString() });
+      // Note: we mark deletedAt instead of hard delete to preserve audit. If hard delete preferred, use deleteDoc(ref)
+    }
+    console.log('✅ Marked hand removal processed in Firebase');
+  } catch (error) {
+    console.error('❌ Error removing marked hand from Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Load marked hands for a user
+ */
+export async function loadMarkedHandsFromFirebase(userId: string): Promise<any[]> {
+  try {
+    const markedRef = collection(db, 'markedHands');
+    const q = query(markedRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const items: any[] = [];
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      items.push(data);
+    });
+    console.log(`✅ Loaded ${items.length} marked hands from Firebase`);
+    return items;
+  } catch (error) {
+    console.error('❌ Error loading marked hands from Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reset a user's stats in Firebase (set counters to zero). Use with caution.
+ */
+export async function resetUserStatsInFirebase(userId: string): Promise<void> {
+  try {
+    const statsRef = doc(db, 'stats', userId);
+    await setDoc(statsRef, {
+      userId,
+      totalSpots: 0,
+      correctSpots: 0,
+      incorrectSpots: 0,
+      totalPoints: 0,
+      tournamentsPlayed: 0,
+      reachedFinalTable: 0,
+      completedTournaments: 0,
+      accuracy: 0,
+      lastUpdated: new Date().toISOString(),
+      statsByPhase: {}
+    }, { merge: true });
+    console.log('✅ User stats reset in Firebase');
+  } catch (error) {
+    console.error('❌ Error resetting user stats in Firebase:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete or mark user's spot history entries in Firebase
+ */
+export async function deleteSpotHistoryFromFirebase(userId: string): Promise<void> {
+  try {
+    const historyRef = collection(db, 'spotHistory');
+    const q = query(historyRef, where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    for (const docSnap of querySnapshot.docs) {
+      // Soft-delete by setting deletedAt; change to deleteDoc(docSnap.ref) to hard delete
+      await updateDoc(docSnap.ref, { deletedAt: new Date().toISOString() });
+    }
+    console.log(`✅ Cleared ${querySnapshot.size} spot history entries for user ${userId}`);
+  } catch (error) {
+    console.error('❌ Error clearing spot history in Firebase:', error);
+    throw error;
+  }
+}

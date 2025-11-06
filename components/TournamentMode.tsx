@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { AppData } from '../types.ts';
 import { TrainerSimulator } from './TrainerSimulator.tsx';
+import { recordTournamentPlayed, recordReachedFinalTable, recordCompletedTournament } from '../utils/statsUtils.ts';
 import { StageTransitionScreen } from './StageTransitionScreen.tsx';
 
 interface TournamentModeProps {
@@ -48,8 +49,12 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
     const [mistakes, setMistakes] = useState(0); // May be fractional (e.g. 0.5)
     const [isBusted, setIsBusted] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
+    const [tournamentRecorded, setTournamentRecorded] = useState(false);
+    const [finalTableRecorded, setFinalTableRecorded] = useState(false);
+    const [completedTournamentRecorded, setCompletedTournamentRecorded] = useState(false);
     const [spotKey, setSpotKey] = useState(0); // Chave para forçar remontagem do TrainerSimulator
     const [isTransitioning, setIsTransitioning] = useState(false); // Transition screen between stages
+    const [pendingStageTransition, setPendingStageTransition] = useState(false); // Wait for user to click NEXT HAND
     const [stageMistakesAtStart, setStageMistakesAtStart] = useState(0); // Erros no início do estágio
     
     // Stage statistics: { stageIndex: { handsPlayed, livesLost } }
@@ -106,7 +111,8 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
             } else {
                 // Mostrar tela de transição
                 console.log('🎬 Showing stage transition screen...');
-                setIsTransitioning(true);
+                // Instead of showing immediately, wait until user clicks NEXT HAND in feedback
+                setPendingStageTransition(true);
             }
         }
         // else: Continuar no mesmo estágio - o novo spot será gerado automaticamente
@@ -146,7 +152,50 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
         setIsComplete(false);
         setIsTransitioning(false);
         setSpotKey(prev => prev + 1);
+        // Reset recorded flags so a subsequent tournament can record metrics again
+        setTournamentRecorded(false);
+        setFinalTableRecorded(false);
+        setCompletedTournamentRecorded(false);
     };
+
+    // Parent handler to intercept NEXT HAND requests from TrainerSimulator.
+    // If a stage transition is pending, show the transition screen and prevent advancing to next spot.
+    const handleRequestNextSpot = async (): Promise<boolean> => {
+        if (pendingStageTransition) {
+            console.log('➡️ NEXT HAND clicked - showing Stage Transition now');
+            setIsTransitioning(true);
+            setPendingStageTransition(false);
+            return false; // Prevent TrainerSimulator from advancing immediately
+        }
+        return true; // Allow TrainerSimulator to proceed to next spot
+    };
+
+    // When the tournament finishes (busted or completed all stages), record it once
+    React.useEffect(() => {
+        if ((isBusted || isComplete) && !tournamentRecorded) {
+            console.log('🏁 Tournament finished - recording tournamentsPlayed');
+            recordTournamentPlayed(userId).catch(err => console.error('Failed to record tournamentPlayed:', err));
+            setTournamentRecorded(true);
+        }
+    }, [isBusted, isComplete, tournamentRecorded, userId]);
+
+    // When the user reaches any Final Table stage, record it once per tournament
+    React.useEffect(() => {
+        if (currentStage.phase === 'Final table' && !finalTableRecorded) {
+            console.log('🎯 Reached Final Table - recording reachedFinalTable');
+            recordReachedFinalTable(userId).catch(err => console.error('Failed to record reachedFinalTable:', err));
+            setFinalTableRecorded(true);
+        }
+    }, [currentStageIndex, currentStage.phase, finalTableRecorded, userId]);
+
+    // When tournament completes normally (isComplete), record completedTournaments once
+    React.useEffect(() => {
+        if (isComplete && !completedTournamentRecorded) {
+            console.log('🏆 Tournament fully completed - recording completedTournaments');
+            recordCompletedTournament(userId).catch(err => console.error('Failed to record completedTournament:', err));
+            setCompletedTournamentRecorded(true);
+        }
+    }, [isComplete, completedTournamentRecorded, userId]);
 
     // Tela de jogo
     return (
@@ -232,6 +281,7 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                     tournamentPhase={currentStage.phase}
                     tournamentMode={true}
                     onSpotResult={handleSpotResult}
+                    onRequestNextSpot={handleRequestNextSpot}
                     playerCountFilter={currentStage.playerCount}
                     tournamentComplete={
                         isBusted || isComplete ? {
