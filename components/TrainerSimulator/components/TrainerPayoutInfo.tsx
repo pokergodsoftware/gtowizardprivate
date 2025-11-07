@@ -41,7 +41,7 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
         <div className="bg-[#2d3238] rounded-lg p-2 space-y-2">
             {/* Payouts Section */}
             <div>
-                <h4 className="text-white font-bold text-xs mb-1.5 flex items-center gap-1">
+                <h4 className="text-white font-bold text-xs mb-1.5 flex items-center gap-1 text-[15px]">
                     💰 Payouts
                 </h4>
                 
@@ -54,16 +54,16 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
                                     key={position}
                                     className="flex items-center justify-between bg-[#23272f] px-1.5 py-0.5 rounded"
                                 >
-                                        <span className="text-gray-300 font-semibold text-[11px]">
+                                        <span className="text-gray-300 font-semibold text-[15px]">
                                         {index === 0 ? '1st-2nd' : `${position}th`}
                                     </span>
-                                    <span className="text-green-400 font-bold text-[11px]">
+                                    <span className="text-green-400 font-bold text-[15px]">
                                         ${(prize as number).toFixed(2)}
                                     </span>
                                 </div>
                             ))
                     ) : (
-                        <div className="text-gray-400 text-[11px] text-center py-1 bg-[#23272f] rounded">
+                        <div className="text-gray-400 text-[15px] text-center py-1 bg-[#23272f] rounded">
                             Payouts unavailable
                         </div>
                     )}
@@ -73,13 +73,13 @@ export const TrainerPayoutInfo: React.FC<TrainerPayoutInfoProps> = ({ prizes, so
             {/* Tournament Info Section */}
             <div className="border-t border-gray-700 pt-1.5 space-y-1">
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">Starting stack:</span>
-                    <span className="text-white font-semibold text-[11px]">10,000</span>
+                    <span className="text-gray-400 text-[15px]">Starting stack:</span>
+                    <span className="text-white font-semibold text-[15px]">10,000</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">Initial bounty:</span>
-                    <span className="text-yellow-400 font-semibold text-[11px]">${initialBounty}</span>
+                    <span className="text-gray-400 text-[15px]">Initial bounty:</span>
+                    <span className="text-yellow-400 font-semibold text-[15px]">${initialBounty}</span>
                 </div>
             </div>
         </div>

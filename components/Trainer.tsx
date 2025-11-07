@@ -378,25 +378,17 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                             </button>
                         </div>
                     </div>
-                    {selectedPhases.length > 0 && (
-                            <div className="flex items-center justify-end gap-3 mt-4">
-                            <button
-                                onClick={() => setViewMode('training')}
-                                className="px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all shadow-lg"
-                            >
-                                Start Training ({selectedPhases.length} {selectedPhases.length === 1 ? 'stage' : 'stages'})
-                            </button>
-                        </div>
-                    )}
+                    {/* Start Training button moved into the Spot Types header for better alignment */}
                 </div>
 
                 {/* Seleção de fase e tipos de spot */}
                 <div className="flex-1 overflow-auto p-8">
                     <div className="max-w-5xl mx-auto space-y-8">
-                        {/* Tipos de Spot */}
-                        <div>
-                            <h2 className="text-xl font-bold text-white mb-4">Spot Types</h2>
-                            <div className="flex flex-wrap gap-3">
+                        {/* Tipos de Spot (layout: title + buttons on left, action button aligned right) */}
+                        <div className="flex items-start justify-between mb-6">
+                            <div className="flex-1">
+                                <h2 className="text-xl font-bold text-white">Spot Types</h2>
+                                <div className="flex flex-wrap gap-3 mt-4">
                                 {spotTypes.map(spotType => {
                                     const isSelected = selectedSpotTypes.includes(spotType);
                                     const isDisabled = spotType !== 'Any' && spotType !== 'RFI' && spotType !== 'vs Open' && spotType !== 'vs Shove' && spotType !== 'vs Multiway shove';
@@ -420,10 +412,21 @@ export const Trainer: React.FC<TrainerProps> = ({ solutions, onBack, loadNode, l
                                         </button>
                                     );
                                 })}
-                            </div>
-                            <p className="text-gray-400 text-sm mt-2">
+                                </div>
+                                <p className="text-gray-400 text-sm mt-2">
                                 ℹ️ Select the spot types to train (at least one must be selected). "vs Open" requires solutions with avg stack ≥ 13.2bb.
                             </p>
+                            </div>
+                            <div className="ml-6 flex items-center self-center">
+                                {selectedPhases.length > 0 && (
+                                    <button
+                                        onClick={() => setViewMode('training')}
+                                        className="px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-lg font-bold transition-all shadow-lg"
+                                    >
+                                        Start Training ({selectedPhases.length} {selectedPhases.length === 1 ? 'stage' : 'stages'})
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Tournament stages */}

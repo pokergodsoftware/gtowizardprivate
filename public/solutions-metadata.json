@@ -708,6 +708,36 @@
     "nodeCount": 66
   },
   {
+    "path": "./spots/3tables/speed50_1",
+    "fileName": "3 tables - 6p 10bb (speed50_1)",
+    "tournamentPhase": "3 tables",
+    "nodeCount": 265
+  },
+  {
+    "path": "./spots/3tables/speed50_7",
+    "fileName": "3 tables - 6p 10bb (speed50_7)",
+    "tournamentPhase": "3 tables",
+    "nodeCount": 172
+  },
+  {
+    "path": "./spots/3tables/speed50_8",
+    "fileName": "3 tables - 6p 10bb (speed50_8)",
+    "tournamentPhase": "3 tables",
+    "nodeCount": 182
+  },
+  {
+    "path": "./spots/3tables/speed50_5",
+    "fileName": "3 tables - 6p 8bb (speed50_5)",
+    "tournamentPhase": "3 tables",
+    "nodeCount": 73
+  },
+  {
+    "path": "./spots/3tables/speed50_6",
+    "fileName": "3 tables - 6p 8bb (speed50_6)",
+    "tournamentPhase": "3 tables",
+    "nodeCount": 80
+  },
+  {
     "path": "./spots/3tables/speed20_11",
     "fileName": "3 tables - 6p 9bb (speed20_11)",
     "tournamentPhase": "3 tables",
@@ -796,6 +826,54 @@
     "fileName": "Final table - 3p 11bb (speed32_3_5)",
     "tournamentPhase": "Final table",
     "nodeCount": 6
+  },
+  {
+    "path": "./spots/final_table/speed50_3_1",
+    "fileName": "Final table - 3p 9bb (speed50_3_1)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 18
+  },
+  {
+    "path": "./spots/final_table/speed50_3_2",
+    "fileName": "Final table - 3p 9bb (speed50_3_2)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 8
+  },
+  {
+    "path": "./spots/final_table/speed50_3_3",
+    "fileName": "Final table - 3p 9bb (speed50_3_3)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 6
+  },
+  {
+    "path": "./spots/final_table/speed50_3_4",
+    "fileName": "Final table - 3p 9bb (speed50_3_4)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 6
+  },
+  {
+    "path": "./spots/final_table/speed50_4_1",
+    "fileName": "Final table - 4p 10bb (speed50_4_1)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 37
+  },
+  {
+    "path": "./spots/final_table/speed50_4_2",
+    "fileName": "Final table - 4p 11bb (speed50_4_2)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 46
+  },
+  {
+    "path": "./spots/final_table/speed50_4_3",
+    "fileName": "Final table - 4p 11bb (speed50_4_3)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 16
+  },
+  {
+    "path": "./spots/final_table/speed50_4_4",
+    "fileName": "Final table - 4p 11bb (speed50_4_4)",
+    "tournamentPhase": "Final table",
+    "nodeCount": 32
   },
   {
     "path": "./spots/final_table/speed32_4_1",

@@ -255,9 +255,9 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
 
                 {/* Stats - 50% menor */}
                 <div className="grid grid-cols-4 gap-2">
-                    <div className="bg-gray-800/50 rounded-lg p-1.5 text-center">
-                        <div className="text-gray-400 text-[20px] mb-0.5">Total</div>
-                        <div className="text-white font-bold text-2xl">{totalHandsPlayed}/{TOTAL_HANDS}</div>
+                    <div className="bg-blue-700/10 rounded-lg p-1.5 text-center border border-blue-500/30">
+                        <div className="text-blue-400 text-[20px] mb-0.5">Total</div>
+                        <div className="text-blue-400 font-bold text-2xl">{totalHandsPlayed}/{TOTAL_HANDS}</div>
                     </div>
                     <div className="bg-green-500/10 rounded-lg p-1.5 text-center border border-green-500/30">
                         <div className="text-green-400 text-[20px] mb-0.5">Correct</div>
@@ -291,10 +291,10 @@ export const TournamentMode: React.FC<TournamentModeProps> = ({
                                         style={{ clipPath: 'inset(0 50% 0 0)' }}
                                     />
                                 )}
-                            </div>
 
-                            {/* Numeric value below, 50% smaller font than before */}
-                            <div className="text-yellow-400 font-bold text-xl">{livesRemaining.toFixed(1)}</div>
+                                {/* Numeric value placed inline after hearts in format " (X.0)" */}
+                                <span className="text-yellow-400 font-bold text-xl ml-2">({livesRemaining.toFixed(1)})</span>
+                            </div>
                         </div>
                     </div>
                 </div>
